@@ -234,20 +234,17 @@ extern void k_thread_foreach_unlocked(
 #define K_INHERIT_PERMS (BIT(3))
 
 /**
- * @brief Callback item state
+ * @brief dynamically allocated stack
  *
- * @details
- * This is a single bit of state reserved for "callback manager"
- * utilities (p4wq initially) who need to track operations invoked
- * from within a user-provided callback they have been invoked.
- * Effectively it serves as a tiny bit of zero-overhead TLS data.
+ * This flag indicates that a thread stack has been heap-allocated with
+ * @ref k_malloc.
  */
-#define K_CALLBACK_STATE (BIT(4))
+#define K_STACK_ON_HEAP (BIT(4))
 
 #ifdef CONFIG_X86
 /* x86 Bitmask definitions for threads user options */
 
-#if defined(CONFIG_FPU_SHARING) && defined(CONFIG_X86_SSE)
+#if defined(CONFIG_FPU_SHARING) && defined(CONFIG_SSE)
 /* thread uses SSEx (and also FP) registers */
 #define K_SSE_REGS (BIT(7))
 #endif
@@ -420,9 +417,7 @@ void k_thread_system_pool_assign(struct k_thread *thread);
  * to being aborted, self-exiting, or taking a fatal error. This API returns
  * immediately if the thread isn't running.
  *
- * This API may only be called from ISRs with a K_NO_WAIT timeout,
- * where it can be useful as a predicate to detect when a thread has
- * aborted.
+ * This API may only be called from ISRs with a K_NO_WAIT timeout.
  *
  * @param thread Thread to wait to exit
  * @param timeout upper bound time to wait for the thread to exit.
@@ -538,17 +533,6 @@ __syscall k_tid_t k_current_get(void);
  * thread might currently own (such as mutexes or memory blocks) are not
  * released. It is the responsibility of the caller of this routine to ensure
  * all necessary cleanup is performed.
- *
- * After k_thread_abort() returns, the thread is guaranteed not to be
- * running or to become runnable anywhere on the system.  Normally
- * this is done via blocking the caller (in the same manner as
- * k_thread_join()), but in interrupt context on SMP systems the
- * implementation is required to spin for threads that are running on
- * other CPUs.  Note that as specified, this means that on SMP
- * platforms it is possible for application code to create a deadlock
- * condition by simultaneously aborting a cycle of threads using at
- * least one termination from interrupt context.  Zephyr cannot detect
- * all such conditions.
  *
  * @param thread ID of thread to abort.
  *
@@ -1969,8 +1953,8 @@ static inline void *z_impl_k_queue_peek_tail(struct k_queue *queue)
  * A k_futex is a lightweight mutual exclusion primitive designed
  * to minimize kernel involvement. Uncontended operation relies
  * only on atomic access to shared memory. k_futex are tracked as
- * kernel objects and can live in user memory so that any access
- * bypasses the kernel object permission management mechanism.
+ * kernel objects and can live in user memory so any access bypass
+ * the kernel object permission management mechanism.
  */
 struct k_futex {
 	atomic_t val;
@@ -4327,6 +4311,12 @@ void k_heap_free(struct k_heap *h, void *mem);
 			.init_bytes = (bytes),			\
 		 },						\
 	}
+
+extern int z_mem_pool_alloc(struct k_mem_pool *pool, struct k_mem_block *block,
+			    size_t size, k_timeout_t timeout);
+extern void *z_mem_pool_malloc(struct k_mem_pool *pool, size_t size);
+extern void z_mem_pool_free(struct k_mem_block *block);
+extern void z_mem_pool_free_id(struct k_mem_block_id *id);
 
 /**
  * @}
