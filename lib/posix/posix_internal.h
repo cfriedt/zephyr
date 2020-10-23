@@ -33,15 +33,16 @@ struct posix_thread {
 	/* Exit status */
 	void *retval;
 
-	/* Pthread cancellation */
-	uint8_t cancel_state;
-	bool cancel_pending;
-
-	/* Detach state */
-	uint8_t detachstate;
+	/* Dynamic stack */
+	k_thread_stack_t *dynamic_stack;
 
 	/* Queue ID (internal-only) */
-	uint8_t qid;
+	uint8_t qid: 2;
+	/* Pthread cancellation */
+	bool cancel_state: 1;
+	bool cancel_pending: 1;
+	/* Detach state */
+	bool detachstate: 1;
 };
 
 typedef struct pthread_key_obj {
