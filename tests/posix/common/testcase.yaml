@@ -80,3 +80,11 @@ tests:
       - CONFIG_SPIN_VALIDATE=n
     integration_platforms:
       - mps2_an385
+  portability.posix.common.dynamic_stack:
+    filter: not CONFIG_MMU and not CONFIG_MPU
+    platform_allow:
+      - qemu_cortex_m3
+    extra_configs:
+      - CONFIG_DYNAMIC_THREAD=y
+      - CONFIG_THREAD_STACK_INFO=y
+      - CONFIG_DYNAMIC_THREAD_POOL_SIZE=5
