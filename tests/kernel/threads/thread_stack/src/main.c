@@ -17,6 +17,7 @@
 struct k_thread test_thread;
 #define NUM_STACKS	3
 #define STEST_STACKSIZE	(512 + CONFIG_TEST_EXTRA_STACKSIZE)
+#define DTEST_STACKSIZE (512 + CONFIG_TEST_EXTRA_STACKSIZE)
 K_THREAD_STACK_DEFINE(user_stack, STEST_STACKSIZE);
 K_THREAD_STACK_ARRAY_DEFINE(user_stack_array, NUM_STACKS, STEST_STACKSIZE);
 K_KERNEL_STACK_DEFINE(kern_stack, STEST_STACKSIZE);
@@ -484,6 +485,37 @@ void test_idle_stack(void)
 
 }
 
+void test_dynamic(void)
+{
+	int ret;
+	k_thread_stack_t *stack;
+	const bool is_user = _is_user_context();
+	const int valid_flags = is_user ? K_USER : 0;
+	/* invalid flag for CONFIG_USERSPACE */
+	const int invalid_flags = 0;
+
+	if (is_user) {
+		ret = k_alloc_thread_stack(DTEST_STACKSIZE, invalid_flags, &stack);
+		zassert_true(ret == -EINVAL, "invalid flags not detected: %d", ret);
+
+		ret = k_alloc_thread_stack(DTEST_STACKSIZE, valid_flags, NULL);
+		zassert_true(ret == -EPERM, "invalid address not detected: %d", ret);
+	}
+
+	ret = k_alloc_thread_stack(SIZE_MAX/2, valid_flags, &stack);
+	zassert_true(ret == -ENOMEM, "impossible size not detected: %d", ret);
+
+	ret = k_alloc_thread_stack(DTEST_STACKSIZE, valid_flags, &stack);
+	zassert_true(ret == 0, "failed to obtain stack space: %d", ret);
+
+	scenario_entry(stack, DTEST_STACKSIZE, DTEST_STACKSIZE,
+		DTEST_STACKSIZE, false);
+
+	if (!is_user) {
+		k_free(stack);
+	}
+}
+
 void test_main(void)
 {
 	k_thread_system_pool_assign(k_current_get());
@@ -491,7 +523,8 @@ void test_main(void)
 	/* Run a thread that self-exits, triggering idle cleanup */
 	ztest_test_suite(userspace,
 			 ztest_1cpu_unit_test(test_stack_buffer),
-			 ztest_1cpu_unit_test(test_idle_stack)
+			 ztest_1cpu_unit_test(test_idle_stack),
+			 ztest_1cpu_unit_test(test_dynamic)
 			 );
 	ztest_run_test_suite(userspace);
 }
