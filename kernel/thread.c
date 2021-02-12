@@ -234,6 +234,42 @@ int z_impl_k_thread_name_set(struct k_thread *thread, const char *value)
 }
 
 #ifdef CONFIG_USERSPACE
+static inline int z_vrfy_k_alloc_thread_stack(size_t size, int flags, k_thread_stack_t **stack)
+{
+	if (_is_user_context() && (flags & K_USER) == 0) {
+		return -EINVAL;
+	}
+
+	if (!Z_SYSCALL_MEMORY_WRITE(stack, sizeof(*stack))) {
+		return -EPERM;
+	}
+
+	return z_impl_k_alloc_thread_stack(size, flags, stack);
+}
+#include <syscalls/k_alloc_thread_stack_mrsh.c>
+#endif /* CONFIG_USERSPACE */
+
+int z_impl_k_alloc_thread_stack(size_t size, int flags, k_thread_stack_t **stack)
+{
+	const bool is_user = (flags & K_USER) != 0;
+
+	*stack = NULL;
+
+	if (is_user) {
+
+	} else {
+		*stack = k_aligned_alloc(Z_KERNEL_STACK_OBJ_ALIGN, Z_KERNEL_STACK_SIZE_ADJUST(size));
+		printk("k_aligned_alloc(%lu, %lu) => %p\n", Z_KERNEL_STACK_OBJ_ALIGN, Z_KERNEL_STACK_SIZE_ADJUST(size), *stack);
+	}
+
+	if (*stack == NULL) {
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+#ifdef CONFIG_USERSPACE
 static inline int z_vrfy_k_thread_name_set(struct k_thread *t, const char *str)
 {
 #ifdef CONFIG_THREAD_NAME

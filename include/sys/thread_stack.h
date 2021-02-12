@@ -420,9 +420,28 @@ static inline char *Z_THREAD_STACK_BUFFER(k_thread_stack_t *sym)
 
 #endif /* CONFIG_USERSPACE */
 
+/**
+ * @brief Dynamically allocate a thread stack from the heap.
+ *
+ * The pointer stored in @p stack will suitable to pass to
+ * @ref k_thread_create.
+ *
+ * @param size the desired size of the thread stack in bytes.
+ * @param flags set this to K_USER for userspace stacks or 0
+ * @param[out] stack storage for the returned stack object pointer.
+ *
+ * @return 0 on success.
+ * @return -EPERM when the memory location pointed to by @p stack is invalid.
+ * @return -EINVAL when @p flags contains an invalid value.
+ * @return -ENOMEM when there are insufficient memory resources.
+ */
+__syscall int k_alloc_thread_stack(size_t size, int flags, k_thread_stack_t **stack);
+
 #ifdef __cplusplus
 }
 #endif
+
+#include <syscalls/thread_stack.h>
 
 #endif /* _ASMLANGUAGE */
 #endif /* ZEPHYR_INCLUDE_SYS_THREAD_STACK_H */
