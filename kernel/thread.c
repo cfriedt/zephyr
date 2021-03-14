@@ -252,11 +252,17 @@ static inline int z_vrfy_k_alloc_thread_stack(size_t size, int flags, k_thread_s
 int z_impl_k_alloc_thread_stack(size_t size, int flags, k_thread_stack_t **stack)
 {
 	const bool is_user = (flags & K_USER) != 0;
+	struct z_object *zobj;
 
 	*stack = NULL;
 
-	if (is_user) {
-
+	if (IS_ENABLED(CONFIG_DYNAMIC_OBJECTS) && is_user) {
+		zobj = k_object_alloc(K_OBJ_THREAD_STACK_ELEMENT);
+		if (zobj == NULL) {
+			printk("Failed to allocate object of type K_OBJ_THREAD_STACK_ELEMENT (%d)\n", K_OBJ_THREAD_STACK_ELEMENT);
+			return -ENOMEM;
+		}
+		*stack = zobj->name;
 	} else {
 		*stack = k_aligned_alloc(Z_KERNEL_STACK_OBJ_ALIGN, Z_KERNEL_STACK_SIZE_ADJUST(size));
 		printk("k_aligned_alloc(%lu, %lu) => %p\n", Z_KERNEL_STACK_OBJ_ALIGN, Z_KERNEL_STACK_SIZE_ADJUST(size), *stack);

@@ -347,7 +347,6 @@ void *z_impl_k_object_alloc(enum k_objects otype)
 	/* The following are currently not allowed at all */
 	case K_OBJ_FUTEX:			/* Lives in user memory */
 	case K_OBJ_SYS_MUTEX:			/* Lives in user memory */
-	case K_OBJ_THREAD_STACK_ELEMENT:	/* No aligned allocator */
 	case K_OBJ_NET_SOCKET:			/* Indeterminate size */
 		LOG_ERR("forbidden object type '%s' requested",
 			otype_to_str(otype));
@@ -364,8 +363,20 @@ void *z_impl_k_object_alloc(enum k_objects otype)
 	}
 	zo->type = otype;
 
-	if (otype == K_OBJ_THREAD) {
+	switch(otype) {
+	case K_OBJ_THREAD:
 		zo->data.thread_id = tidx;
+		break;
+	case K_OBJ_THREAD_STACK_ELEMENT:
+		zo->name = k_aligned_alloc(Z_THREAD_STACK_OBJ_ALIGN(512), Z_THREAD_STACK_SIZE_ADJUST(512));
+		printk("k_aligned_alloc(%lu, %lu) => %p\n", Z_THREAD_STACK_OBJ_ALIGN(512), Z_THREAD_STACK_SIZE_ADJUST(512), zo->name);
+		if (!zo->name) {
+			k_object_free(zo);
+			return NULL;
+		}
+		break;
+	default:
+		break;
 	}
 
 	/* The allocating thread implicitly gets permission on kernel objects
