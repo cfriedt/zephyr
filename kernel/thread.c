@@ -262,7 +262,6 @@ int z_impl_k_alloc_thread_stack(size_t size, int flags, k_thread_stack_t **stack
 			printk("Failed to allocate object of type K_OBJ_THREAD_STACK_ELEMENT (%d)\n", K_OBJ_THREAD_STACK_ELEMENT);
 			return -ENOMEM;
 		}
-		*stack = zobj->name;
 	} else {
 		*stack = k_aligned_alloc(Z_KERNEL_STACK_OBJ_ALIGN, Z_KERNEL_STACK_SIZE_ADJUST(size));
 		printk("k_aligned_alloc(%lu, %lu) => %p\n", Z_KERNEL_STACK_OBJ_ALIGN, Z_KERNEL_STACK_SIZE_ADJUST(size), *stack);

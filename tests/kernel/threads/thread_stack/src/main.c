@@ -311,6 +311,34 @@ void stest_thread_launch(uint32_t flags, bool drop)
 	printk("target thread unused stack space: %zu\n", unused);
 }
 
+struct cb_ctx {
+	void *name;
+	struct z_object *obj;
+};
+
+static void z_object_find_by_name_cb(struct z_object *zobj, void *context)
+{
+	struct cb_ctx *ctx = (struct cb_ctx *)context;
+
+	if (ctx->name != NULL) {
+		/* only set ctx->name once */
+		return;
+	}
+
+	if (zobj->name == ctx->name) {
+		ctx->obj = zobj;
+	}
+}
+
+static struct z_object *z_object_find_by_name(void *name)
+{
+	struct cb_ctx ctx = {name, NULL};
+
+	z_object_wordlist_foreach(z_object_find_by_name_cb, &ctx);
+
+	return ctx.obj;
+}
+
 void scenario_entry(void *stack_obj, size_t obj_size, size_t reported_size,
 		    size_t declared_size, bool is_array)
 {
@@ -321,6 +349,10 @@ void scenario_entry(void *stack_obj, size_t obj_size, size_t reported_size,
 	struct z_object *zo;
 
 	zo = z_object_find(stack_obj);
+	if (zo == NULL) {
+		zo = z_object_find_by_name(stack_obj);
+	}
+
 	if (zo != NULL) {
 		is_user = true;
 #ifdef CONFIG_GEN_PRIV_STACKS
@@ -485,27 +517,32 @@ void test_idle_stack(void)
 
 }
 
-void test_dynamic(void)
+
+void test_dynamic_common(const bool is_user)
 {
 	int ret;
 	k_thread_stack_t *stack;
-	//const bool is_user = _is_user_context();
-	const bool is_user = true;
 	const int valid_flags = is_user ? K_USER : 0;
 	/* invalid flag for CONFIG_USERSPACE */
 	const int invalid_flags = 0;
 
-	if (is_user) {
-//		ret = k_alloc_thread_stack(DTEST_STACKSIZE, invalid_flags, &stack);
-//		zassert_true(ret == -EINVAL, "invalid flags not detected: %d", ret);
-//
-//		ret = k_alloc_thread_stack(DTEST_STACKSIZE, valid_flags, NULL);
-//		zassert_true(ret == -EPERM, "invalid address not detected: %d", ret);
+	if (_is_user_context()) {
+		/* do not permit user mode to create a kernel stack */
+		printk("checking invalid flags\n");
+		ret = k_alloc_thread_stack(DTEST_STACKSIZE, invalid_flags, &stack);
+		zassert_true(ret == -EINVAL, "invalid flags not detected: %d", ret);
+
+		/* do not permit user mode write to an arbitrary invalid address */
+		printk("checking invalid address\n");
+		ret = k_alloc_thread_stack(DTEST_STACKSIZE, valid_flags, NULL);
+		zassert_true(ret == -EPERM, "invalid address not detected: %d", ret);
 	}
 
+	printk("checking impossible size\n");
 	ret = k_alloc_thread_stack(SIZE_MAX/2, valid_flags, &stack);
 	zassert_true(ret == -ENOMEM, "impossible size not detected: %d", ret);
 
+	printk("happy path\n");
 	ret = k_alloc_thread_stack(DTEST_STACKSIZE, valid_flags, &stack);
 	zassert_true(ret == 0, "failed to obtain stack space: %d", ret);
 
@@ -513,8 +550,25 @@ void test_dynamic(void)
 		DTEST_STACKSIZE, false);
 
 	if (!is_user) {
+		printk("freeing stack at %p\n", stack);
 		k_free(stack);
 	}
+}
+
+void test_dynamic_kernel_kernel(void)
+{
+	test_dynamic_common(false);
+}
+
+void test_dynamic_kernel_user(void)
+{
+	/* should be able to create user mode thread stacks too */
+	test_dynamic_common(true);
+}
+
+void test_dynamic_user(void)
+{
+	test_dynamic_common(true);
 }
 
 void test_main(void)
@@ -525,7 +579,9 @@ void test_main(void)
 	ztest_test_suite(userspace,
 			 ztest_1cpu_unit_test(test_stack_buffer),
 			 ztest_1cpu_unit_test(test_idle_stack),
-			 ztest_1cpu_unit_test(test_dynamic)
+			 ztest_1cpu_unit_test(test_dynamic_kernel_kernel),
+			 ztest_1cpu_unit_test(test_dynamic_kernel_user),
+			 ztest_1cpu_user_unit_test(test_dynamic_user)
 			 );
 	ztest_run_test_suite(userspace);
 }
