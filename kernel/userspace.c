@@ -363,20 +363,8 @@ void *z_impl_k_object_alloc(enum k_objects otype)
 	}
 	zo->type = otype;
 
-	switch(otype) {
-	case K_OBJ_THREAD:
+	if (otype == K_OBJ_THREAD) {
 		zo->data.thread_id = tidx;
-		break;
-	case K_OBJ_THREAD_STACK_ELEMENT:
-		zo->name = k_aligned_alloc(Z_THREAD_STACK_OBJ_ALIGN(512), Z_THREAD_STACK_SIZE_ADJUST(512));
-		printk("k_aligned_alloc(%lu, %lu) => %p\n", Z_THREAD_STACK_OBJ_ALIGN(512), Z_THREAD_STACK_SIZE_ADJUST(512), zo->name);
-		if (!zo->name) {
-			k_object_free(zo);
-			return NULL;
-		}
-		break;
-	default:
-		break;
 	}
 
 	/* The allocating thread implicitly gets permission on kernel objects
@@ -503,6 +491,9 @@ static void unref_check(struct z_object *ko, uintptr_t index)
 		break;
 	case K_OBJ_STACK:
 		k_stack_cleanup((struct k_stack *)ko->name);
+		break;
+	case K_OBJ_THREAD_STACK_ELEMENT:
+		k_free(dyn->kobj.name);
 		break;
 	default:
 		/* Nothing to do */

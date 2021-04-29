@@ -431,7 +431,6 @@ static inline char *Z_THREAD_STACK_BUFFER(k_thread_stack_t *sym)
  * @param[out] stack storage for the returned stack object pointer.
  *
  * @return 0 on success.
- * @return -EPERM when the memory location pointed to by @p stack is invalid.
  * @return -EINVAL when @p flags contains an invalid value.
  * @return -ENOMEM when there are insufficient memory resources.
  */

@@ -236,13 +236,11 @@ int z_impl_k_thread_name_set(struct k_thread *thread, const char *value)
 #ifdef CONFIG_USERSPACE
 static inline int z_vrfy_k_alloc_thread_stack(size_t size, int flags, k_thread_stack_t **stack)
 {
-	if (_is_user_context() && (flags & K_USER) == 0) {
+	CHECKIF((flags & K_USER) == 0) {
 		return -EINVAL;
 	}
 
-	if (!Z_SYSCALL_MEMORY_WRITE(stack, sizeof(*stack))) {
-		return -EPERM;
-	}
+	Z_OOPS(Z_SYSCALL_MEMORY_WRITE(stack, sizeof(*stack)));
 
 	return z_impl_k_alloc_thread_stack(size, flags, stack);
 }
@@ -252,23 +250,28 @@ static inline int z_vrfy_k_alloc_thread_stack(size_t size, int flags, k_thread_s
 int z_impl_k_alloc_thread_stack(size_t size, int flags, k_thread_stack_t **stack)
 {
 	const bool is_user = (flags & K_USER) != 0;
-	struct z_object *zobj;
+	struct z_object *zo;
 
 	*stack = NULL;
 
 	if (IS_ENABLED(CONFIG_DYNAMIC_OBJECTS) && is_user) {
-		zobj = k_object_alloc(K_OBJ_THREAD_STACK_ELEMENT);
-		if (zobj == NULL) {
-			printk("Failed to allocate object of type K_OBJ_THREAD_STACK_ELEMENT (%d)\n", K_OBJ_THREAD_STACK_ELEMENT);
+		zo = k_object_alloc(K_OBJ_THREAD_STACK_ELEMENT);
+		if (zo == NULL) {
 			return -ENOMEM;
 		}
+
+		zo->name = k_aligned_alloc(Z_THREAD_STACK_OBJ_ALIGN(size), Z_THREAD_STACK_SIZE_ADJUST(size));
+		if (zo->name == NULL) {
+			k_object_free(zo);
+			return -ENOMEM;
+		}
+
+		*stack = zo->name;
 	} else {
 		*stack = k_aligned_alloc(Z_KERNEL_STACK_OBJ_ALIGN, Z_KERNEL_STACK_SIZE_ADJUST(size));
-		printk("k_aligned_alloc(%lu, %lu) => %p\n", Z_KERNEL_STACK_OBJ_ALIGN, Z_KERNEL_STACK_SIZE_ADJUST(size), *stack);
-	}
-
-	if (*stack == NULL) {
-		return -ENOMEM;
+		if (*stack == NULL) {
+			return -ENOMEM;
+		}
 	}
 
 	return 0;

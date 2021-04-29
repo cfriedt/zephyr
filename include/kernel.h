@@ -5031,7 +5031,7 @@ void k_heap_free(struct k_heap *h, void *mem);
  * This routine provides semantics similar to aligned_alloc(); memory is
  * allocated from the heap with a specified alignment. However, one minor
  * difference is that k_aligned_alloc() accepts any non-zero @p size,
- * wherase aligned_alloc() only accepts a @p size that is an integral
+ * whereas aligned_alloc() only accepts a @p size that is an integral
  * multiple of @p align.
  *
  * Above, aligned_alloc() refers to:
