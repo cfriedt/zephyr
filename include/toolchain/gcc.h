@@ -481,6 +481,18 @@ do {                                                                    \
 		"\n\t.type\t" #name ",%object")
 
 #elif defined(CONFIG_ARCH_POSIX)
+
+#if defined(__llvm__)
+#define GEN_ABSOLUTE_SYM(name, value)               \
+	__asm__(".globl\t" #name "\n\t.equ\t" #name \
+		",%c0"                              \
+		"\n" :  : "n"(value))
+
+#define GEN_ABSOLUTE_SYM_KCONFIG(name, value)       \
+	__asm__(".globl\t" #name                    \
+		"\n\t.equ\t" #name "," #value       \
+		"\n")
+#else
 #define GEN_ABSOLUTE_SYM(name, value)               \
 	__asm__(".globl\t" #name "\n\t.equ\t" #name \
 		",%c0"                              \
@@ -490,6 +502,7 @@ do {                                                                    \
 	__asm__(".globl\t" #name                    \
 		"\n\t.equ\t" #name "," #value       \
 		"\n\t.type\t" #name ",@object")
+#endif
 
 #elif defined(CONFIG_SPARC)
 #define GEN_ABSOLUTE_SYM(name, value)			\
