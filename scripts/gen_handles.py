@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 #
 # Copyright (c) 2017 Intel Corporation
@@ -32,6 +33,7 @@ import os
 import struct
 import pickle
 from distutils.version import LooseVersion
+import magic
 
 import elftools
 from elftools.elf.elffile import ELFFile
@@ -163,11 +165,6 @@ def main():
     parse_args()
 
     assert args.kernel, "--kernel ELF required to extract data"
-    elf = ELFFile(open(args.kernel, "rb"))
-
-    edtser = os.path.join(os.path.split(args.kernel)[0], "edt.pickle")
-    with open(edtser, 'rb') as f:
-        edt = pickle.load(f)
 
     devices = []
     handles = []
@@ -176,6 +173,19 @@ def main():
                           "_DEVICE_STRUCT_SIZEOF",
                           "_DEVICE_STRUCT_HANDLES_OFFSET"])
     ld_constants = dict()
+
+    filetype = magic.from_file(args.kernel)
+    if filetype.startswith('Mach-O'):
+        with open(args.output_source, "w") as fp:
+            # not sure if anything needs to be written here
+            pass
+        return
+
+    elf = ELFFile(open(args.kernel, "rb"))
+
+    edtser = os.path.join(os.path.split(args.kernel)[0], "edt.pickle")
+    with open(edtser, 'rb') as f:
+        edt = pickle.load(f)
 
     for section in elf.iter_sections():
         if isinstance(section, SymbolTableSection):

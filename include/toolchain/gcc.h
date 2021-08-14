@@ -148,13 +148,21 @@ do {                                                                    \
 	__attribute__((section("." STRINGIFY(segment))))
 #define Z_GENERIC_DOT_SECTION(segment) __GENERIC_DOT_SECTION(segment)
 
+#if defined(__APPLE__) && defined(__MACH__)
+#define __z_section(x) __attribute__((section("__common,z_mac_sad")))
+#define ___in_section(a, b, c) __attribute__((section("__common,z_sad_mac")))
+#else
 #define ___in_section(a, b, c) \
 	__attribute__((section("." Z_STRINGIFY(a)			\
 				"." Z_STRINGIFY(b)			\
 				"." Z_STRINGIFY(c))))
+#define __z_section(x) __attribute__((__section__(x)))
+#endif
+
 #define __in_section(a, b, c) ___in_section(a, b, c)
 
 #define __in_section_unique(seg) ___in_section(seg, __FILE__, __COUNTER__)
+
 
 /* When using XIP, using '__ramfunc' places a function into RAM instead
  * of FLASH. Make sure '__ramfunc' is defined only when
@@ -481,6 +489,17 @@ do {                                                                    \
 		"\n\t.type\t" #name ",%object")
 
 #elif defined(CONFIG_ARCH_POSIX)
+#if defined(__APPLE__) && defined(__MACH__)
+#define GEN_ABSOLUTE_SYM(name, value)               \
+	__asm__(".globl\t" #name "\n\t.equ\t" #name \
+		",%c0"                              \
+		"\n" :  : "n"(value))
+
+#define GEN_ABSOLUTE_SYM_KCONFIG(name, value)       \
+	__asm__(".globl\t" #name                    \
+		"\n\t.equ\t" #name "," #value       \
+		"\n")
+#else
 #define GEN_ABSOLUTE_SYM(name, value)               \
 	__asm__(".globl\t" #name "\n\t.equ\t" #name \
 		",%c0"                              \
@@ -490,6 +509,7 @@ do {                                                                    \
 	__asm__(".globl\t" #name                    \
 		"\n\t.equ\t" #name "," #value       \
 		"\n\t.type\t" #name ",@object")
+#endif
 
 #elif defined(CONFIG_SPARC)
 #define GEN_ABSOLUTE_SYM(name, value)			\
@@ -567,6 +587,11 @@ do {                                                                    \
 #define Z_POW2_CEIL(x) ((1UL << (31U - __builtin_clzl(x))) < x ?  \
 		1UL << (31U - __builtin_clzl(x) + 1U) : \
 		1UL << (31U - __builtin_clzl(x)))
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+#define __ssize_t_defined 1
+#define __off_t_defined 1
 #endif
 
 #endif /* !_LINKER */
