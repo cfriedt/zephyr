@@ -18,9 +18,11 @@
 
 /* Weak-linked noop defaults for optional driver interfaces*/
 
+#if !(defined(__APPLE__) && defined(__MACH__))
 void __weak sys_clock_set_timeout(int32_t ticks, bool idle)
 {
 }
+#endif
 
 void __weak sys_clock_idle_exit(void)
 {
