@@ -27,5 +27,7 @@
 
 #include <zephyr/toolchain/gcc.h>
 
+#undef __weak
+#define __weak
 
 #endif /* ZEPHYR_INCLUDE_TOOLCHAIN_LLVM_H_ */

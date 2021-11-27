@@ -32,6 +32,7 @@ import os
 import struct
 import pickle
 from packaging import version
+import magic
 
 import elftools
 from elftools.elf.elffile import ELFFile
@@ -221,11 +222,6 @@ def main():
     parse_args()
 
     assert args.kernel, "--kernel ELF required to extract data"
-    elf = ELFFile(open(args.kernel, "rb"))
-
-    edtser = os.path.join(os.path.split(args.kernel)[0], "edt.pickle")
-    with open(edtser, 'rb') as f:
-        edt = pickle.load(f)
 
     pm_devices = {}
     devices = []
@@ -240,6 +236,19 @@ def main():
                                "_DEVICE_STRUCT_PM_OFFSET",
                                "_PM_DEVICE_STRUCT_FLAGS_OFFSET"])
     ld_constants = dict()
+
+    filetype = magic.from_file(args.kernel)
+    if filetype.startswith('Mach-O'):
+        with open(args.output_source, "w") as fp:
+            # not sure if anything needs to be written here
+            pass
+        return
+
+    elf = ELFFile(open(args.kernel, "rb"))
+
+    edtser = os.path.join(os.path.split(args.kernel)[0], "edt.pickle")
+    with open(edtser, 'rb') as f:
+        edt = pickle.load(f)
 
     for section in elf.iter_sections():
         if isinstance(section, SymbolTableSection):

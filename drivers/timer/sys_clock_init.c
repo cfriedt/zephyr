@@ -17,6 +17,26 @@
 #include <zephyr/drivers/timer/system_timer.h>
 
 /* Weak-linked noop defaults for optional driver interfaces*/
+#if defined(__APPLE__) && defined(__MACH__)
+extern void sys_clock_isr(void *arg);
+extern int sys_clock_driver_init(const struct device *dev);
+void sys_clock_set_timeout(int32_t ticks, bool idle);
+void sys_clock_idle_exit(void)
+{
+}
+void sys_clock_disable(void);
+#else /* defined(__APPLE__) && defined(__MACH__) */
+void __weak sys_clock_isr(void *arg)
+{
+	__ASSERT_NO_MSG(false);
+}
+
+int __weak sys_clock_driver_init(const struct device *dev)
+{
+	ARG_UNUSED(dev);
+
+	return 0;
+}
 
 void __weak sys_clock_set_timeout(int32_t ticks, bool idle)
 {
@@ -25,3 +45,12 @@ void __weak sys_clock_set_timeout(int32_t ticks, bool idle)
 void __weak sys_clock_idle_exit(void)
 {
 }
+
+void __weak sys_clock_disable(void)
+{
+}
+
+SYS_DEVICE_DEFINE("sys_clock", sys_clock_driver_init,
+		PRE_KERNEL_2, CONFIG_SYSTEM_CLOCK_INIT_PRIORITY);
+
+#endif /* defined(__APPLE__) && defined(__MACH__) */

@@ -42,11 +42,9 @@ void posix_soc_clean_up(void);
  * Note that for the PRE and ON_EXIT levels neither the Zephyr kernel or
  * any Zephyr thread are running.
  */
-#define NATIVE_TASK(fn, level, prio)	\
-	static void (*_CONCAT(__native_task_, fn)) __used	\
-	__attribute__((__section__(".native_" #level STRINGIFY(prio) "_task")))\
-	= fn
-
+#define NATIVE_TASK(fn, level, prio)                                                               \
+	static void(*_CONCAT(__native_task_, fn))                                                  \
+		__used __z_section(".native_" #level STRINGIFY(prio) "_task") = fn
 
 #define _NATIVE_PRE_BOOT_1_LEVEL	0
 #define _NATIVE_PRE_BOOT_2_LEVEL	1

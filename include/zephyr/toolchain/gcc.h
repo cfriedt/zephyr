@@ -163,17 +163,23 @@ do {                                                                    \
 /* Double indirection to ensure section names are expanded before
  * stringification
  */
-#define __GENERIC_SECTION(segment) __attribute__((section(STRINGIFY(segment))))
+#if defined(__APPLE__) && defined(__MACH__)
+#define __z_section(x) __attribute__((section("__DATA," #x)))
+#else
+#define __z_section(x) __attribute__((section(#x)))
+#endif
+
+#define __GENERIC_SECTION(segment) __z_section(STRINGIFY(segment))
 #define Z_GENERIC_SECTION(segment) __GENERIC_SECTION(segment)
 
 #define __GENERIC_DOT_SECTION(segment) \
-	__attribute__((section("." STRINGIFY(segment))))
+	__z_section("." STRINGIFY(segment))
 #define Z_GENERIC_DOT_SECTION(segment) __GENERIC_DOT_SECTION(segment)
 
 #define ___in_section(a, b, c) \
-	__attribute__((section("." Z_STRINGIFY(a)			\
+	__z_section("." Z_STRINGIFY(a)			\
 				"." Z_STRINGIFY(b)			\
-				"." Z_STRINGIFY(c))))
+				"." Z_STRINGIFY(c))
 #define __in_section(a, b, c) ___in_section(a, b, c)
 
 #define __in_section_unique(seg) ___in_section(seg, __FILE__, __COUNTER__)
@@ -191,7 +197,8 @@ do {                                                                    \
 #define __ramfunc
 #elif defined(CONFIG_ARCH_HAS_RAMFUNC_SUPPORT)
 #define __ramfunc	__attribute__((noinline))			\
-			__attribute__((long_call, section(".ramfunc")))
+			__attribute__((long_call)) \
+			__z_section(".ramfunc")
 #endif /* !CONFIG_XIP */
 
 #ifndef __fallthrough
@@ -510,13 +517,11 @@ do {                                                                    \
 #elif defined(CONFIG_ARCH_POSIX)
 #define GEN_ABSOLUTE_SYM(name, value)               \
 	__asm__(".globl\t" #name "\n\t.equ\t" #name \
-		",%c0"                              \
-		"\n\t.type\t" #name ",@object" :  : "n"(value))
+		",%c0" :  : "n"(value))
 
 #define GEN_ABSOLUTE_SYM_KCONFIG(name, value)       \
 	__asm__(".globl\t" #name                    \
-		"\n\t.equ\t" #name "," #value       \
-		"\n\t.type\t" #name ",@object")
+			"\n\t.equ\t" #name "," #value)
 
 #elif defined(CONFIG_SPARC)
 #define GEN_ABSOLUTE_SYM(name, value)			\
@@ -603,6 +608,11 @@ do {                                                                    \
  * @return true if x is a power of 2, false otherwise
  */
 #define Z_IS_POW2(x) (((x) != 0) && (((x) & ((x)-1)) == 0))
+
+#if defined(__APPLE__) && defined(__MACH__)
+#define __ssize_t_defined 1
+#define __off_t_defined 1
+#endif
 
 #endif /* !_LINKER */
 #endif /* ZEPHYR_INCLUDE_TOOLCHAIN_GCC_H_ */

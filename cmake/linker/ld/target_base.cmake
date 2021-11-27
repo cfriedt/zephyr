@@ -10,8 +10,14 @@ macro(toolchain_ld_base)
 
   # TOOLCHAIN_LD_FLAGS comes from compiler/gcc/target.cmake
   # LINKERFLAGPREFIX comes from linker/ld/target.cmake
+  if (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin" AND CONFIG_ARCH_POSIX)
+    set(no_pie "")
+  else()
+    set(no_pie "-no-pie")
+  endif()
+
   zephyr_ld_options(
-    -no-pie
+    ${no_pie}
     ${TOOLCHAIN_LD_FLAGS}
   )
 
