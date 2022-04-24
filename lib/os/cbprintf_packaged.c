@@ -53,8 +53,10 @@ struct __va_list {
 	int	__vr_offs;
 };
 
+#if !(defined(__APPLE__) && defined(__MACH__))
 BUILD_ASSERT(sizeof(va_list) == sizeof(struct __va_list),
 	     "architecture specific support is wrong");
+#endif /* !(defined(__APPLE__) && defined(__MACH__)) */
 
 static int cbprintf_via_va_list(cbprintf_cb out,
 				cbvprintf_exteral_formatter_func formatter,

@@ -59,10 +59,31 @@ endmacro()
 
 # Force symbols to be entered in the output file as undefined symbols
 function(toolchain_ld_force_undefined_symbols)
+  if (CONFIG_ARCH_POSIX AND ${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
+    set(symbol_prefix "_")
+  else()
+    set(symbol_prefix "")
+  endif()
   foreach(symbol ${ARGN})
-    zephyr_link_libraries(${LINKERFLAGPREFIX},-u,${symbol})
+    zephyr_link_libraries(${LINKERFLAGPREFIX},-u,${symbol_prefix}${symbol})
   endforeach()
 endfunction()
+
+if (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin" AND CONFIG_ARCH_POSIX)
+  set(map_opt "-map,")
+  set(whole_archive "-Wl,-all_load")
+  set(no_whole_archive "")
+  set(use_linker "-fuse-ld=lld")
+  # FIXME: not reading linker script for some reason
+  # fails with "ld64.lld: error: zephyr/linker_zephyr_pre0.ld: unhandled file type"
+  set(TOOLCHAIN_LD_LINK_ELF_LINKER_SCRIPT "")
+  set(MACOS_OPTS "-Wl,-flat_namespace, -Wl,-undefined,warning")
+else()
+  message(FATAL_ERROR "config not correct")
+  set(map_opt "-Map=")
+  set(whole_archive "${LINKERFLAGPREFIX},--whole-archive")
+  set(no_whole_archive "${LINKERFLAGPREFIX},--no-whole-archive")
+endif()
 
 # Link a target to given libraries with toolchain-specific argument order
 #
@@ -84,17 +105,25 @@ function(toolchain_ld_link_elf)
     ${ARGN}                                                   # input args to parse
   )
 
+  if(${CMAKE_LINKER} STREQUAL "${CROSS_COMPILE}ld.bfd")
+    # ld.bfd was found so let's explicitly use that for linking, see #32237
+    set(use_linker "-fuse-ld=bfd")
+  endif()
+
   target_link_libraries(
     ${TOOLCHAIN_LD_LINK_ELF_TARGET_ELF}
     ${TOOLCHAIN_LD_LINK_ELF_LIBRARIES_PRE_SCRIPT}
+    ${use_linker}
     ${TOPT}
     ${TOOLCHAIN_LD_LINK_ELF_LINKER_SCRIPT}
     ${TOOLCHAIN_LD_LINK_ELF_LIBRARIES_POST_SCRIPT}
 
-    ${LINKERFLAGPREFIX},-Map=${TOOLCHAIN_LD_LINK_ELF_OUTPUT_MAP}
-    ${LINKERFLAGPREFIX},--whole-archive
+    ${MACOS_OPTS}
+
+    ${LINKERFLAGPREFIX},${map_opt}${TOOLCHAIN_LD_LINK_ELF_OUTPUT_MAP}
+    ${whole_archive}
     ${ZEPHYR_LIBS_PROPERTY}
-    ${LINKERFLAGPREFIX},--no-whole-archive
+    ${no_whole_archive}
     kernel
     $<TARGET_OBJECTS:${OFFSETS_LIB}>
     ${LIB_INCLUDE_DIR}

@@ -346,6 +346,11 @@ zephyr_compile_options($<$<COMPILE_LANGUAGE:CXX>:$<TARGET_PROPERTY:compiler-cpp,
 # 'cmake -DEXTRA_CFLAGS="-Werror -Wno-deprecated-declarations" ..'
 include(cmake/extra_flags.cmake)
 
+if (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin" AND CONFIG_ARCH_POSIX)
+zephyr_cc_option(-fhash-section-names=16)
+zephyr_cc_option(-fhashed-section-names=zephyr_renamed_sections.csv)
+endif()
+
 zephyr_cc_option(-fno-asynchronous-unwind-tables)
 zephyr_cc_option(-fno-pie)
 zephyr_cc_option(-fno-pic)
@@ -410,9 +415,12 @@ if(CONFIG_USERSPACE)
   set(KOBJECT_LINKER_DEP kobject_linker)
 endif()
 
+# Actually, the '-T' option is not required for LLVM's LLD
+if (NOT (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin" AND CONFIG_ARCH_POSIX))
 get_property(TOPT GLOBAL PROPERTY TOPT)
 set_ifndef(  TOPT -Wl,-T) # clang doesn't pick -T for some reason and complains,
                           # while -Wl,-T works for both, gcc and clang
+endif()
 
 if(CONFIG_HAVE_CUSTOM_LINKER_SCRIPT)
   set(LINKER_SCRIPT ${APPLICATION_SOURCE_DIR}/${CONFIG_CUSTOM_LINKER_SCRIPT})
@@ -1624,6 +1632,8 @@ if(CONFIG_OUTPUT_DISASSEMBLE_ALL)
 endif()
 
 if(CONFIG_OUTPUT_STAT)
+# probably some equivalent command exists to read stats from a Mach-O binary
+if (NOT (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin" AND CONFIG_ARCH_POSIX))
 #  zephyr_post_build(TOOLS bintools COMMAND readelf FLAGS headers INFILE file OUTFILE outfile)
   list(APPEND
     post_build_commands
@@ -1638,6 +1648,7 @@ if(CONFIG_OUTPUT_STAT)
     post_build_byproducts
     ${KERNEL_STAT_NAME}
     )
+endif()
 endif()
 
 if(CONFIG_BUILD_OUTPUT_STRIPPED)

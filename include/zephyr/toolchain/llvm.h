@@ -27,5 +27,9 @@
 
 #include <toolchain/gcc.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#undef __weak
+#define __weak
+#endif
 
 #endif /* ZEPHYR_INCLUDE_TOOLCHAIN_LLVM_H_ */
