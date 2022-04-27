@@ -6,6 +6,7 @@
 #include <zephyr/kernel.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/types.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/posix/time.h>
 #include <zephyr/posix/mqueue.h>

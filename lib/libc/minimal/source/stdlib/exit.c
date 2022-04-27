@@ -10,6 +10,7 @@
 void _exit(int status)
 {
 	printk("exit\n");
-	while (1) {
+	while (!IS_ENABLED(CONFIG_ARCH_POSIX)) {
+		;
 	}
 }

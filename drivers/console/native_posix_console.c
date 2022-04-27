@@ -10,6 +10,7 @@
 #include "kernel.h"
 #include "console/console.h"
 #include "posix_board_if.h"
+#include <arch/posix/posix_arch_if.h>
 #include <string.h>
 #include <sys/time.h>
 #include <sys/select.h>
@@ -36,11 +37,11 @@ static void native_posix_stdout_init(void)
 	 * ignores size. But just in case we set a reasonable number in case
 	 * somebody tries to compile against a different library
 	 */
-	setvbuf(stdout, NULL, _IOLBF, 512);
-	setvbuf(stderr, NULL, _IOLBF, 512);
+	// posix_arch_setvbuf_stdout();
+	// posix_arch_setvbuf_stderr();
 
 	extern void __printk_hook_install(int (*fn)(int));
-	__printk_hook_install(putchar);
+	__printk_hook_install(posix_arch_putchar);
 }
 
 /**
@@ -48,7 +49,7 @@ static void native_posix_stdout_init(void)
  */
 void posix_flush_stdout(void)
 {
-	fflush(stdout);
+	posix_arch_fflush_stdout();
 }
 #endif /* CONFIG_NATIVE_POSIX_STDOUT_CONSOLE */
 

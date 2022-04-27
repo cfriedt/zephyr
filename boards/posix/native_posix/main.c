@@ -32,6 +32,8 @@
 #include <zephyr/sys/util.h>
 #include "cmdline.h"
 
+#include <arch/posix/posix_arch_if.h>
+
 void posix_exit(int exit_code)
 {
 	static int max_exit_code;
@@ -45,8 +47,10 @@ void posix_exit(int exit_code)
 	posix_soc_clean_up();
 	hwm_cleanup();
 	native_cleanup_cmd_line();
-	exit(max_exit_code);
+	posix_arch_exit(max_exit_code);
 }
+
+#undef main
 
 /**
  * This is the actual main for the Linux process,

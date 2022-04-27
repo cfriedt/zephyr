@@ -1,7 +1,6 @@
 tests:
   shell.getopt:
     tags: getopt
-    platform_exclude: native_posix native_posix_64
     integration_platforms:
       - qemu_x86
     min_flash: 64

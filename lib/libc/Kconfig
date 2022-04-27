@@ -17,13 +17,11 @@ config SUPPORT_MINIMAL_LIBC
 
 choice LIBC_IMPLEMENTATION
 	prompt "C Library Implementation"
-	default EXTERNAL_LIBC if NATIVE_APPLICATION
 	default NEWLIB_LIBC if REQUIRES_FULL_LIBC
 	default MINIMAL_LIBC
 
 config MINIMAL_LIBC
 	bool "Minimal C library"
-	depends on !NATIVE_APPLICATION
 	depends on !REQUIRES_FULL_LIBC
 	depends on SUPPORT_MINIMAL_LIBC
 	help
@@ -31,14 +29,12 @@ config MINIMAL_LIBC
 
 config NEWLIB_LIBC
 	bool "Newlib C library"
-	depends on !NATIVE_APPLICATION
 	help
 	  Build with newlib library. The newlib library is expected to be
 	  part of the SDK in this case.
 
 config ARCMWDT_LIBC
 	bool "ARC MWDT C library"
-	depends on !NATIVE_APPLICATION
 	depends on "$(ZEPHYR_TOOLCHAIN_VARIANT)" = "arcmwdt"
 	help
 	  C library provided by ARC MWDT toolchain.
@@ -182,7 +178,6 @@ endif # MINIMAL_LIBC
 config STDOUT_CONSOLE
 	bool "Send stdout to console"
 	depends on CONSOLE_HAS_DRIVER
-	depends on !NATIVE_APPLICATION
 	default y
 	help
 	  This option directs standard output (e.g. printf) to the console

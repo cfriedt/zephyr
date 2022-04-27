@@ -24,9 +24,9 @@
  *
  */
 
-#include <pthread.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <zephyr/arch/posix/posix_arch_if.h>
 #include <zephyr/arch/posix/posix_soc_if.h>
 #include "posix_soc.h"
 #include "posix_board_if.h"
@@ -46,10 +46,6 @@
 #define PS_DEBUG(...)
 #endif
 
-/* Conditional variable to know if the CPU is running or halted/idling */
-static pthread_cond_t  cond_cpu  = PTHREAD_COND_INITIALIZER;
-/* Mutex for the conditional variable posix_soc_cond_cpu */
-static pthread_mutex_t mtx_cpu   = PTHREAD_MUTEX_INITIALIZER;
 /* Variable which tells if the CPU is halted (1) or not (0) */
 static bool cpu_halted = true;
 
@@ -75,14 +71,14 @@ int posix_is_cpu_running(void)
  */
 void posix_change_cpu_state_and_wait(bool halted)
 {
-	PC_SAFE_CALL(pthread_mutex_lock(&mtx_cpu));
+	posix_arch_lock_cpu();
 
 	PS_DEBUG("Going to halted = %d\n", halted);
 
 	cpu_halted = halted;
 
 	/* We let the other side know the CPU has changed state */
-	PC_SAFE_CALL(pthread_cond_broadcast(&cond_cpu));
+	posix_arch_broadcast_cpu();
 
 	/* We wait until the CPU state has been changed. Either:
 	 * we just awoke it, and therefore wait until the CPU has run until
@@ -92,14 +88,15 @@ void posix_change_cpu_state_and_wait(bool halted)
 	 * we are just hanging it, and therefore wait until the HW models awake
 	 * it again
 	 */
-	while (cpu_halted == halted) {
+		while (cpu_halted == halted)
+	{
 		/* Here we unlock the mutex while waiting */
-		pthread_cond_wait(&cond_cpu, &mtx_cpu);
+		posix_arch_wait_cpu();
 	}
 
 	PS_DEBUG("Awaken after halted = %d\n", halted);
 
-	PC_SAFE_CALL(pthread_mutex_unlock(&mtx_cpu));
+	posix_arch_unlock_cpu();
 }
 
 /**
@@ -172,8 +169,8 @@ void posix_atomic_halt_cpu(unsigned int imask)
 static void *zephyr_wrapper(void *a)
 {
 	/* Ensure posix_boot_cpu has reached the cond loop */
-	PC_SAFE_CALL(pthread_mutex_lock(&mtx_cpu));
-	PC_SAFE_CALL(pthread_mutex_unlock(&mtx_cpu));
+	posix_arch_lock_cpu();
+	posix_arch_unlock_cpu();
 
 #if (POSIX_ARCH_SOC_DEBUG_PRINTS)
 		pthread_t zephyr_thread = pthread_self();
@@ -199,20 +196,21 @@ static void *zephyr_wrapper(void *a)
  */
 void posix_boot_cpu(void)
 {
-	PC_SAFE_CALL(pthread_mutex_lock(&mtx_cpu));
+	posix_arch_lock_cpu();
 
 	cpu_halted = false;
 
-	pthread_t zephyr_thread;
+	uint64_t zephyr_thread;
 
 	/* Create a thread for Zephyr init: */
-	PC_SAFE_CALL(pthread_create(&zephyr_thread, NULL, zephyr_wrapper, NULL));
+	posix_arch_pthread_create(&zephyr_thread, zephyr_wrapper, NULL);
 
 	/* And we wait until Zephyr has run til completion (has gone to idle) */
 	while (cpu_halted == false) {
-		pthread_cond_wait(&cond_cpu, &mtx_cpu);
+		posix_arch_wait_cpu();
 	}
-	PC_SAFE_CALL(pthread_mutex_unlock(&mtx_cpu));
+
+	posix_arch_unlock_cpu();
 
 	if (soc_terminate) {
 		posix_exit(0);
@@ -275,15 +273,15 @@ void posix_soc_clean_up(void)
 
 		soc_terminate = true;
 
-		PC_SAFE_CALL(pthread_mutex_lock(&mtx_cpu));
+		posix_arch_lock_cpu();
 
 		cpu_halted = true;
 
-		PC_SAFE_CALL(pthread_cond_broadcast(&cond_cpu));
-		PC_SAFE_CALL(pthread_mutex_unlock(&mtx_cpu));
+		posix_arch_broadcast_cpu();
+		posix_arch_unlock_cpu();
 
 		while (1) {
-			sleep(1);
+			posix_arch_sleep(1);
 			/* This SW thread will wait until being cancelled from
 			 * the HW thread. sleep() is a cancellation point, so it
 			 * won't really wait 1 second

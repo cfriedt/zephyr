@@ -19,9 +19,12 @@ typedef _TIME_T_ time_t;
 typedef _SUSECONDS_T_ suseconds_t;
 #endif
 
+#ifndef _STRUCT_TIMESPEC
+#define _STRUCT_TIMESPEC 1
 struct timespec {
 	time_t tv_sec;
 	long tv_nsec;
 };
+#endif
 
 #endif /* ZEPHYR_LIB_LIBC_MINIMAL_INCLUDE_SYS__TIMESPEC_H_ */

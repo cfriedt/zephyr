@@ -126,6 +126,9 @@ extern void z_enable_sys_clock(void);
 /* number of microseconds per millisecond */
 #define USEC_PER_MSEC 1000U
 
+/* number of nanoseconds per millisecond */
+#define NSEC_PER_MSEC 1000000U
+
 /* number of milliseconds per second */
 #define MSEC_PER_SEC 1000U
 

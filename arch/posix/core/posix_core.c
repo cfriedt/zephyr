@@ -37,13 +37,17 @@
 
 #define POSIX_ARCH_DEBUG_PRINTS 0
 
+#include <dlfcn.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "posix_core.h"
 #include "posix_arch_internal.h"
+#include <zephyr/arch/posix/posix_arch_if.h>
 #include <zephyr/arch/posix/posix_soc_if.h>
 #include "kernel_internal.h"
 #include "kernel_structs.h"
@@ -70,7 +74,7 @@ static int threads_table_size;
 struct threads_table_el {
 	enum {NOTUSED = 0, USED, ABORTING, ABORTED, FAILED} state;
 	bool running;     /* Is this the currently running thread */
-	pthread_t thread; /* Actual pthread_t as returned by native kernel */
+	uint64_t thread; /* Actual pthread_t as returned by native kernel */
 	int thead_cnt; /* For debugging: Unique, consecutive, thread number */
 	/* Pointer to the status kept in the Zephyr thread stack */
 	posix_thread_status_t *t_status;
@@ -80,13 +84,6 @@ static struct threads_table_el *threads_table;
 
 static int thread_create_count; /* For debugging. Thread creation counter */
 
-/*
- * Conditional variable to block/awake all threads during swaps()
- * (we only need 1 mutex and 1 cond variable for all threads)
- */
-static pthread_cond_t cond_threads = PTHREAD_COND_INITIALIZER;
-/* Mutex for the conditional variable posix_core_cond_threads */
-static pthread_mutex_t mtx_threads = PTHREAD_MUTEX_INITIALIZER;
 /* Token which tells which process is allowed to run now */
 static int currently_allowed_thread;
 
@@ -109,7 +106,7 @@ static void abort_tail(int this_th_nbr)
 	threads_table[this_th_nbr].running = false;
 	threads_table[this_th_nbr].state = ABORTED;
 	posix_preexit_cleanup();
-	pthread_exit(NULL);
+	posix_arch_pthread_exit(NULL);
 }
 
 /**
@@ -131,7 +128,7 @@ static void posix_wait_until_allowed(int this_th_nbr)
 		__func__);
 
 	while (this_th_nbr != currently_allowed_thread) {
-		pthread_cond_wait(&cond_threads, &mtx_threads);
+		posix_arch_wait_threads();
 
 		if (threads_table &&
 		    (threads_table[this_th_nbr].state == ABORTING)) {
@@ -168,7 +165,7 @@ static void posix_let_run(int next_allowed_th)
 	 * Note that as we hold the mutex, they are going to be blocked until
 	 * we reach our own posix_wait_until_allowed() while loop
 	 */
-	PC_SAFE_CALL(pthread_cond_broadcast(&cond_threads));
+	posix_arch_broadcast_threads();
 }
 
 
@@ -177,10 +174,10 @@ static void posix_preexit_cleanup(void)
 	/*
 	 * Release the mutex so the next allowed thread can run
 	 */
-	PC_SAFE_CALL(pthread_mutex_unlock(&mtx_threads));
+	posix_arch_unlock_threads();
 
 	/* We detach ourselves so nobody needs to join to us */
-	pthread_detach(pthread_self());
+	posix_arch_pthread_detach_self();
 }
 
 
@@ -220,7 +217,7 @@ void posix_main_thread_start(int next_allowed_thread_nbr)
 	PC_DEBUG("%s: Init thread dying now (rel mut)\n",
 		__func__);
 	posix_preexit_cleanup();
-	pthread_exit(NULL);
+	posix_arch_pthread_exit(NULL);
 }
 
 /**
@@ -248,10 +245,10 @@ static void posix_cleanup_handler(void *arg)
 #endif
 
 
-	PC_SAFE_CALL(pthread_mutex_unlock(&mtx_threads));
+	posix_arch_unlock_threads();
 
 	/* We detach ourselves so nobody needs to join to us */
-	pthread_detach(pthread_self());
+	posix_arch_pthread_detach_self();
 }
 
 /**
@@ -273,7 +270,7 @@ static void *posix_thread_starter(void *arg)
 	 * We block until all other running threads reach the while loop
 	 * in posix_wait_until_allowed() and they release the mutex
 	 */
-	PC_SAFE_CALL(pthread_mutex_lock(&mtx_threads));
+	posix_arch_lock_threads();
 
 	/*
 	 * The program may have been finished before this thread ever got to run
@@ -281,11 +278,9 @@ static void *posix_thread_starter(void *arg)
 	/* LCOV_EXCL_START */ /* See Note1 */
 	if (!threads_table) {
 		posix_cleanup_handler(arg);
-		pthread_exit(NULL);
+		posix_arch_pthread_exit(NULL);
 	}
 	/* LCOV_EXCL_STOP */
-
-	pthread_cleanup_push(posix_cleanup_handler, arg);
 
 	PC_DEBUG("Thread [%i] %i: %s: After start mutex (hav mut)\n",
 		threads_table[thread_idx].thead_cnt,
@@ -318,7 +313,7 @@ static void *posix_thread_starter(void *arg)
 	threads_table[thread_idx].running = false;
 	threads_table[thread_idx].state = FAILED;
 
-	pthread_cleanup_pop(1);
+	posix_cleanup_handler(arg);
 
 	return NULL;
 	/* LCOV_EXCL_STOP */
@@ -377,10 +372,9 @@ void posix_new_thread(posix_thread_status_t *ptr)
 	threads_table[t_slot].t_status = ptr;
 	ptr->thread_idx = t_slot;
 
-	PC_SAFE_CALL(pthread_create(&threads_table[t_slot].thread,
-				  NULL,
+	posix_arch_pthread_create(&threads_table[t_slot].thread,
 				  posix_thread_starter,
-				  (void *)(intptr_t)t_slot));
+				  (void *)(intptr_t)t_slot);
 
 	PC_DEBUG("%s created thread [%i] %i [%lu]\n",
 		__func__,
@@ -409,7 +403,7 @@ void posix_init_multithreading(void)
 	threads_table_size = PC_ALLOC_CHUNK_SIZE;
 
 
-	PC_SAFE_CALL(pthread_mutex_lock(&mtx_threads));
+	posix_arch_lock_threads();
 }
 
 /**
@@ -441,7 +435,7 @@ void posix_core_clean_up(void)
 		}
 
 		/* LCOV_EXCL_START */
-		if (pthread_cancel(threads_table[i].thread)) {
+		if (posix_arch_pthread_cancel(threads_table[i].thread)) {
 			posix_print_warning(
 				PREFIX"cleanup: could not stop thread %i\n",
 				i);
@@ -530,7 +524,6 @@ void z_impl_k_thread_abort(k_tid_t thread)
 	z_reschedule_irqlock(key);
 }
 #endif
-
 
 /*
  * Notes about coverage:

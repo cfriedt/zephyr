@@ -22,6 +22,14 @@ unsigned long long strtoull(const char *nptr, char **endptr, int base);
 long long strtoll(const char *nptr, char **endptr, int base);
 int atoi(const char *s);
 
+#ifdef CONFIG_ARCH_POSIX
+#define malloc z_malloc
+#define free z_free
+#define calloc z_calloc
+#define realloc z_realloc
+#define reallocarray z_reallocarray
+#endif
+
 void *malloc(size_t size);
 void free(void *ptr);
 void *calloc(size_t nmemb, size_t size);

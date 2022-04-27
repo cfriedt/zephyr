@@ -5931,6 +5931,10 @@ extern void k_sys_runtime_stats_enable(void);
  */
 extern void k_sys_runtime_stats_disable(void);
 
+#ifdef CONFIG_ARCH_POSIX
+#define main zephyr_app_main
+#endif
+
 #ifdef __cplusplus
 }
 #endif

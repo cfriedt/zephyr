@@ -14,6 +14,7 @@
 #include "cmdline.h"
 #include "toolchain.h"
 #include <zephyr/arch/posix/posix_trace.h>
+#include <zephyr/arch/posix/posix_arch_if.h>
 #include "native_tracing.h"
 
 static int s_argc, test_argc;
@@ -27,7 +28,7 @@ static int args_aval;
 void native_cleanup_cmd_line(void)
 {
 	if (args_struct != NULL) { /* LCOV_EXCL_BR_LINE */
-		free(args_struct);
+		posix_arch_free(args_struct);
 		args_struct = NULL;
 	}
 }
@@ -54,7 +55,7 @@ void native_add_command_line_opts(struct args_struct_t *args)
 			growby = ARGS_ALLOC_CHUNK_SIZE;
 		}
 
-		struct args_struct_t *new_args_struct = realloc(args_struct,
+		struct args_struct_t *new_args_struct = posix_arch_realloc(args_struct,
 				      (args_aval + growby)*
 				      sizeof(struct args_struct_t));
 		args_aval += growby;

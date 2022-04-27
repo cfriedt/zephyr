@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <zephyr/arch/posix/posix_arch_if.h>
 #include <zephyr/arch/posix/posix_trace.h>
 #include "posix_board_if.h"
 #include "zephyr/types.h"
@@ -87,9 +88,9 @@ int cmd_is_help_option(const char *arg)
 	if (arg[0] == '-') {
 		arg++;
 	}
-	if ((strcasecmp(arg, "?") == 0) ||
-	    (strcasecmp(arg, "h") == 0) ||
-	    (strcasecmp(arg, "help") == 0)) {
+	if ((strncasecmp(arg, "?", 1) == 0) ||
+	    (strncasecmp(arg, "h", 1) == 0) ||
+	    (strncasecmp(arg, "help", 4) == 0)) {
 		return 1;
 	} else {
 		return 0;
@@ -125,13 +126,13 @@ void cmd_read_option_value(const char *str, void *dest, const char type,
 
 	switch (type) {
 	case 'b':
-		if (strcasecmp(str, "false") == 0) {
+		if (strncasecmp(str, "false", 5) == 0) {
 			*(bool *)dest = false;
 			endptr = (char *)str + 5;
 		} else if (strcmp(str, "0") == 0) {
 			*(bool *)dest = false;
 			endptr = (char *)str + 1;
-		} else if (strcasecmp(str, "true") == 0) {
+		} else if (strncasecmp(str, "true", 4) == 0) {
 			*(bool *)dest = true;
 			endptr = (char *)str + 4;
 		} else if (strcmp(str, "1") == 0) {
@@ -158,7 +159,8 @@ void cmd_read_option_value(const char *str, void *dest, const char type,
 		*(int64_t *)dest = strtoll(str, &endptr, 0);
 		break;
 	case 'd':
-		*(double *)dest = strtod(str, &endptr);
+		/* Eventually add strtod to minimal libc */
+		*(double *)dest = posix_arch_strtod(str, &endptr);
 		break;
 	default:
 		posix_print_error_and_exit(CMD_TYPE_ERROR, type);
@@ -287,7 +289,7 @@ void cmd_print_switches_help(struct args_struct_t args_struct[])
 	int count = 0;
 	int printed_in_line = strlen(_HELP_SWITCH) + 1;
 
-	fprintf(stdout, "%s ", _HELP_SWITCH);
+	posix_arch_fprintf_stdout("%s ", _HELP_SWITCH);
 
 	while (args_struct[count].option != NULL) {
 		char stringy[_MAX_STRINGY_LEN];
@@ -296,16 +298,16 @@ void cmd_print_switches_help(struct args_struct_t args_struct[])
 				      &args_struct[count]);
 
 		if (printed_in_line + strlen(stringy) > _MAX_LINE_WIDTH) {
-			fprintf(stdout, "\n");
+			posix_arch_fprintf_stdout("\n");
 			printed_in_line = 0;
 		}
 
-		fprintf(stdout, "%s", stringy);
+		posix_arch_fprintf_stdout("%s", stringy);
 		printed_in_line += strlen(stringy);
 		count++;
 	}
 
-	fprintf(stdout, "\n");
+	posix_arch_fprintf_stdout("\n");
 }
 
 /**
@@ -320,8 +322,7 @@ void cmd_print_long_help(struct args_struct_t args_struct[])
 
 	cmd_print_switches_help(args_struct);
 
-	fprintf(stdout, "\n %-*s:%s\n", _LONG_HELP_ALIGN-1,
-		_HELP_SWITCH, _HELP_DESCR);
+	posix_arch_fprintf_stdout("\n %-*s:%s\n", _LONG_HELP_ALIGN - 1, _HELP_SWITCH, _HELP_DESCR);
 
 	while (args_struct[count].option != NULL) {
 		int printed_right;
@@ -331,28 +332,27 @@ void cmd_print_long_help(struct args_struct_t args_struct[])
 		cmd_gen_switch_syntax(stringy, _MAX_STRINGY_LEN,
 				      &args_struct[count]);
 
-		ret = fprintf(stdout, " %-*s:", _LONG_HELP_ALIGN-1, stringy);
+		ret = posix_arch_fprintf_stdout(" %-*s:", _LONG_HELP_ALIGN - 1, stringy);
 		printed_in_line = ret;
 		printed_right = 0;
 		toprint = args_struct[count].descript;
 		total_to_print = strlen(toprint);
-		ret = fprintf(stdout, "%.*s\n",
-				_MAX_LINE_WIDTH - printed_in_line,
-				&toprint[printed_right]);
+		ret = posix_arch_fprintf_stdout("%.*s\n", _MAX_LINE_WIDTH - printed_in_line,
+						&toprint[printed_right]);
 		printed_right += ret - 1;
 
 		while (printed_right < total_to_print) {
-			fprintf(stdout, "%*s", _LONG_HELP_ALIGN, "");
-			ret = fprintf(stdout, "%.*s\n",
-				      _MAX_LINE_WIDTH - _LONG_HELP_ALIGN,
-				      &toprint[printed_right]);
+			posix_arch_fprintf_stdout("%*s", _LONG_HELP_ALIGN, "");
+			ret = posix_arch_fprintf_stdout("%.*s\n",
+							_MAX_LINE_WIDTH - _LONG_HELP_ALIGN,
+							&toprint[printed_right]);
 			printed_right += ret - 1;
 		}
 		count++;
 	}
-	fprintf(stdout, "\n");
-	fprintf(stdout, "Note that which options are available depends on the "
-		"enabled features/drivers\n\n");
+	posix_arch_fprintf_stdout("\n");
+	posix_arch_fprintf_stdout("Note that which options are available depends on the "
+				  "enabled features/drivers\n\n");
 }
 
 /*

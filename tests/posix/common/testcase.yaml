@@ -1,7 +1,6 @@
 common:
   tags: posix
   min_ram: 64
-  arch_exclude: posix
   timeout: 120
 
 tests:

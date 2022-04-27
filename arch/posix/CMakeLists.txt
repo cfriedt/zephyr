@@ -14,16 +14,6 @@ else()
   endif ()
 endif()
 
-zephyr_compile_options(
-  ${ARCH_FLAG}
-  -include ${ZEPHYR_BASE}/arch/posix/include/posix_cheats.h
-  )
-
-# @Intent: Obtain compiler specific flags for no freestanding compilation
-zephyr_compile_options($<TARGET_PROPERTY:compiler,hosted>)
-
-zephyr_include_directories(${BOARD_DIR})
-
 if (CONFIG_GPROF)
   zephyr_compile_options($<TARGET_PROPERTY:compiler,gprof>)
   zephyr_link_libraries($<TARGET_PROPERTY:linker,gprof>)
@@ -38,20 +28,59 @@ if (CONFIG_UBSAN)
   zephyr_link_libraries($<TARGET_PROPERTY:linker,sanitize_undefined>)
 endif ()
 
-zephyr_compile_definitions(_POSIX_C_SOURCE=200809 _XOPEN_SOURCE=600 _XOPEN_SOURCE_EXTENDED)
+zephyr_include_directories(${BOARD_DIR})
+
+include(ExternalProject)
+
+if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+# https://www.gnu.org/software/make/manual/html_node/MAKE-Variable.html
+set(submake "$(MAKE)")
+else() # Obviously no MAKEFLAGS. Let's hope a "make" can be found somewhere.
+set(submake "make")
+endif()
+
+zephyr_get_include_directories_for_lang_as_string(       C includes)
+zephyr_get_compile_definitions_for_lang_as_string(       C definitions)
+zephyr_get_compile_options_for_lang_as_string(           C options)
+
+set(external_project_cppflags "${includes} ${definitions} ${options} -I${CMAKE_CURRENT_SOURCE_DIR}/include -I${ZEPHYR_BASE}/kernel/include")
+set(external_project_cflags "-D_POSIX_C_SOURCE=200809 -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED")
+set(external_project_prefix ${ZEPHYR_BINARY_DIR}/misc/posix_core)
+
+ExternalProject_Add(
+  posix_core_project
+  PREFIX     ${external_project_prefix}
+  SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/core
+  BINARY_DIR ${external_project_prefix}/bin
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND
+  ${submake} -C ${CMAKE_CURRENT_SOURCE_DIR}/core
+  PREFIX=${external_project_prefix}
+  SRC_DIR=${CMAKE_CURRENT_SOURCE_DIR}/core
+  CC=${CMAKE_C_COMPILER}
+  AR=${CMAKE_AR}
+  CFLAGS=
+  CPPFLAGS=${external_project_cppflags}
+  INSTALL_COMMAND ""
+  BUILD_BYPRODUCTS ${external_project_prefix}/lib/libposix_core.a
+  )
+
+add_dependencies(
+  posix_core_project
+  ${KOBJ_TYPES_H_TARGET}
+  ${SYSCALL_LIST_H_TARGET}
+  )
+
+# Create a wrapper CMake library that our app can link with
+add_library(posix_core_lib STATIC IMPORTED GLOBAL)
+add_dependencies(
+  posix_core_lib
+  posix_core_project
+  )
+set_target_properties(posix_core_lib PROPERTIES IMPORTED_LOCATION ${external_project_prefix}/lib/libposix_core.a)
+
+zephyr_link_libraries(posix_core_lib)
 
 zephyr_ld_options(
   -ldl
-  -pthread
 )
-
-# About the -include directive: The reason to do it this way, is because in this
-# manner it is transparent to the application. Otherwise posix_cheats.h needs to
-# be included in all the applications' files which define main( ), and in any
-# app file which uses the pthreads like API provided by Zephyr
-# ( include/posix/pthread.h / kernel/pthread.c ) [And any future API added to
-# Zephyr which will clash with the native POSIX API] . It would also need to
-# be included in a few zephyr kernel files.
-
-
-add_subdirectory(core)

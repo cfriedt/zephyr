@@ -8,41 +8,12 @@
  * Functions to print errors and traces
  */
 
-#include <stdlib.h> /* for exit */
-#include <stdio.h>  /* for printfs */
 #include <stdarg.h> /* for va args */
 #include <unistd.h>
 #include "soc.h"
 #include "posix_board_if.h"
+#include <arch/posix/posix_arch_if.h>
 #include "cmdline.h"
-
-void posix_print_error_and_exit(const char *format, ...)
-{
-	va_list variable_args;
-
-	va_start(variable_args, format);
-	vfprintf(stderr, format, variable_args);
-	va_end(variable_args);
-	posix_exit(1);
-}
-
-void posix_print_warning(const char *format, ...)
-{
-	va_list variable_args;
-
-	va_start(variable_args, format);
-	vfprintf(stderr, format, variable_args);
-	va_end(variable_args);
-}
-
-void posix_print_trace(const char *format, ...)
-{
-	va_list variable_args;
-
-	va_start(variable_args, format);
-	vfprintf(stdout, format, variable_args);
-	va_end(variable_args);
-}
 
 /**
  * Are stdout and stderr connected to a tty
@@ -80,10 +51,10 @@ int posix_trace_over_tty(int file_number)
 static void decide_about_color(void)
 {
 	if (is_a_tty[0] == -1) {
-		is_a_tty[0] = isatty(STDOUT_FILENO);
+		is_a_tty[0] = posix_arch_isatty_stdout();
 	}
 	if (is_a_tty[1] == -1) {
-		is_a_tty[1] = isatty(STDERR_FILENO);
+		is_a_tty[1] = posix_arch_isatty_stderr();
 	}
 }
 

@@ -10,19 +10,19 @@
  */
 
 #include <stdint.h>
-#include <signal.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include "hw_models_top.h"
 #include "timer_model.h"
 #include "irq_ctrl.h"
 #include "posix_board_if.h"
 #include "hw_counter.h"
+#include <zephyr/arch/posix/posix_arch_if.h>
 #include <zephyr/arch/posix/posix_soc_if.h>
 #include "posix_arch_internal.h"
 #include "sdl_events.h"
 #include <zephyr/sys/util.h>
+#include <zephyr/sys/atomic.h>
 
 
 static uint64_t simu_time; /* The actual time as known by the HW models */
@@ -59,14 +59,14 @@ static uint64_t *Timer_list[NUMBER_OF_TIMERS] = {
 static uint64_t next_timer_time;
 
 /* Have we received a SIGTERM or SIGINT */
-static volatile sig_atomic_t signaled_end;
+static atomic_t signaled_end;
 
 /**
  * Handler for SIGTERM and SIGINT
  */
 void hwm_signal_end_handler(int sig)
 {
-	signaled_end = 1;
+	atomic_set(&signaled_end, 1);
 }
 
 /**
@@ -86,15 +86,7 @@ void hwm_signal_end_handler(int sig)
  */
 void hwm_set_sig_handler(void)
 {
-	struct sigaction act;
-
-	act.sa_handler = hwm_signal_end_handler;
-	PC_SAFE_CALL(sigemptyset(&act.sa_mask));
-
-	act.sa_flags = SA_RESETHAND;
-
-	PC_SAFE_CALL(sigaction(SIGTERM, &act, NULL));
-	PC_SAFE_CALL(sigaction(SIGINT, &act, NULL));
+	posix_arch_set_sig_handler(hwm_signal_end_handler);
 }
 
 
@@ -112,7 +104,7 @@ static void hwm_sleep_until_next_timer(void)
 		/* LCOV_EXCL_STOP */
 	}
 
-	if (signaled_end || (simu_time > end_of_time)) {
+	if (atomic_get(&signaled_end) || (simu_time > end_of_time)) {
 		posix_print_trace("\nStopped at %.3Lfs\n",
 				((long double)simu_time)/1.0e6L);
 		posix_exit(0);

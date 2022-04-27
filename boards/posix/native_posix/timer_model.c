@@ -26,6 +26,7 @@
 #include "irq_ctrl.h"
 #include "board_soc.h"
 #include "zephyr/types.h"
+#include <zephyr/arch/posix/posix_arch_if.h>
 #include <zephyr/arch/posix/posix_trace.h>
 #include <zephyr/sys/util.h>
 #include "cmdline.h"
@@ -131,11 +132,7 @@ static void hwtimer_update_timer(void)
 
 static inline void host_clock_gettime(struct timespec *tv)
 {
-#if defined(CLOCK_MONOTONIC_RAW)
-	clock_gettime(CLOCK_MONOTONIC_RAW, tv);
-#else
-	clock_gettime(CLOCK_MONOTONIC, tv);
-#endif
+	posix_arch_clock_gettime_mono(tv);
 }
 
 uint64_t get_host_us_time(void)
@@ -161,7 +158,7 @@ void hwtimer_init(void)
 		struct timespec tv;
 		uint64_t realhosttime;
 
-		clock_gettime(CLOCK_REALTIME, &tv);
+		posix_arch_clock_gettime_real(&tv);
 		realhosttime = (uint64_t)tv.tv_sec * 1e6 + tv.tv_nsec / 1000;
 
 		rtc_offset += realhosttime;
@@ -213,7 +210,7 @@ static void hwtimer_tick_timer_reached(void)
 			requested_time.tv_nsec = (diff -
 						 requested_time.tv_sec*1e6)*1e3;
 
-			(void) nanosleep(&requested_time, &remaining);
+			posix_arch_nanosleep(&requested_time, &remaining);
 		}
 	}
 

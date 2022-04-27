@@ -1,5 +1,4 @@
 common:
-  arch_exclude: posix
   min_ram: 32
   tags: posix pthread eventfd
 tests:
