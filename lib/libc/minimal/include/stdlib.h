@@ -16,6 +16,8 @@
 extern "C" {
 #endif
 
+double strtod(const char *nptr, char **endptr);
+float strtof(const char *nptr, char **endptr);
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 long strtol(const char *nptr, char **endptr, int base);
 unsigned long long strtoull(const char *nptr, char **endptr, int base);
@@ -28,14 +30,12 @@ void *calloc(size_t nmemb, size_t size);
 void *realloc(void *ptr, size_t size);
 void *reallocarray(void *ptr, size_t nmemb, size_t size);
 
-void *bsearch(const void *key, const void *array,
-	      size_t count, size_t size,
+void *bsearch(const void *key, const void *array, size_t count, size_t size,
 	      int (*cmp)(const void *key, const void *element));
 
 void qsort_r(void *base, size_t nmemb, size_t size,
 	     int (*compar)(const void *, const void *, void *), void *arg);
-void qsort(void *base, size_t nmemb, size_t size,
-	   int (*compar)(const void *, const void *));
+void qsort(void *base, size_t nmemb, size_t size, int (*compar)(const void *, const void *));
 
 #define EXIT_SUCCESS 0
 #define EXIT_FAILURE 1
@@ -71,4 +71,4 @@ static inline long long llabs(long long __n)
 }
 #endif
 
-#endif  /* ZEPHYR_LIB_LIBC_MINIMAL_INCLUDE_STDLIB_H_ */
+#endif /* ZEPHYR_LIB_LIBC_MINIMAL_INCLUDE_STDLIB_H_ */
