@@ -309,6 +309,31 @@ ZTEST(test_c_lib, test_strtod_inf)
     * ==========================
     * 12 tests
     */
+	/* nospace nosign inf */
+	zassert_equal(INFINITY, strtod("inf", NULL), "");
+	/* nospace nosign INFINITY */
+	zassert_equal(INFINITY, strtod("INFINITY", NULL), "");
+	/* nospace +      inf */
+	zassert_equal(INFINITY, strtod("+inf", NULL), "");
+	/* nospace +      INFINITY */
+	zassert_equal(INFINITY, strtod("+INFINITY", NULL), "");
+	/* nospace -      inf */
+	zassert_equal(-INFINITY, strtod("-inf", NULL), "");
+	/* nospace -      INFINITY */
+	zassert_equal(-INFINITY, strtod("-INFINITY", NULL), "");
+	/* space   nosign inf */
+	zassert_equal(INFINITY, strtod("\t\n\v\f\r inf", NULL), "");
+	/* space   nosign INFINITY */
+	zassert_equal(INFINITY, strtod("\t\n\v\f\r INFINITY", NULL), "");
+	/* space   +      inf */
+	zassert_equal(INFINITY, strtod("\t\n\v\f\r +inf", NULL), "");
+	/* space   +      INFINITY */
+	zassert_equal(INFINITY, strtod("\t\n\v\f\r +INFINITY", NULL), "");
+	/* space   -      inf */
+	zassert_equal(-INFINITY, strtod("\t\n\v\f\r -inf", NULL), "");
+	/* space   -      INFINITY */
+	zassert_equal(-INFINITY, strtod("\t\n\v\f\r -INFINITY", NULL), "");
+
 	/*
     * INFINITY Unappy Path :(
     * - not whitespace [1]
