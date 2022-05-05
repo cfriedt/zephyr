@@ -4,15 +4,57 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <float.h>
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
+
 #include <ztest.h>
 
+extern double z_strtod_pow2(int x);
+extern double z_strtod_pow10(int x);
 extern int z_strtod_exp(const char *in, int base, int *exp);
 extern int z_strtod_integral(const char *in, int base, long long *integral);
 extern int z_strtod_fractional(const char *in, int base, unsigned long long *num,
 			       unsigned long long *den);
+
+ZTEST(test_c_lib, test_z_strod_pow2)
+{
+}
+
+ZTEST(test_c_lib, test_z_strod_pow10)
+{
+	/*
+	 * Output of pow(10, x) from glibc.
+	 * 
+	 * 10.0^-1000: 0.00000000000000000e+00
+	 * 10.0^-308: 9.99999999999999909e-309
+	 * 10.0^-100: 1.00000000000000002e-100
+	 * 10.0^-10: 1.00000000000000004e-10
+	 * 10.0^-2: 1.00000000000000002e-02
+	 * 10.0^-1: 1.00000000000000006e-01
+	 * 10.0^0: 1.00000000000000000e+00
+	 * 10.0^1: 1.00000000000000000e+01
+	 * 10.0^2: 1.00000000000000000e+02
+	 * 10.0^10: 1.00000000000000000e+10
+	 * 10.0^100: 1.00000000000000002e+100
+	 * 10.0^308: 1.00000000000000001e+308
+	 * 10.0^1000: inf
+	 */
+	zassert_equal(0, z_strtod_pow10(-1000), "");
+	zassert_within(1e-308, z_strtod_pow10(-308), DBL_EPSILON, "");
+	zassert_within(1e-100, z_strtod_pow10(-100), DBL_EPSILON, "");
+	zassert_within(1e-10, z_strtod_pow10(-10), DBL_EPSILON, "");
+	zassert_within(1e-2, z_strtod_pow10(-2), DBL_EPSILON, "");
+	zassert_within(1e-1, z_strtod_pow10(-1), DBL_EPSILON, "");
+	zassert_within(1, z_strtod_pow10(0), DBL_EPSILON, "");
+	zassert_within(1e1, z_strtod_pow10(1), DBL_EPSILON, "");
+	zassert_within(1e2, z_strtod_pow10(2), DBL_EPSILON, "");
+	zassert_within(1e10, z_strtod_pow10(10), DBL_EPSILON, "");
+	zassert_within(1e100, z_strtod_pow10(100), DBL_EPSILON, "");
+	zassert_within(1e308, z_strtod_pow10(308), DBL_EPSILON, "");
+	zassert_equal(INFINITY, z_strtod_pow10(1000), "");
+}
 
 ZTEST(test_c_lib, test_z_strod_integral)
 {
@@ -68,12 +110,12 @@ ZTEST(test_c_lib, test_z_strod_fractional)
  * - Unhappy Path / Corner Case tests accumulate additively
  */
 
-/** @brief test decimal exponent parsing */
-ZTEST(test_c_lib, test_z_strtod_exp)
-{
-	int dexp;
+	/** @brief test decimal exponent parsing */
+	ZTEST(test_c_lib, test_z_strtod_exp)
+	{
+		int dexp;
 
-	/*
+		/*
      * Decimal Exponent Happy Path :)
      * - e or E [1]
      * - nothing / + / - [3]
@@ -81,17 +123,17 @@ ZTEST(test_c_lib, test_z_strtod_exp)
      * ==========================
      * 3 tests
      */
-	dexp = 73;
-	zassert_equal(3, z_strtod_exp("e42", 10, &dexp), "");
-	zassert_equal(42, dexp, "");
-	dexp = 73;
-	zassert_equal(4, z_strtod_exp("E+42", 10, &dexp), "");
-	zassert_equal(42, dexp, "");
-	dexp = 73;
-	zassert_equal(4, z_strtod_exp("e-42", 10, &dexp), "");
-	zassert_equal(-42, dexp, "");
+		dexp = 73;
+		zassert_equal(3, z_strtod_exp("e42", 10, &dexp), "");
+		zassert_equal(42, dexp, "");
+		dexp = 73;
+		zassert_equal(4, z_strtod_exp("E+42", 10, &dexp), "");
+		zassert_equal(42, dexp, "");
+		dexp = 73;
+		zassert_equal(4, z_strtod_exp("e-42", 10, &dexp), "");
+		zassert_equal(-42, dexp, "");
 
-	/*
+		/*
      * Decimal Exponent Unhappy Path :(
      * - not e or E [1]
      * - not + / - [1]
@@ -99,17 +141,17 @@ ZTEST(test_c_lib, test_z_strtod_exp)
      * ==========================
      * 3 tests (+ null checks)
      */
-	dexp = 73;
-	zassert_equal(0, z_strtod_exp("x+42", 10, &dexp), "");
-	zassert_equal(0, dexp, "");
-	dexp = 73;
-	zassert_equal(0, z_strtod_exp("e*42", 10, &dexp), "");
-	zassert_equal(0, dexp, "");
-	dexp = 73;
-	zassert_equal(0, z_strtod_exp("Ea", 10, &dexp), "");
-	zassert_equal(0, dexp, "");
+		dexp = 73;
+		zassert_equal(0, z_strtod_exp("x+42", 10, &dexp), "");
+		zassert_equal(0, dexp, "");
+		dexp = 73;
+		zassert_equal(0, z_strtod_exp("e*42", 10, &dexp), "");
+		zassert_equal(0, dexp, "");
+		dexp = 73;
+		zassert_equal(0, z_strtod_exp("Ea", 10, &dexp), "");
+		zassert_equal(0, dexp, "");
 
-	/*
+		/*
      * Decimal Exponent Corner Cases
      * - NULL arguments [2]
      * - empty string [1]
@@ -123,66 +165,66 @@ ZTEST(test_c_lib, test_z_strtod_exp)
      * ==========================
      * 16 tests
      */
-	zassert_equal(-EINVAL, z_strtod_exp(NULL, 10, &dexp), "");
-	zassert_equal(-EINVAL, z_strtod_exp("e+73", 10, NULL), "");
+		zassert_equal(-EINVAL, z_strtod_exp(NULL, 10, &dexp), "");
+		zassert_equal(-EINVAL, z_strtod_exp("e+73", 10, NULL), "");
 
-	dexp = 73;
-	zassert_equal(0, z_strtod_exp("", 10, &dexp), "");
-	zassert_equal(0, dexp, "");
+		dexp = 73;
+		zassert_equal(0, z_strtod_exp("", 10, &dexp), "");
+		zassert_equal(0, dexp, "");
 
-	dexp = 73;
-	zassert_equal(2, z_strtod_exp("e0", 10, &dexp), "");
-	zassert_equal(0, dexp, "");
-	dexp = 73;
-	zassert_equal(3, z_strtod_exp("e+0", 10, &dexp), "");
-	zassert_equal(0, dexp, "");
+		dexp = 73;
+		zassert_equal(2, z_strtod_exp("e0", 10, &dexp), "");
+		zassert_equal(0, dexp, "");
+		dexp = 73;
+		zassert_equal(3, z_strtod_exp("e+0", 10, &dexp), "");
+		zassert_equal(0, dexp, "");
 
-	dexp = 73;
-	zassert_equal(5, z_strtod_exp("e-001", 10, &dexp), "");
-	zassert_equal(-1, dexp, "");
+		dexp = 73;
+		zassert_equal(5, z_strtod_exp("e-001", 10, &dexp), "");
+		zassert_equal(-1, dexp, "");
 
-	dexp = 73;
-	zassert_equal(11, z_strtod_exp("e2147483647", 10, &dexp), "");
-	zassert_equal(INT_MAX, dexp, "");
-	dexp = 73;
-	zassert_equal(11, z_strtod_exp("e2147483648", 10, &dexp), "");
-	zassert_equal(INT_MAX, dexp, "");
-	dexp = 73;
-	zassert_equal(16, z_strtod_exp("e999999999999999", 10, &dexp), "");
-	zassert_equal(INT_MAX, dexp, "");
+		dexp = 73;
+		zassert_equal(11, z_strtod_exp("e2147483647", 10, &dexp), "");
+		zassert_equal(INT_MAX, dexp, "");
+		dexp = 73;
+		zassert_equal(11, z_strtod_exp("e2147483648", 10, &dexp), "");
+		zassert_equal(INT_MAX, dexp, "");
+		dexp = 73;
+		zassert_equal(16, z_strtod_exp("e999999999999999", 10, &dexp), "");
+		zassert_equal(INT_MAX, dexp, "");
 
-	dexp = 73;
-	zassert_equal(12, z_strtod_exp("e-2147483648", 10, &dexp), "");
-	zassert_equal(INT_MIN, dexp, "");
-	dexp = 73;
-	zassert_equal(12, z_strtod_exp("e-2147483649", 10, &dexp), "");
-	zassert_equal(INT_MIN, dexp, "");
-	dexp = 73;
-	zassert_equal(16, z_strtod_exp("e-99999999999999", 10, &dexp), "");
-	zassert_equal(INT_MIN, dexp, "");
+		dexp = 73;
+		zassert_equal(12, z_strtod_exp("e-2147483648", 10, &dexp), "");
+		zassert_equal(INT_MIN, dexp, "");
+		dexp = 73;
+		zassert_equal(12, z_strtod_exp("e-2147483649", 10, &dexp), "");
+		zassert_equal(INT_MIN, dexp, "");
+		dexp = 73;
+		zassert_equal(16, z_strtod_exp("e-99999999999999", 10, &dexp), "");
+		zassert_equal(INT_MIN, dexp, "");
 
-	dexp = 73;
-	zassert_equal(
-		81,
-		z_strtod_exp(
-			"e18446744073709551615184467440737095516151844674407370955161518446744073709551615",
-			10, &dexp),
-		"");
-	zassert_equal(INT_MAX, dexp, "");
+		dexp = 73;
+		zassert_equal(
+			81,
+			z_strtod_exp(
+				"e18446744073709551615184467440737095516151844674407370955161518446744073709551615",
+				10, &dexp),
+			"");
+		zassert_equal(INT_MAX, dexp, "");
 
-	/* decimal and binary exponents differ only by the prefix */
-	dexp = 73;
-	zassert_equal(3, z_strtod_exp("p42", 16, &dexp), "");
-	zassert_equal(42, dexp, "");
+		/* decimal and binary exponents differ only by the prefix */
+		dexp = 73;
+		zassert_equal(3, z_strtod_exp("p42", 16, &dexp), "");
+		zassert_equal(42, dexp, "");
 
-	/* incomplete string */
-	dexp = 73;
-	zassert_equal(0, z_strtod_exp("e", 10, &dexp), "");
-	zassert_equal(0, dexp, "");
+		/* incomplete string */
+		dexp = 73;
+		zassert_equal(0, z_strtod_exp("e", 10, &dexp), "");
+		zassert_equal(0, dexp, "");
 
-	dexp = 73;
-	zassert_equal(0, z_strtod_exp("e+", 10, &dexp), "");
-	zassert_equal(0, dexp, "");
+		dexp = 73;
+		zassert_equal(0, z_strtod_exp("e+", 10, &dexp), "");
+		zassert_equal(0, dexp, "");
 }
 
 /** @brief test binary exponent parsing */
