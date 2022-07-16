@@ -204,6 +204,13 @@ config THREAD_USERSPACE_LOCAL_DATA
 	depends on USERSPACE
 	default y if ERRNO && !ERRNO_IN_TLS
 
+config THREAD_POOLS
+	bool "Support for thread pools [EXPERIMENTAL]"
+	select EXPERIMENTAL
+	depends on THREAD_STACK_INFO
+	help
+	  Enable support for thread pools.
+
 config LIBC_ERRNO
 	bool
 	help

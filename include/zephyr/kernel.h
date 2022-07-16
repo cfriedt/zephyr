@@ -85,6 +85,7 @@ struct k_mem_domain;
 struct k_mem_partition;
 struct k_futex;
 struct k_event;
+struct k_thread_pool;
 
 enum execution_context_types {
 	K_ISR = 0,
@@ -5843,6 +5844,78 @@ extern void k_sys_runtime_stats_enable(void);
  * threads.
  */
 extern void k_sys_runtime_stats_disable(void);
+
+#ifdef CONFIG_THREAD_POOLS
+
+#include <zephyr/kernel/thread_stack.h>
+#include <zephyr/sys/bitarray.h>
+
+struct k_thread_pool {
+	const size_t pool_size;
+	const size_t stack_size;
+	uint8_t *const stack;
+	struct k_thread *const thread;
+	struct sys_bitarray *const bitmap;
+};
+
+#define K_THREAD_POOL_DEFINE(name, pool_sz, stack_sz)                                              \
+	__used static struct k_thread name##_thread[pool_sz];                                      \
+	__used static K_THREAD_STACK_ARRAY_DEFINE(name##_stack, pool_sz, stack_sz);                \
+	SYS_BITARRAY_DEFINE_STATIC(name##_bitmap, pool_sz);                                        \
+	__used static struct k_thread_pool name = {                                                \
+		.pool_size = pool_sz,                                                              \
+		.stack_size = stack_sz,                                                            \
+		.stack = (uint8_t *)name##_stack,                                                  \
+		.thread = name##_thread,                                                           \
+		.bitmap = &name##_bitmap,                                                          \
+	}
+
+/**
+ * @brief Find the index of a @p tid within @p pool.
+ *
+ * @param pool The @ref k_thread_pool to search in
+ * @param tid The @ref k_tid_t to search for
+ * @retval the index of @p tid on success
+ * @retval -ESRCH on failure
+ */
+int k_thread_pool_index(const struct k_thread_pool *pool, k_tid_t tid);
+
+/**
+ * @brief Find the stack of a @p tid within @p pool.
+ *
+ * @param pool The @ref k_thread_pool to search in
+ * @param tid The @ref k_tid_t to search for
+ * @return the thread stack associated with @p tid on success
+ * @return NULL on failure
+ */
+k_thread_stack_t *k_thread_pool_stack(const struct k_thread_pool *pool, k_tid_t tid);
+
+/**
+ * @brief Allocate a thread from a given @p pool.
+ *
+ * After allocating a thread from a thread pool, it may be spawned using
+ * @ref k_thread_create.
+ *
+ * @param pool The pool to allocate a thread from
+ * @param tid A location to store the thread id on success
+ * @retval 0 on success
+ * @retval -ENOSPC if all of the threads in @p pool are in use
+ */
+int k_thread_pool_alloc(struct k_thread_pool *pool, k_tid_t *tid);
+
+/**
+ * @brief Release as thread back to @p pool.
+ *
+ * @param pool The pool that @p tid belongs to.
+ * @param tid The thread to release.
+ * @retval 0 on success
+ * @retval -ESRCH if @p tid does not belong to @p pool
+ * @retval -EFAULT if @p tid is not allocated
+ * @retval -EBUSY if @p tid is in use
+ */
+int k_thread_pool_free(struct k_thread_pool *pool, k_tid_t tid);
+
+#endif /* CONFIG_THREAD_POOLS */
 
 #ifdef __cplusplus
 }
