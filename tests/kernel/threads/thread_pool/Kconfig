@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2022 Meta
+
+mainmenu "Strerror test parameters"
+
+source "Kconfig.zephyr"
+
+config THREAD_POOL_TEST_POOL_SIZE
+    int "Thread pool size"
+    default 3
+    help
+      The size of the test thread pool.
+
+config THREAD_POOL_TEST_STACK_SIZE
+    int "Thread pool stack size"
+    default 512 if !64_BIT
+    default 1024 if 64_BIT
+    help
+      The size of the test thread pool.
