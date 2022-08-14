@@ -8,7 +8,6 @@ compatible: "lattice,ice40-fpga"
 include: spi-device.yaml
 
 properties:
-
     cdone-gpios:
       type: phandle-array
       required: true
@@ -16,7 +15,7 @@ properties:
         Configuration Done output from iCE40.
         
         Example usage: 
-        cdone-gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
+        cdone-gpios = <&gpio0 18 0>;
 
     creset-gpios:
       type: phandle-array
@@ -25,7 +24,7 @@ properties:
         Configuration Reset input on iCE40.
         
         Example usage: 
-        creset-gpios = <&gpio0 1 GPIO_ACTIVE_LOW>;
+        creset-gpios = <&gpio0 19 GPIO_OPEN_DRAIN>;
     
     creset-delay-ns:
       type: int
@@ -45,13 +44,20 @@ properties:
         Example usage:
         config-delay-us = <300>;
 
-    additional-clocks:
+    leading-clocks:
       type: int
       required: false
       description: |
-        After CDONE is signalled, send this number of additional clocks to
-        activate user-I/O pins. Note: the actual number may be rounded-up
-        by a factor of 8.
+        Prior to sending the bitstream, issue this number of leading clocks with SPI_CS pulled high.
 
         Example usage:
-        additional-clocks = <49>;
+        leading-clocks = <8>;
+
+    trailing-clocks:
+      type: int
+      required: false
+      description: |
+        After sending the bitstream, issue this number of trailing clocks with SPI_CS pulled high.
+
+        Example usage:
+        trailing-clocks = <149>;

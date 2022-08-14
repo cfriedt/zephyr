@@ -1,4 +1,5 @@
-&spi2 {
+&spi0 {
+	status = "okay";
 	cs-gpios = <&gpio0 10 (GPIO_PULL_UP | GPIO_OPEN_DRAIN | GPIO_ACTIVE_LOW)>;
 
 	fpga0: fpga@0 {
@@ -8,8 +9,8 @@
 		reg = <0>;
 		spi-max-frequency = <1000000>;
 
-		cdone-gpios = <&gpio0 18 0>;
-		creset-gpios = <&gpio0 19 (GPIO_PULL_UP | GPIO_OPEN_DRAIN | GPIO_ACTIVE_LOW)>;
+		cdone-gpios = <&gpio0 21 0>;
+		creset-gpios = <&gpio0 22 GPIO_OPEN_DRAIN>;
 		config-delay-us = <2000>;
 		creset-delay-ns = <200>;
 		leading-clocks = <8>;
