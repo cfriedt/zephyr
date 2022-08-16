@@ -122,7 +122,8 @@ int fpga_ice40_load(const struct device *dev, uint32_t *image_ptr, uint32_t img_
 {
 	int ret;
 	uint32_t crc;
-	uint32_t delay_us;
+	uint32_t delay_us1;
+	uint32_t delay_us2;
 	k_spinlock_key_t key;
 	struct spi_buf tx_buf[3];
 	struct spi_dt_spec tmp_bus;
@@ -133,6 +134,9 @@ int fpga_ice40_load(const struct device *dev, uint32_t *image_ptr, uint32_t img_
 	uint8_t zeros[UINT8_MAX + 1] = {0};
 	struct fpga_ice40_data *data = dev->data;
 	const struct fpga_ice40_config *config = dev->config;
+
+	delay_us1 = ceiling_fraction(config->creset_delay_ns, NSEC_PER_USEC);
+	delay_us2 = ceiling_fraction(config->creset_delay_ns, NSEC_PER_USEC);
 
 	zeros[0] = 0xaa;
 	tx_buf[0].buf = zeros;
@@ -164,14 +168,23 @@ int fpga_ice40_load(const struct device *dev, uint32_t *image_ptr, uint32_t img_
 retry:
 	key = k_spin_lock(&data->lock);
 
+	LOG_DBG("Initializing GPIO");
+	if (/*(ret = gpio_pin_configure_dt(&config->cdone, GPIO_INPUT)) || */
+	    (ret = gpio_pin_configure_dt(&config->bus.config.cs->gpio, GPIO_OUTPUT_HIGH)) ||
+	    (ret = gpio_pin_configure_dt(&config->creset, GPIO_OUTPUT_HIGH))) {
+		LOG_ERR("Failed to initialize GPIO: %d", ret);
+		goto unlock;
+	}
+
 	data->crc = 0;
 	data->loaded = false;
 	fpga_ice40_crc_to_str(0, data->info);
 
+repeat:
 	LOG_DBG("Initializing GPIO");
-	if ((ret = gpio_pin_configure_dt(&config->creset, GPIO_OUTPUT_HIGH)) ||
+	if (/*(ret = gpio_pin_configure_dt(&config->cdone, GPIO_INPUT)) || */
 	    (ret = gpio_pin_configure_dt(&config->bus.config.cs->gpio, GPIO_OUTPUT_HIGH)) ||
-	    (ret = gpio_pin_configure_dt(&config->cdone, GPIO_INPUT))) {
+	    (ret = gpio_pin_configure_dt(&config->creset, GPIO_OUTPUT_HIGH))) {
 		LOG_ERR("Failed to initialize GPIO: %d", ret);
 		goto unlock;
 	}
@@ -179,16 +192,19 @@ retry:
 	LOG_DBG("Set CRESET low");
 	LOG_DBG("Set SPI_CS low");
 	/* Note: CRESET should be pulled low first */
-	if ((ret = gpio_pin_set_dt(&config->creset, GPIO_OUTPUT_LOW)) ||
-	    (ret = gpio_pin_set_dt(&config->bus.config.cs->gpio, GPIO_OUTPUT_LOW))) {
+	if ((ret = gpio_pin_configure_dt(&config->creset, GPIO_OUTPUT_LOW)) ||
+	    (ret = gpio_pin_configure_dt(&config->bus.config.cs->gpio, GPIO_OUTPUT_LOW))) {
 		LOG_ERR("failed to set CRESET or SPI_CS low: %d", ret);
 		goto unlock;
 	}
 
+	goto repeat;
+
+#if 0
 	/* Wait a minimum of 200ns */
-	delay_us = ceiling_fraction(config->creset_delay_ns, NSEC_PER_USEC);
-	LOG_DBG("Delay %u ns (%u us)", config->creset_delay_ns, delay_us);
-	k_busy_wait(delay_us);
+	LOG_DBG("Delay %u ns (%u us)", config->creset_delay_ns, delay_us1);
+	k_busy_wait(delay_us1);
+#endif
 
 	LOG_DBG("Set CRESET high");
 	ret = gpio_pin_set_dt(&config->creset, GPIO_OUTPUT_HIGH);
@@ -199,8 +215,6 @@ retry:
 
 	LOG_DBG("Delay %u us", config->config_delay_us);
 	k_busy_wait(config->config_delay_us);
-
-repeat:
 
 	LOG_DBG("Set SPI_CS high");
 	LOG_DBG("Send %u clocks", config->leading_clocks);
@@ -228,8 +242,6 @@ repeat:
 		LOG_ERR("Failed to send %u clocks: %d", config->trailing_clocks, ret);
 		goto unlock;
 	}
-
-goto repeat;
 
 	LOG_DBG("checking CDONE");
 	ret = gpio_pin_get_dt(&config->cdone);
