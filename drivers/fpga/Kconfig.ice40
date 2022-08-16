@@ -4,6 +4,5 @@
 config ICE40_FPGA
 	bool "Lattice iCE40 fpga driver"
 	depends on SPI
-	depends on PINCTRL
 	help
 	  Enable Lattice iCE40 fpga driver

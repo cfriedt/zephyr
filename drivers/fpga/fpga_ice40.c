@@ -12,7 +12,6 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/fpga.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/posix/time.h>
@@ -56,7 +55,6 @@ struct fpga_ice40_config {
 	struct spi_dt_spec bus;
 	struct gpio_dt_spec cdone;
 	struct gpio_dt_spec creset;
-	const struct pinctrl_dev_config *pincfg;
 	uint16_t config_delay_us;
 	uint8_t creset_delay_ns;
 	uint8_t leading_clocks;
@@ -126,16 +124,26 @@ int fpga_ice40_load(const struct device *dev, uint32_t *image_ptr, uint32_t img_
 	uint32_t crc;
 	uint32_t delay_us;
 	k_spinlock_key_t key;
-	struct spi_buf tx_buf;
+	struct spi_buf tx_buf[3];
 	struct spi_dt_spec tmp_bus;
 	struct spi_cs_control tmp_cs;
 	struct spi_buf_set tx_bufs = {
-		.buffers = &tx_buf,
 		.count = 1,
 	};
 	uint8_t zeros[UINT8_MAX + 1] = {0};
 	struct fpga_ice40_data *data = dev->data;
 	const struct fpga_ice40_config *config = dev->config;
+
+	zeros[0] = 0xaa;
+	tx_buf[0].buf = zeros;
+	// tx_buf[0].len = ceiling_fraction(config->leading_clocks, BITS_PER_BYTE);
+	tx_buf[0].len = 4;
+	tx_buf[1].buf = image_ptr;
+	// tx_buf[1].len = img_size;
+	tx_buf[1].len = 4;
+	tx_buf[2].buf = zeros;
+	// tx_buf[2].len = ceiling_fraction(config->trailing_clocks, BITS_PER_BYTE);
+	tx_buf[2].len = 4;
 
 	/* cloned spi_dt_spec */
 	tmp_bus = config->bus;
@@ -192,10 +200,11 @@ retry:
 	LOG_DBG("Delay %u us", config->config_delay_us);
 	k_busy_wait(config->config_delay_us);
 
+repeat:
+
 	LOG_DBG("Set SPI_CS high");
 	LOG_DBG("Send %u clocks", config->leading_clocks);
-	tx_buf.buf = zeros;
-	tx_buf.len = ceiling_fraction(config->leading_clocks, BITS_PER_BYTE);
+	tx_bufs.buffers = &tx_buf[0];
 	ret = spi_write_dt(&tmp_bus, &tx_bufs);
 	if (ret < 0) {
 		LOG_ERR("Failed to send %u clocks: %d", config->leading_clocks, ret);
@@ -204,26 +213,23 @@ retry:
 
 	LOG_DBG("Set SPI_CS low");
 	LOG_DBG("Send bin file");
-	for (size_t n = img_size, m = MIN(n, 4096), o = 0; n > 0;
-	     o += m, n -= m, m = MIN(n, 4096)) {
-		tx_buf.buf = &((uint8_t *)image_ptr)[o];
-		tx_buf.len = m;
-		ret = spi_write_dt(&config->bus, &tx_bufs);
-		if (ret < 0) {
-			LOG_ERR("Failed to send bin file: %d", ret);
-			goto unlock;
-		}
+	tx_bufs.buffers = &tx_buf[1];
+	ret = spi_write_dt(&config->bus, &tx_bufs);
+	if (ret < 0) {
+		LOG_ERR("Failed to send bin file: %d", ret);
+		goto unlock;
 	}
 
 	LOG_DBG("Set SPI_CS high");
 	LOG_DBG("Send %u clocks", config->trailing_clocks);
-	tx_buf.buf = zeros;
-	tx_buf.len = ceiling_fraction(config->trailing_clocks, BITS_PER_BYTE);
+	tx_bufs.buffers = &tx_buf[2];
 	ret = spi_write_dt(&tmp_bus, &tx_bufs);
 	if (ret < 0) {
 		LOG_ERR("Failed to send %u clocks: %d", config->trailing_clocks, ret);
 		goto unlock;
 	}
+
+goto repeat;
 
 	LOG_DBG("checking CDONE");
 	ret = gpio_pin_get_dt(&config->cdone);
