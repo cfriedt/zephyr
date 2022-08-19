@@ -24,8 +24,61 @@ properties:
         Configuration Reset input on iCE40.
         
         Example usage: 
-        creset-gpios = <&gpio0 19 GPIO_OPEN_DRAIN>;
-    
+        creset-gpios = <&gpio0 19 GPIO_PUSH_PULL>;
+
+    clk-gpios:
+      type: phandle-array
+      required: true
+      description: |
+        SPI Clock GPIO input on iCE40.
+        
+        Example usage: 
+        clk-gpios = <&gpio0 5 GPIO_PUSH_PULL>;
+
+    pico-gpios:
+      type: phandle-array
+      required: true
+      description: |
+        Peripheral-Out Controller-In GPIO input on iCE40.
+
+        Example usage: 
+        pico-gpios = <&gpio0 7 GPIO_PUSH_PULL>;
+
+    gpios-set-reg:
+      type: int
+      required: true
+      description: |
+        Register address for setting a GPIO.
+
+        Example usage:
+        gpios-set-reg = <0x60004008>;
+
+    gpios-clear-reg:
+      type: int
+      required: true
+      description: |
+        Register address for clearing a GPIO.
+
+        Example usage:
+        gpios-clear-reg = <0x6000400c>;
+
+    mhz-delay-count:
+      type: int
+      required: false
+      description: |
+        in order to create a 1 MHz square wave in the following
+        process.
+
+        while(true) {
+          *gpios_set_reg |= BIT(n);
+          for(int i = mhz_delay_count; i > 0; --i);
+          *gpios_clear_reg |= BIT(n);
+          for(int i = mhz_delay_count; i > 0; --i);
+        }
+
+        Example usage:
+        mhz-delay-count = <4>;
+
     creset-delay-ns:
       type: int
       required: false

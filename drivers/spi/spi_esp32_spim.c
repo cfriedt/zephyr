@@ -112,8 +112,6 @@ static int spi_esp32_init(const struct device *dev)
 		return -EINVAL;
 	}
 
-	printk("use_iomux: %s\n", cfg->use_iomux ? "true" : "false");
-
 #ifdef CONFIG_SPI_ESP32_INTERRUPT
 	data->irq_line = esp_intr_alloc(cfg->irq_source,
 			0,
