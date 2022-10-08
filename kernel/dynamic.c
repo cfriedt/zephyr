@@ -6,12 +6,14 @@
 
 #include "kernel_internal.h"
 
+#include <zephyr/drivers/mm/system_mm.h>
 #include <zephyr/kernel.h>
 #include <zephyr/kernel/thread_stack.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/bitarray.h>
 
-LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
+// LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
+LOG_MODULE_DECLARE(os, LOG_LEVEL_DBG);
 
 #if CONFIG_DYNAMIC_THREAD_POOL_SIZE > 0
 #define BA_SIZE CONFIG_DYNAMIC_THREAD_POOL_SIZE
@@ -24,11 +26,13 @@ struct dyn_cb_data {
 	k_thread_stack_t *stack;
 };
 
+int z_impl_k_thread_stack_free(k_thread_stack_t *stack);
+
 static K_THREAD_STACK_ARRAY_DEFINE(dynamic_stack, CONFIG_DYNAMIC_THREAD_POOL_SIZE,
 				   CONFIG_DYNAMIC_THREAD_STACK_SIZE);
 SYS_BITARRAY_DEFINE_STATIC(dynamic_ba, BA_SIZE);
 
-static k_thread_stack_t *z_thread_stack_alloc_dyn(size_t align, size_t size)
+static k_thread_stack_t *z_thread_stack_alloc_heap(size_t align, size_t size)
 {
 	return z_thread_aligned_alloc(align, size);
 }
@@ -76,20 +80,35 @@ k_thread_stack_t *z_impl_k_thread_stack_alloc(size_t size, int flags)
 	}
 #endif
 
-	if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_PREFER_ALLOC) &&
-		    IS_ENABLED(CONFIG_DYNAMIC_THREAD_ALLOC)) {
-		stack = z_thread_stack_alloc_dyn(align, obj_size);
+	if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_PREFER_ALLOC)) {
+		if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_ALLOC)) {
+			stack = z_thread_stack_alloc_heap(align, obj_size);
+		}
+
 		if (stack == NULL && CONFIG_DYNAMIC_THREAD_POOL_SIZE > 0) {
 			stack = z_thread_stack_alloc_pool(size);
 		}
-	} else if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_PREFER_POOL) &&
-		   CONFIG_DYNAMIC_THREAD_POOL_SIZE > 0) {
-		stack = z_thread_stack_alloc_pool(size);
+	} else if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_PREFER_POOL)) {
+		if (CONFIG_DYNAMIC_THREAD_POOL_SIZE > 0) {
+			stack = z_thread_stack_alloc_pool(size);
+		}
+
 		if (stack == NULL && IS_ENABLED(CONFIG_DYNAMIC_THREAD_ALLOC)) {
-			stack = z_thread_stack_alloc_dyn(align, obj_size);
+			stack = z_thread_stack_alloc_heap(align, obj_size);
 		}
 	} else {
 		return NULL;
+	}
+
+	if (IS_ENABLED(CONFIG_USERSPACE) && IS_ENABLED(CONFIG_MM_DRV)) {
+		if ((flags & K_USER) != 0) {
+			int ret = sys_mm_drv_update_page_flags(stack, SYS_MM_MEM_PERM_RW);
+			if (ret < 0) {
+				LOG_ERR("failed to update page flags: %d", ret);
+				z_impl_k_thread_stack_free(stack);
+				return NULL;
+			}
+		}
 	}
 
 	return stack;
