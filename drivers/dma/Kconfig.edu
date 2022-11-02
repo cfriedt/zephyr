@@ -1,0 +1,13 @@
+# Edu DMA configuration options
+
+# Copyright 2022, Meta
+# SPDX-License-Identifier: Apache-2.0
+
+config DMA_EDU
+	bool "Edu DMA driver"
+	depends on PCIE
+	depends on PCIE_CONTROLLER
+	depends on PCIE_ECAM
+	depends on PCIE_MSI
+	help
+	  Enable this option to support Jiri Slaby's Educational CI Device.
