@@ -16,17 +16,17 @@
 #define PCIE_EDU_REG_ID_VER_MAJ_MASK  BIT_MASK(8)
 #define PCIE_EDU_REG_ID_VER_MAJ_SHIFT 24
 #define PCIE_EDU_REG_ID_VER_MAJ(word)                                                              \
-	((uint8_t)(((word) >> PCIE_EDU_REG_ID_VER_MAJ_SHIFT) & PCIE_EDU_REG_ID_VER_MAJ_MASK))
+	(((word) >> PCIE_EDU_REG_ID_VER_MAJ_SHIFT) & PCIE_EDU_REG_ID_VER_MAJ_MASK)
 
 #define PCIE_EDU_REG_ID_VER_MIN_MASK  BIT_MASK(8)
 #define PCIE_EDU_REG_ID_VER_MIN_SHIFT 16
 #define PCIE_EDU_REG_ID_VER_MIN(word)                                                              \
-	((uint8_t)(((word) >> PCIE_EDU_REG_ID_VER_MIN_SHIFT) & PCIE_EDU_REG_ID_VER_MIN_MASK))
+	(((word) >> PCIE_EDU_REG_ID_VER_MIN_SHIFT) & PCIE_EDU_REG_ID_VER_MIN_MASK)
 
 #define PCIE_EDU_REG_ID_MAGIC_MASK  BIT_MASK(16)
 #define PCIE_EDU_REG_ID_MAGIC_SHIFT 0
 #define PCIE_EDU_REG_ID_MAGIC(word)                                                                \
-	((uint16_t)(((word) >> PCIE_EDU_REG_ID_MAGIC_SHIFT) & PCIE_EDU_REG_ID_MAGIC_MASK))
+	(((word) >> PCIE_EDU_REG_ID_MAGIC_SHIFT) & PCIE_EDU_REG_ID_MAGIC_MASK)
 
 #define PCIE_EDU_REG_LIVE		 0x04
 #define PCIE_EDU_REG_FACT		 0x08

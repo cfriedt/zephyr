@@ -26,6 +26,8 @@ struct dma_edu_config {
 	pcie_bdf_t pcie_bdf;
 	pcie_id_t pcie_id;
 	uint16_t edu_magic;
+	uint8_t requests;
+	uint8_t channels;
 };
 
 struct dma_edu_data {
@@ -35,9 +37,37 @@ struct dma_edu_data {
 	msi_vector_t msi;
 };
 
-static int dma_edu_configure(const struct device *dev, uint32_t channel, struct dma_config *config)
+static int dma_edu_configure(const struct device *dev, uint32_t channel,
+			     struct dma_config *dma_config)
 {
+	const struct dma_edu_config *config = dev->config;
+	struct dma_edu_data *data = dev->data;
+
 	LOG_DBG("%s(): channel: %u", __func__, channel);
+
+	/* kind of an annoyance, but slot is 0-based while channel is 1-based */
+	if (dma_config->dma_slot >= config->requests) {
+		LOG_ERR("to many requests");
+		return -ENOTSUP;
+	}
+
+	if (channel > config->channels) {
+		LOG_ERR("invalid channel %u", channel);
+		return -EINVAL;
+	}
+
+	switch (dma_config->channel_direction) {
+	case MEMORY_TO_PERIPHERAL:
+		transfer_type = kEDMA_MemoryToPeripheral;
+		break;
+	case PERIPHERAL_TO_MEMORY:
+		transfer_type = kEDMA_PeripheralToMemory;
+		break;
+	default:
+		LOG_ERR("unsupported channel direction %d", dma_config->channel_direction);
+		return -EINVAL;
+	}
+
 	return -ENOSYS;
 }
 
@@ -169,6 +199,7 @@ static int dma_edu_init(const struct device *dev)
 }
 
 #define DMA_EDU_MAGIC(inst)    DT_INST_PROP_OR(inst, edu_magic, 0x00edu)
+#define DMA_EDU_REQUESTS(inst) DT_INST_PROP_OR(inst, dma_requests, 1)
 #define DMA_EDU_CHANNELS(inst) DT_INST_PROP_OR(inst, dma_channels, 1)
 #define DMA_EDU_ATOMICS(inst)  ceiling_fraction(DMA_EDU_CHANNELS(inst), sizeof(atomic_t))
 
@@ -177,6 +208,8 @@ static int dma_edu_init(const struct device *dev)
 		.pcie_bdf = DT_INST_REG_ADDR(inst),                                                \
 		.pcie_id = DT_INST_REG_SIZE(inst),                                                 \
 		.edu_magic = DMA_EDU_MAGIC(inst),                                                  \
+		.requests = DMA_EDU_REQUESTS(inst),                                                \
+		.requests = DMA_EDU_CHANNELS(inst),                                                \
 	};                                                                                         \
 	BUILD_ASSERT(DMA_EDU_MAGIC(inst) <= UINT16_MAX, "Invalid EDU magic");                      \
                                                                                                    \
