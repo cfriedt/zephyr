@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define DT_DRV_COMPAT zephyr_dma_edu
-
 #include <zephyr/drivers/dma.h>
 #include <zephyr/drivers/pcie/edu.h>
 #include <zephyr/drivers/pcie/msi.h>
@@ -14,6 +12,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/atomic.h>
 
+#define DT_DRV_COMPAT zephyr_dma_edu
 LOG_MODULE_DECLARE(dma_edu, LOG_LEVEL_DBG);
 
 #ifdef CONFIG_DMA_64BIT
@@ -21,6 +20,11 @@ typedef uint64_t dma_addr_t;
 #else
 typedef uint32_t dma_addr_t;
 #endif
+
+enum dma_edu_dir {
+	PCIE_EDU_DIR_FROM_RAM_TO_EDU,
+	PCIE_EDU_DIR_FROM_EDU_TO_RAM,
+};
 
 struct dma_edu_config {
 	pcie_bdf_t pcie_bdf;
@@ -37,11 +41,24 @@ struct dma_edu_data {
 	msi_vector_t msi;
 };
 
+struct dma_edu_xfer {
+	union {
+		struct dma_edu_xfer *next;
+		void *user;
+	};
+	dma_addr_t src;
+	dma_addr_t dst;
+	uint32_t bytes;
+	enum dma_edu_dir dir : 1;
+	bool is_last : 1;
+};
+
 static int dma_edu_configure(const struct device *dev, uint32_t channel,
 			     struct dma_config *dma_config)
 {
 	const struct dma_edu_config *config = dev->config;
 	struct dma_edu_data *data = dev->data;
+	enum dma_edu_dir dir;
 
 	LOG_DBG("%s(): channel: %u", __func__, channel);
 
@@ -58,15 +75,27 @@ static int dma_edu_configure(const struct device *dev, uint32_t channel,
 
 	switch (dma_config->channel_direction) {
 	case MEMORY_TO_PERIPHERAL:
-		transfer_type = kEDMA_MemoryToPeripheral;
+		dir = PCIE_EDU_DIR_FROM_EDU_TO_RAM;
 		break;
 	case PERIPHERAL_TO_MEMORY:
-		transfer_type = kEDMA_PeripheralToMemory;
+		dir = PCIE_EDU_DIR_FROM_RAM_TO_EDU;
 		break;
 	default:
 		LOG_ERR("unsupported channel direction %d", dma_config->channel_direction);
-		return -EINVAL;
+		return -ENOTSUP;
 	}
+
+	if (dma_config->block_count > 1) {
+		LOG_ERR("unsupported block count %u", dma_config->block_count);
+		return -ENOTSUP;
+	}
+
+	sys_write64(dma_config->head_block->source_address, data->base + PCIE_EDU_REG_DMA_SRC_ADDR);
+	sys_write64(dma_config->head_block->dest_address, data->base + PCIE_EDU_REG_DMA_DST_ADDR);
+	sys_write64(dma_config->head_block->block_size, data->base + PCIE_EDU_REG_DMA_CNT);
+	sys_write32(PCIE_EDU_DMA_CMD_START | PCIE_EDU_REG_DMA_CMD_DIR(dir) |
+			    PCIE_EDU_REG_DMA_CMD_RAISE,
+		    data->base + PCIE_EDU_REG_DMA_CNT);
 
 	return -ENOSYS;
 }
