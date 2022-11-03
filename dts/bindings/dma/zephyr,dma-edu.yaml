@@ -1,0 +1,15 @@
+# Copyright 2022 Meta
+# SPDX-License-Identifier: Apache-2.0
+
+description: Jira Slaby's Educational PCI Device
+
+include: dma-controller.yaml
+
+compatible: zephyr,dma_edu
+
+properties:
+  edu-magic:
+    type: int
+    default: 0x00edu
+    description: |
+      Value of the ID register without major and minor versions
