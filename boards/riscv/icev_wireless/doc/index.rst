@@ -61,6 +61,8 @@ features:
 +-----------+------------+------------------+
 | ADC       | on-chip    |                  |
 +-----------+------------+------------------+
+| FPGA      | off-chip   | fpga_ice40       |
++-----------+------------+------------------+
 
 Other hardware features have not been enabled yet for this board.
 
@@ -108,9 +110,9 @@ For the :code:`Hello, world!` application, follow the instructions below.
 Since the Zephyr console is by default on the `usb_serial` device, we use
 the espressif monitor to view.
 
-.. code-block:: console
+.. code-block:: bash
 
-   $ west espressif monitor
+   west espressif monitor
 
 Debugging
 =========
@@ -119,7 +121,7 @@ As with much custom hardware, the ESP32C3 modules require patches to
 OpenOCD that are not upstreamed. Espressif maintains their own fork of
 the project. The custom OpenOCD can be obtained by running the following extension:
 
-.. code-block:: console
+.. code-block:: bash
 
    west espressif install
 
@@ -149,11 +151,37 @@ You can debug an application in the usual way. Here is an example for the
    :maybe-skip-config:
    :goals: debug
 
+Programming the FPGA
+====================
+
+Generate the `default bitstream`_ using the instructions for building the `ICE-V Wireless Gateware`_.
+Save the file to ``samples/drivers/fpga/fpga_controller/bitstream.bin``. Then, convert the bitstream
+into a C array, to be included in the sample application.
+
+.. code-block:: bash
+
+   curl -L -o bitstream.bin 'https://github.com/ICE-V-Wireless/ICE-V-Wireless/blob/main/Firmware/spiffs/bitstream.bin?raw=true'
+   xxd -i -n bitstream /tmp/bitstream.bin > samples/drivers/fpga/fpga_controller/src/bitstream.h
+
+Build and flash the :ref:`fpga_controller` application.
+
+.. zephyr-app-commands::
+   :zephyr-app: samples/drivers/fpga/fpga_controller
+   :board: icev_wireless
+   :maybe-skip-config:
+   :goals: flash
+
 References
 **********
 
 .. _ICE-V Wireless Github Project:
    https://github.com/ICE-V-Wireless/ICE-V-Wireless
+
+.. _ICE-V Wireless Gateware:
+   https://github.com/ICE-V-Wireless/ICE-V-Wireless/tree/main/Gateware
+
+.. _ICE-V Wireless Default Bitstream:
+   https://github.com/ICE-V-Wireless/ICE-V-Wireless/blob/main/Firmware/spiffs/bitstream.bin
 
 .. _ESP32-C3-MINI-1 Datasheet:
    https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf
