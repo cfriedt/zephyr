@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 find_program(THRIFT_EXECUTABLE thrift)
-
 if(NOT THRIFT_EXECUTABLE)
   message(FATAL_ERROR "The 'thrift' command was not found")
 endif()

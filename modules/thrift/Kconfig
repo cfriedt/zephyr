@@ -5,7 +5,8 @@ config ZEPHYR_THRIFT_MODULE
 	bool
 
 menuconfig THRIFT
-	bool "Support for Thrift"
+	bool "Support for Thrift [EXPERIMENTAL]"
+	select EXPERIMENTAL
 	depends on CPP
 	depends on STD_CPP17
 	depends on CPP_EXCEPTIONS
