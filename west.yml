@@ -259,6 +259,9 @@ manifest:
     - name: zscilib
       path: modules/lib/zscilib
       revision: 0035be5e6a45e4ab89755b176d305d7a877fc79c
+    - name: thrift
+      path: modules/lib/thrift
+      revision: 14ae6d0aa549a63ae3262083b0dbc92d3d5e1a99
 
   self:
     path: zephyr
