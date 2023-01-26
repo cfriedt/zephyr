@@ -2697,6 +2697,17 @@ West:
   labels:
     - manifest-tflite-micro
 
+"West project: thrift":
+  status: maintained
+  maintainers:
+    - cfriedt
+  files:
+    - modules/thrift/Kconfig
+    - samples/modules/thrift/
+    - tests/lib/thrift/
+  labels:
+    - manifest-thrift
+
 "West project: tinycrypt":
   status: odd fixes
   files:
