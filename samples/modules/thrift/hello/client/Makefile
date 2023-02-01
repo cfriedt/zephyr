@@ -16,7 +16,7 @@ THRIFT_FLAGS += $(shell pkg-config --cflags thrift)
 THRIFT_FLAGS += -I$(GEN_DIR)
 THRIFT_LIBS = $(shell pkg-config --libs thrift)
 
-all: hello_client hello_client_compact hello_client_zlib hello_client_ssl hello_client_py.stamp
+all: hello_client hello_client_compact hello_client_ssl hello_client_py.stamp
 
 hello_client.stamp: ../hello.thrift
 	thrift --gen cpp:no_skeleton $<
@@ -33,9 +33,6 @@ hello_client: src/main.cpp  $(GENOBJ) $(GENHDR)
 hello_client_compact: src/main.cpp  $(GENOBJ) $(GENHDR)
 	$(CXX) -DCONFIG_THRIFT_COMPACT_PROTOCOL=1  $(CPPFLAGS) $(CXXFLAGS) $(THRIFT_FLAGS) -o $@ $< $(GENOBJ) $(THRIFT_LIBS)
 
-hello_client_zlib: src/main.cpp  $(GENOBJ) $(GENHDR)
-	$(CXX) -DCONFIG_THRIFT_ZLIB_TRANSPORT=1 $(CPPFLAGS) $(CXXFLAGS) $(THRIFT_FLAGS) -o $@ $< $(GENOBJ) $(THRIFT_LIBS) -lthriftz
-
 hello_client_ssl: src/main.cpp  $(GENOBJ) $(GENHDR)
 	$(CXX) -DCONFIG_THRIFT_SSL_SOCKET=1 $(CPPFLAGS) $(CXXFLAGS) $(THRIFT_FLAGS) -o $@ $< $(GENOBJ) $(THRIFT_LIBS)
 
@@ -44,4 +41,4 @@ hello_client_py.stamp: ../hello.thrift
 	touch $@
 
 clean:
-	rm -Rf hello_client hello_client_compact hello_client_zlib hello_client_ssl $(GEN_DIR) gen-py *.stamp
+	rm -Rf hello_client hello_client_compact hello_client_ssl $(GEN_DIR) gen-py *.stamp

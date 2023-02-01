@@ -18,7 +18,6 @@
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/transport/TSSLSocket.h>
 #include <thrift/transport/TSocket.h>
-#include <thrift/transport/TZlibTransport.h>
 
 #include "Hello.h"
 
@@ -32,10 +31,6 @@ using namespace apache::thrift::transport;
 
 #ifndef CONFIG_THRIFT_COMPACT_PROTOCOL
 #define CONFIG_THRIFT_COMPACT_PROTOCOL 0
-#endif
-
-#ifndef CONFIG_THRIFT_ZLIB_TRANSPORT
-#define CONFIG_THRIFT_ZLIB_TRANSPORT 0
 #endif
 
 #ifndef CONFIG_THRIFT_SSL_SOCKET
@@ -70,8 +65,11 @@ int main(int argc, char **argv)
 #endif
 
 	int port = 4242;
+	std::shared_ptr<TProtocol> protocol;
+	std::shared_ptr<TTransport> transport;
 	std::shared_ptr<TSSLSocketFactory> socketFactory;
 	std::shared_ptr<TTransport> trans;
+
 	if (IS_ENABLED(CONFIG_THRIFT_SSL_SOCKET)) {
 		const int port = 4242;
 		socketFactory = std::make_shared<TSSLSocketFactory>();
@@ -102,18 +100,15 @@ int main(int argc, char **argv)
 	} else {
 		trans = std::make_shared<TSocket>(my_addr, port);
 	}
-	std::shared_ptr<TTransport> transport;
-	if (IS_ENABLED(CONFIG_THRIFT_ZLIB_TRANSPORT)) {
-		transport = std::make_shared<TZlibTransport>(trans);
-	} else {
-		transport = std::make_shared<TBufferedTransport>(trans);
-	}
-	std::shared_ptr<TProtocol> protocol;
+
+	transport = std::make_shared<TBufferedTransport>(trans);
+
 	if (IS_ENABLED(CONFIG_THRIFT_COMPACT_PROTOCOL)) {
 		protocol = std::make_shared<TCompactProtocol>(transport);
 	} else {
 		protocol = std::make_shared<TBinaryProtocol>(transport);
 	}
+
 	HelloClient client(protocol);
 
 	try {
@@ -124,6 +119,7 @@ int main(int argc, char **argv)
 		for (int i = 0; i < 5; ++i) {
 			client.counter();
 		}
+
 		transport->close();
 	} catch (std::exception &e) {
 		printf("caught exception: %s\n", e.what());

@@ -46,8 +46,6 @@ used in each layer of them are listed below:
 +----------------------+------------+--------------------+------------------+
 | hello_client_compact | TSocket    | TBufferedTransport | TCompactProtocol |
 +----------------------+------------+--------------------+------------------+
-| hello_client_zlib    | TSocket    | TZlibTransport     | TBinaryProtocol  |
-+----------------------+------------+--------------------+------------------+
 | hello_client_ssl     | TSSLSocket | TBufferedTransport | TBinaryProtocol  |
 +----------------------+------------+--------------------+------------------+
 
@@ -76,7 +74,6 @@ Build the Zephyr version of the ``hello/server`` sample application like this:
 To enable advanced features, extra arguments should be passed accordingly:
 
 - TCompactProtocol: ``-DCONFIG_THRIFT_COMPACT_PROTOCOL=y``
-- TZlibTransport: ``-DCONFIG_THRIFT_ZLIB_TRANSPORT=y``
 - TSSLSocket: ``-DCONF_FILE="prj.conf ../overlay-tls.conf"``
 
 Example building for ``qemu_x86_64`` with TSSLSocket support:

@@ -12,8 +12,5 @@ tests:
   sample.thrift.hello.server.compactProtocol:
     extra_configs:
       - CONFIG_THRIFT_COMPACT_PROTOCOL=y
-  sample.thrift.hello.server.zlibTransport:
-    extra_configs:
-      - CONFIG_THRIFT_ZLIB_TRANSPORT=y
   sample.thrift.hello.server.tlsTransport:
     extra_args: OVERLAY_CONFIG="../overlay-tls.conf"
