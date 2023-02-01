@@ -24,11 +24,6 @@ config THRIFT_SSL_SOCKET
 	help
 	  Enable this option to support TSSLSocket for Thrift
 
-config THRIFT_ZLIB_TRANSPORT
-	bool "TZlibTransport support for Thrift"
-	help
-	  Enable this option to support TZlibTransport for Thrift
-
 module = THRIFT
 module-str = THRIFT
 source "subsys/logging/Kconfig.template.log_config"

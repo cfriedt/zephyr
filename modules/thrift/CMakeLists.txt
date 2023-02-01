@@ -37,14 +37,6 @@ zephyr_library_sources_ifdef(CONFIG_THRIFT_SSL_SOCKET
   src/thrift/transport/TSSLServerSocket.cpp
 )
 
-zephyr_library_sources_ifdef(CONFIG_THRIFT_ZLIB_TRANSPORT
-  muzic/defl_static.c
-  muzic/genlz77.c
-  muzic/inflater.c
-  muzic/zlib_comp.c
-  ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/transport/TZlibTransport.cpp
-)
-
 # needed because std::iterator was deprecated with -std=c++17
 zephyr_library_compile_options(-Wno-deprecated-declarations)
 
