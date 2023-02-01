@@ -1,5 +1,5 @@
 common:
-  tags: thrift cpp
+  tags: thrift cpp newlib
   modules:
     - thrift
   filter: TOOLCHAIN_HAS_NEWLIB == 1
@@ -7,19 +7,9 @@ common:
   # See https://github.com/zephyrproject-rtos/sdk-ng/issues/603
   platform_allow: mps2_an385 qemu_cortex_a53 qemu_riscv32 qemu_riscv64 qemu_x86_64
 tests:
-  thrift.ThriftTest.newlib.binaryProtocol:
-    tags: newlib
+  thrift.ThriftTest.newlib.binaryProtocol: {}
   thrift.ThriftTest.newlib.compactProtocol:
     extra_configs:
       - CONFIG_THRIFT_COMPACT_PROTOCOL=y
-    tags: newlib
-  thrift.ThriftTest.newlib.bufferedTransport:
-    tags: newlib
-  thrift.ThriftTest.newlib.zlibTransport:
-    extra_configs:
-      - CONFIG_THRIFT_ZLIB_TRANSPORT=y
-      - CONFIG_NEWLIB_LIBC_MAX_MAPPED_REGION_SIZE=4194304
-    tags: newlib
   thrift.ThriftTest.newlib.tlsTransport:
     extra_args: OVERLAY_CONFIG="overlay-tls.conf"
-    tags: newlib

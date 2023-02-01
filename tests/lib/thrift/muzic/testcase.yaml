@@ -1,9 +1,0 @@
-common:
-  tags: thrift zlib
-  modules:
-    - thrift
-  min_ram: 512
-tests:
-  thrift.zlib:
-    integration_platforms:
-      - native_posix
