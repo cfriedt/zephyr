@@ -1,0 +1,9 @@
+# intentionally no prompt (see HTTP_SERVER_CHOICE)
+config PHD
+  bool
+  help
+    Support for the Pico HTTP Daemon
+
+if PHD
+
+endif
