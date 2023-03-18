@@ -1,0 +1,14 @@
+config HTTP_SERVER_INIT_PRIORITY
+	int "HTTP server init priority"
+	default 42
+
+choice HTTP_SERVER_CHOICE
+	prompt "Choice of HTTP server implementaton"
+	default HTTP_SERVER_CHOICE_PHD
+
+config HTTP_SERVER_CHOICE_PHD
+	bool "Use the Pico HTTP Daemon"
+
+endchoice
+
+rsource "phd/Kconfig"

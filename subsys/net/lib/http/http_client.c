@@ -10,9 +10,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(net_http, CONFIG_NET_HTTP_LOG_LEVEL);
-
 #include <zephyr/kernel.h>
 #include <string.h>
 #include <strings.h>
@@ -25,6 +22,7 @@ LOG_MODULE_REGISTER(net_http, CONFIG_NET_HTTP_LOG_LEVEL);
 #include <zephyr/net/http/client.h>
 
 #include "net_private.h"
+#include "http_log.h"
 
 #define HTTP_CONTENT_LEN_SIZE 11
 #define MAX_SEND_BUF_LEN 192

@@ -12,4 +12,10 @@ zephyr_library_sources_ifdef(CONFIG_HTTP_PARSER http_parser.c)
 zephyr_library_sources_ifdef(CONFIG_HTTP_PARSER_URL http_parser_url.c)
 zephyr_library_sources_ifdef(CONFIG_HTTP_CLIENT http_client.c)
 
-add_subdirectory_ifdef(CONFIG_HTTP_SERVER_CHOICE_PHD server/phd)
+zephyr_library_sources(http_log.c)
+
+if(CONFIG_HTTP_SERVER)
+if (CONFIG_HTTP_SERVER_CHOICE_PHD)
+  add_subdirectory(server/phd)
+endif()
+endif()

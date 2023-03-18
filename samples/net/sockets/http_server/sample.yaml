@@ -1,0 +1,10 @@
+common:
+  tags: net http http_server
+  min_ram: 32
+  depends_on: netif
+sample:
+  description: HTTP server sample
+  name: http_server
+tests:
+  sample.net.sockets.http_server:
+    harness: net
