@@ -1,0 +1,11 @@
+common:
+  build_only: true
+  tags: drivers pcie endpoint
+tests:
+  pcie.endpoint.build.iproc.dma:
+    platform_allow: native_posix
+    extra_configs:
+      - CONFIG_PCIE_EP_IPROC=y
+      - CONFIG_PCIE_EP_IPROC_V2=y
+      - CONFIG_DMA=y
+      - CONFIG_DMA_64BIT=y
