@@ -16,13 +16,15 @@
 		#size-cells = <1>;
 
 		test_dma_0: dma_emul@deadbeef {
-			compatible = "zephyr,dma-emul";
-			reg = <0xdeadbeef 0x2000>,
-			      <0xb105f00d 0x3000>;
-			reg-names = "alice_regs",
-				    "bob_regs";
-			dma-channels = <42>;
 			#dma-cells = <1>;
+
+			compatible = "zephyr,dma-emul";
+			reg = <0xdeadbeef 0x20>,
+			      <0xb105f00d 0x20>;
+			reg-names = "foo_regs",
+				    "bar_regs";
+			dma-channels = <2>;
+			status = "okay";
 		};
 	};
 
@@ -34,11 +36,12 @@
 			compatible = "brcm,iproc-pcie-ep";
 			reg = <0x0 0x4e100000 0x0 0x2100>,
 			      <0x0 0x50000000 0x0 0x1000>,
-			      <0x4 0x0 0x0 0x1000>;
+			      <0x0 0x4 0x0 0x1000>;
 			reg-names = "iproc_pcie_regs", "map_lowmem",
 				    "map_highmem";
 			dmas = <&test_dma_0 0>, <&test_dma_0 1>;
 			dma-names = "txdma", "rxdma";
+			status = "okay";
 		};
 
 /*
