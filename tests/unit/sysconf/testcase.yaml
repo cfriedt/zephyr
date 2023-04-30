@@ -1,0 +1,4 @@
+tests:
+  posix.sysconf:
+    tags: sysconf
+    type: unit
