@@ -7,5 +7,3 @@ tests:
       - drivers
       - rtc
       - api
-    filter: dt_alias_exists("rtc")
-    depends_on: rtc

@@ -16,7 +16,7 @@
 #define RTC_TEST_GET_SET_TIME	  (1767225595UL)
 #define RTC_TEST_GET_SET_TIME_TOL (1UL)
 
-static const struct device *rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
+static const struct device *rtc = DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc));
 
 ZTEST(rtc_api, test_set_get_time)
 {

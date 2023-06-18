@@ -12,7 +12,7 @@
 #define RTC_TEST_CAL_RANGE_LIMIT (200000)
 #define RTC_TEST_CAL_RANGE_STEP	 (10000)
 
-static const struct device *rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
+static const struct device *rtc = DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc));
 
 static int test_set_get_calibration(int32_t calibrate_set)
 {

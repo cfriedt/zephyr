@@ -16,7 +16,7 @@
 #define RTC_TEST_TIME_COUNTING_LIMIT	  (RTC_TEST_TIME_COUNTING_SET_TIME + 10UL)
 #define RTC_TEST_TIME_COUNTING_POLL_LIMIT (30U)
 
-static const struct device *rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
+static const struct device *rtc = DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc));
 
 ZTEST(rtc_api, test_time_counting)
 {

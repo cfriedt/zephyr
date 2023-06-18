@@ -19,8 +19,8 @@
 #define RTC_TEST_ALARM_TIME_MINUTE	      (30)
 #define RTC_TEST_ALARM_TIME_HOUR	      (13)
 
-static const struct device *rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
-static const uint16_t alarms_count = DT_PROP(DT_ALIAS(rtc), alarms_count);
+static const struct device *rtc = DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc));
+static const uint16_t alarms_count = DT_PROP(DT_CHOSEN(zephyr_rtc), alarms_count);
 
 ZTEST(rtc_api, test_alarm)
 {

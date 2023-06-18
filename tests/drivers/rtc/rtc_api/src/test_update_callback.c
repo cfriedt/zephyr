@@ -9,7 +9,7 @@
 #include <zephyr/drivers/rtc.h>
 #include <zephyr/sys/atomic.h>
 
-static const struct device *rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
+static const struct device *rtc = DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc));
 static atomic_t callback_called_counter;
 static atomic_t callback_test_user_data_address;
 static uint32_t test_user_data = 0x1234;

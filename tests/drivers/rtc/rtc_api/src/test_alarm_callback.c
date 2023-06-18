@@ -19,8 +19,8 @@
 #define RTC_TEST_ALARM_TIME_MINUTE	     (30)
 #define RTC_TEST_ALARM_TIME_HOUR	     (13)
 
-static const struct device *rtc = DEVICE_DT_GET(DT_ALIAS(rtc));
-static const uint16_t alarms_count = DT_PROP(DT_ALIAS(rtc), alarms_count);
+static const struct device *rtc = DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc));
+static const uint16_t alarms_count = DT_PROP(DT_CHOSEN(zephyr_rtc), alarms_count);
 static uint32_t callback_user_data_odd = 0x4321;
 static uint32_t callback_user_data_even = 0x1234;
 static atomic_t callback_called_mask_odd;
