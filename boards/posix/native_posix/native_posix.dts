@@ -24,6 +24,7 @@
 		zephyr,display = &sdl_dc;
 		zephyr,canbus = &can_loopback0;
 		zephyr,keyboard-scan = &kscan_input;
+		zephyr,rtc = &rtc;
 	};
 
 	aliases {
@@ -32,7 +33,6 @@
 		spi-0 = &spi0;
 		led0 = &led0;
 		kscan0 = &kscan_input;
-		rtc = &rtc;
 	};
 
 	leds {

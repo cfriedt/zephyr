@@ -19,10 +19,10 @@
 		zephyr,sram = &dram0;
 		zephyr,console = &uart_ec_0;
 		zephyr,shell-uart = &uart_ec_0;
+		zephyr,rtc = &rtc;
 	};
 
 	aliases {
 		watchdog0 = &tco_wdt;
-		rtc = &rtc;
 	};
 };
