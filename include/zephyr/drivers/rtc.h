@@ -222,6 +222,31 @@ static inline int z_impl_rtc_get_time(const struct device *dev, struct rtc_time 
 }
 
 /**
+ * @brief API for getting RTC timespec.
+ *
+ * @param dev Device instance
+ * @param ts Destination for the @ref timespec
+ *
+ * @return 0 if successful
+ * @return -errno code if failure
+ */
+static inline int rtc_get_timespec(const struct device *rtc, struct timespec *ts)
+{
+	int ret;
+	struct rtc_time t;
+
+	ret = rtc_get_time(rtc, &t);
+	if (ret != 0) {
+		return ret;
+	}
+
+	ts->tv_sec = t.tm_sec;
+	ts->tv_nsec = t.tm_nsec;
+
+	return 0;
+}
+
+/**
  * @name RTC Interface Alarm
  * @{
  */
