@@ -1055,11 +1055,11 @@ ZTEST(test_c_lib, test_strtok_r)
 
 /**
  *
- * @brief Test time function
+ * @brief Test gmtime function
  *
  * @see gmtime(),gmtime_r().
  */
-ZTEST(test_c_lib, test_time)
+ZTEST(test_c_lib, test_gmtime)
 {
 	time_t tests1 = 0;
 	time_t tests2 = -5;
@@ -1074,6 +1074,21 @@ ZTEST(test_c_lib, test_time)
 	tp.tm_wday = -5;
 	zassert_not_null(gmtime_r(&tests3, &tp), "gmtime_r failed");
 	zassert_not_null(gmtime_r(&tests4, &tp), "gmtime_r failed");
+}
+
+/**
+ *
+ * @brief Test time function
+ *
+ * @see time().
+ */
+ZTEST(test_c_lib, test_time)
+{
+	if (IS_ENABLED(CONFIG_COMMON_LIBC_TIME)) {
+		zassert_not_equal(time(NULL), (time_t)-1);
+	} else {
+		ztest_test_skip();
+	}
 }
 
 /**
