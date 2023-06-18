@@ -6,18 +6,18 @@
 
 #include <time.h>
 
-/* clock_gettime() prototype */
-#include <zephyr/posix/time.h>
+#include <zephyr/drivers/rtc.h>
+#include <zephyr/kernel.h>
 
 time_t time(time_t *tloc)
 {
-	struct timespec ts;
+	struct timespec ts = {0};
 	int ret;
 
-	ret = clock_gettime(CLOCK_REALTIME, &ts);
+	ret = rtc_get_timespec(DEVICE_DT_GET(DT_CHOSEN(zephyr_rtc)), &ts);
 	if (ret < 0) {
-		/* errno is already set by clock_gettime */
-		return (time_t) -1;
+		errno = -ret;
+		return (time_t)-1;
 	}
 
 	if (tloc) {
