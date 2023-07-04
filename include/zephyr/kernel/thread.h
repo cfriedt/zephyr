@@ -186,6 +186,12 @@ struct _thread_userspace_local_data {
 #if defined(CONFIG_ERRNO) && !defined(CONFIG_ERRNO_IN_TLS) && !defined(CONFIG_LIBC_ERRNO)
 	int errno_var;
 #endif
+#if defined(CONFIG_GETOPT) && !defined(CONFIG_GETOPT_IN_TLS) && !defined(CONFIG_LIBC_GETOPT)
+	char *getopt_optarg;
+	int getopt_optind;
+	int getopt_opterr;
+	int getopt_optopt;
+#endif
 };
 #endif
 
