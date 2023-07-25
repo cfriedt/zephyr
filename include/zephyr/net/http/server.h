@@ -7,9 +7,12 @@
 #ifndef ZEPHYR_INCLUDE_NET_HTTP_SERVER_H_
 #define ZEPHYR_INCLUDE_NET_HTTP_SERVER_H_
 
+#include <stdint.h>
+
 #if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
 
-#define CONFIG_NET_HTTP2_MAX_CLIENTS 10
+#include <stddef.h>
+#include <sys/socket.h>
 #include <poll.h>
 
 #else
@@ -18,44 +21,89 @@
 
 #endif
 
-#define MAX_CLIENTS CONFIG_NET_HTTP2_MAX_CLIENTS
+#if !defined(__ZEPHYR__)
 
-struct http2_server_config {
+#define CONFIG_NET_HTTP_MAX_CLIENTS        10
+#define CONFIG_NET_HTTP_MAX_STREAMS        100
+#define CONFIG_NET_HTTP_CLIENT_BUFFER_SIZE 256
+
+#endif
+
+#define CLIENT_BUFFER_SIZE CONFIG_NET_HTTP_CLIENT_BUFFER_SIZE
+#define MAX_CLIENTS        CONFIG_NET_HTTP_MAX_CLIENTS
+#define MAX_STREAMS        CONFIG_NET_HTTP_MAX_STREAMS
+
+struct http_server_config {
 	int port;
-	int address_family;
+	sa_family_t address_family;
 };
 
-enum http2_server_state {
-	AWAITING_PREFACE,
-	READING_SETTINGS,
-	STREAMING,
-	CLOSING
+enum http_stream_state {
+	HTTP_STREAM_IDLE,
+	HTTP_STREAM_RESERVED_LOCAL,
+	HTTP_STREAM_RESERVED_REMOTE,
+	HTTP_STREAM_OPEN,
+	HTTP_STREAM_HALF_CLOSED_LOCAL,
+	HTTP_STREAM_HALF_CLOSED_REMOTE,
+	HTTP_STREAM_CLOSED
 };
 
-struct http2_client_ctx {
-	int client_fd;
-	enum http2_server_state state;
+enum http_server_state {
+	HTTP_FRAME_HEADER_STATE,
+	HTTP_PREFACE_STATE,
+	HTTP_REQUEST_STATE,
+	HTTP_FRAME_DATA_STATE,
+	HTTP_FRAME_HEADERS_STATE,
+	HTTP_FRAME_SETTINGS_STATE,
+	HTTP_FRAME_PRIORITY_STATE,
+	HTTP_FRAME_WINDOW_UPDATE_STATE,
+	HTTP_FRAME_CONTINUATION_STATE,
+	HTTP_FRAME_PING_STATE,
+	HTTP_FRAME_RST_STREAM_STATE,
+	HTTP_FRAME_GOAWAY_STATE,
+	HTTP_DONE_STATE,
+};
+
+struct http_stream_ctx {
 	int stream_id;
+	enum http_stream_state stream_state;
 };
 
+struct http_frame {
+	uint32_t length;
+	uint32_t stream_identifier;
+	uint8_t type;
+	uint8_t flags;
+	uint8_t *payload;
+};
 
-struct http2_server_ctx {
+struct http_client_ctx {
+	int client_fd;
+	int offset;
+	unsigned char buffer[CLIENT_BUFFER_SIZE];
+	enum http_server_state server_state;
+	struct http_frame current_frame;
+	int bytes_parsed_in_current_frame;
+	struct http_stream_ctx streams[MAX_STREAMS];
+};
+
+struct http_server_ctx {
 	int server_fd;
 	int event_fd;
 	size_t num_clients;
-	struct pollfd client_fds[MAX_CLIENTS+2];
-	struct http2_client_ctx clients[MAX_CLIENTS];
 	int infinite;
+	struct http_server_config config;
+	struct pollfd fds[MAX_CLIENTS + 2];
+	struct http_client_ctx clients[MAX_CLIENTS];
 };
 
 /* Initializes the HTTP2 server */
-int http2_server_init(struct http2_server_ctx *ctx,
-		      struct http2_server_config *config);
+int http_server_init(struct http_server_ctx *ctx);
 
 /* Starts the HTTP2 server */
-int http2_server_start(struct http2_server_ctx *ctx);
+int http_server_start(struct http_server_ctx *ctx);
 
 /* Stops the HTTP2 server */
-int http2_server_stop(struct http2_server_ctx *ctx);
+int http_server_stop(struct http_server_ctx *ctx);
 
 #endif
