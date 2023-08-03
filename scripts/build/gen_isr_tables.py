@@ -231,6 +231,7 @@ def getindex(irq, irq_aggregator_pos):
               " Recheck interrupt configuration.")
 
 def main():
+    max_irq_per = 0
     parse_args()
 
     with open(args.kernel, "rb") as fp:
@@ -351,6 +352,9 @@ def main():
                 )
 
             swt[table_index] = (param, func)
+
+    if max_irq_per > FIRST_LVL_INTERRUPTS:
+        error(f'MAX_IRQ_PER_AGGREGATOR: {max_irq_per} does not fit in the bitmask 0x{FIRST_LVL_INTERRUPTS:x}')
 
     with open(args.output_source, "w") as fp:
         write_source_file(fp, vt, swt, intlist, syms)
