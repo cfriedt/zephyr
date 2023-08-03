@@ -64,3 +64,10 @@ tests:
     filter: CONFIG_SOC_FAMILY_RISCV_PRIVILEGED
     extra_configs:
       - CONFIG_GEN_IRQ_VECTOR_TABLE=n
+  arch.interrupt.gen_isr_table.riscv64.multi_level:
+    arch_allow:
+      - riscv64
+    filter: CONFIG_SOC_FAMILY_RISCV_PRIVILEGED
+    extra_configs:
+      - CONFIG_GEN_ISR_TABLES=y
+      - CONFIG_MULTI_LEVEL_INTERRUPTS=y
