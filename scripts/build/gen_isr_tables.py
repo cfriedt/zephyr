@@ -28,7 +28,7 @@ SECND_LVL_INTERRUPTS = 0x0000FF00
 THIRD_LVL_INTERRUPTS = 0x00FF0000
 
 def debug(text):
-    if args.debug:
+    if True:
         sys.stdout.write(os.path.basename(sys.argv[0]) + ": " + text + "\n")
 
 def error(text):
