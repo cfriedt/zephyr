@@ -1,0 +1,10 @@
+&plic0 {
+    status = "okay";
+};
+
+&uart0 {
+    /* clock-frequency arbitrarily chosen to avoid a compile error */
+    clock-frequency = <42>;
+    interrupts = <8 1>;
+    status = "okay";
+};
