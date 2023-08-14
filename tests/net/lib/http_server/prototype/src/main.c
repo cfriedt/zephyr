@@ -13,12 +13,12 @@
 #include <zephyr/ztest.h>
 
 #define SUPPORT_BACKWARD_COMPATIBILITY 1
-#define SUPPORT_HTTP2_UPGRADE 2
-#define BUFFER_SIZE 256
-#define STACK_SIZE 8192
-#define MY_IPV4_ADDR "127.0.0.1"
-#define PORT 8000
-#define TIMEOUT 1000
+#define SUPPORT_HTTP_UPGRADE           2
+#define BUFFER_SIZE                    256
+#define STACK_SIZE                     8192
+#define MY_IPV4_ADDR                   "127.0.0.1"
+#define SERVER_PORT                    8000
+#define TIMEOUT                        1000
 
 static struct k_sem server_sem;
 
@@ -51,23 +51,18 @@ static const unsigned char Frame1[] = {
 	0x00, 0x00, 0x21, 0x01, 0x05, 0x00, 0x00, 0x00, 0x01, 0x82, 0x84, 0x86, 0x41, 0x8a, 0x0b,
 	0xe2, 0x5c, 0x0b, 0x89, 0x70, 0xdc, 0x78, 0x0f, 0x03, 0x53, 0x03, 0x2a, 0x2f, 0x2a, 0x90,
 	0x7a, 0x8a, 0xaa, 0x69, 0xd2, 0x9a, 0xc4, 0xc0, 0x57, 0x68, 0x0b, 0x83, 0x00, 0x00, 0x07,
-	0x01, 0x05, 0x00, 0x00, 0x00, 0x03, 0x82, 0x85, 0x86, 0xc0, 0xbf, 0x90, 0xbe
-};
+	0x01, 0x05, 0x00, 0x00, 0x00, 0x03, 0x82, 0x85, 0x86, 0xc0, 0xbf, 0x90, 0xbe};
 
 /* SETTINGS[0] */
-static const unsigned char Frame2[] = {0x00, 0x00, 0x00, 0x04, 0x01,
-				       0x00, 0x00, 0x00, 0x00};
+static const unsigned char Frame2[] = {0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00};
 
 /* GOAWAY[0] */
-static const unsigned char Frame3[] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00,
-				       0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-				       0x00, 0x00, 0x00, 0x00, 0x00};
-
-ZTEST_SUITE(server_function_tests, NULL, NULL, NULL, NULL, NULL);
+static const unsigned char Frame3[] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00,
+				       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 static void server_thread_fn_streams(void *arg0, void *arg1, void *arg2)
 {
-	struct http2_server_ctx *ctx = (struct http2_server_ctx *)arg0;
+	struct http_server_ctx *ctx = (struct http_server_ctx *)arg0;
 
 	k_thread_name_set(k_current_get(), "server");
 
@@ -75,7 +70,7 @@ static void server_thread_fn_streams(void *arg0, void *arg1, void *arg2)
 
 	ctx->infinite = 0;
 	for (int i = 0; i < 2; i++) {
-		http2_server_start(ctx);
+		http_server_start(ctx);
 	}
 }
 
@@ -87,23 +82,22 @@ static void test_streams(void)
 	char *addrstrp;
 	k_tid_t server_thread_id;
 	struct sockaddr_in sa;
-	char addrstr[64];
+	unsigned char addrstr[512];
 
 	k_sem_init(&server_sem, 0, 1);
 
-	struct http2_server_config config;
-	struct http2_server_ctx ctx;
+	struct http_server_ctx ctx;
 
-	config.port = PORT;
-	config.address_family = AF_INET;
+	ctx.config.port = SERVER_PORT;
+	ctx.config.address_family = AF_INET;
 
-	int server_fd = http2_server_init(&ctx, &config);
+	int server_fd = http_server_init(&ctx);
 
 	zassert_true(server_fd >= 0, "Failed to create server socket");
 
-	server_thread_id = k_thread_create(
-	    &server_thread, server_stack, STACK_SIZE, server_thread_fn_streams,
-	    &ctx, NULL, NULL, K_PRIO_PREEMPT(8), 0, K_NO_WAIT);
+	server_thread_id =
+		k_thread_create(&server_thread, server_stack, STACK_SIZE, server_thread_fn_streams,
+				&ctx, NULL, NULL, K_PRIO_PREEMPT(8), 0, K_NO_WAIT);
 
 	r = k_sem_take(&server_sem, K_MSEC(TIMEOUT));
 	zassert_equal(0, r, "failed to synchronize with server thread (%d)", r);
@@ -115,7 +109,7 @@ static void test_streams(void)
 	client_fd = r;
 
 	sa.sin_family = AF_INET;
-	sa.sin_port = htons(PORT);
+	sa.sin_port = htons(SERVER_PORT);
 
 	r = inet_pton(AF_INET, MY_IPV4_ADDR, &sa.sin_addr.s_addr);
 	zassert_not_equal(-1, r, "inet_pton() failed (%d)", errno);
@@ -123,8 +117,7 @@ static void test_streams(void)
 	zassert_equal(1, r, "inet_pton() failed to convert %s", MY_IPV4_ADDR);
 
 	memset(addrstr, '\0', sizeof(addrstr));
-	addrstrp =
-	    (char *)inet_ntop(AF_INET, &sa.sin_addr, addrstr, sizeof(addrstr));
+	addrstrp = (char *)inet_ntop(AF_INET, &sa.sin_addr, addrstr, sizeof(addrstr));
 	zassert_not_equal(addrstrp, NULL, "inet_ntop() failed (%d)", errno);
 
 	r = connect(client_fd, (struct sockaddr *)&sa, sizeof(sa));
@@ -151,12 +144,10 @@ static void test_streams(void)
 	length = (addrstr[0] << 16) | (addrstr[1] << 8) | addrstr[2];
 	length += 9;
 	type = addrstr[3];
-	stream_id = (addrstr[5] << 24) | (addrstr[6] << 16) |
-		    (addrstr[7] << 8) | addrstr[8];
+	stream_id = (addrstr[5] << 24) | (addrstr[6] << 16) | (addrstr[7] << 8) | addrstr[8];
 	stream_id &= 0x7fffffff;
 
-	zassert_true((type == 0x4 && stream_id == 0),
-		     "Expected a SETTINGS frame with stream ID 0");
+	zassert_true((type == 0x4 && stream_id == 0), "Expected a SETTINGS frame with stream ID 0");
 
 	r -= length;
 	memmove(addrstr, addrstr + length, r);
@@ -164,12 +155,10 @@ static void test_streams(void)
 	length = (addrstr[0] << 16) | (addrstr[1] << 8) | addrstr[2];
 	length += 9;
 	type = addrstr[3];
-	stream_id = (addrstr[5] << 24) | (addrstr[6] << 16) |
-		    (addrstr[7] << 8) | addrstr[8];
+	stream_id = (addrstr[5] << 24) | (addrstr[6] << 16) | (addrstr[7] << 8) | addrstr[8];
 	stream_id &= 0x7fffffff;
 
-	zassert_true((type == 0x1 && stream_id == 1),
-		     "Expected a HEADERS frame with stream ID 1");
+	zassert_true((type == 0x1 && stream_id == 1), "Expected a HEADERS frame with stream ID 1");
 
 	r -= length;
 	memmove(addrstr, addrstr + length, r);
@@ -177,19 +166,36 @@ static void test_streams(void)
 	length = (addrstr[0] << 16) | (addrstr[1] << 8) | addrstr[2];
 	length += 9;
 	type = addrstr[3];
-	stream_id = (addrstr[5] << 24) | (addrstr[6] << 16) |
-		    (addrstr[7] << 8) | addrstr[8];
+	stream_id = (addrstr[5] << 24) | (addrstr[6] << 16) | (addrstr[7] << 8) | addrstr[8];
+	stream_id &= 0x7fffffff;
+	addrstr[9] = 0;
+
+	zassert_true((type == 0x0 && stream_id == 1), "Expected a DATA frame with stream ID 1");
+
+	r -= length;
+	memmove(addrstr, addrstr + length, r);
+
+	length = (addrstr[0] << 16) | (addrstr[1] << 8) | addrstr[2];
+	length += 9;
+	type = addrstr[3];
+	stream_id = (addrstr[5] << 24) | (addrstr[6] << 16) | (addrstr[7] << 8) | addrstr[8];
 	stream_id &= 0x7fffffff;
 
-	zassert_true((type == 0x1 && stream_id == 3),
-		     "Expected a HEADERS frame with stream ID 3");
+	zassert_true((type == 0x1 && stream_id == 3), "Expected a HEADERS frame with stream ID 3");
+
+	r -= length;
+	memmove(addrstr, addrstr + length, r);
+
+	length = (addrstr[0] << 16) | (addrstr[1] << 8) | addrstr[2];
+	length += 9;
+	type = addrstr[3];
+	stream_id = (addrstr[5] << 24) | (addrstr[6] << 16) | (addrstr[7] << 8) | addrstr[8];
+	stream_id &= 0x7fffffff;
+
+	zassert_true((type == 0x0 && stream_id == 3), "Expected a DATA frame with stream ID 3");
 
 	r = send(client_fd, Frame3, sizeof(Frame3), 0);
 	zassert_not_equal(r, -1, "send() failed (%d)", errno);
-
-	memset(addrstr, 0, sizeof(addrstr));
-	r = recv(client_fd, addrstr, sizeof(addrstr), 0);
-	zassert_not_equal(r, -1, "recv() failed (%d)", errno);
 
 	r = close(client_fd);
 	zassert_not_equal(-1, r, "close() failed on the client fd (%d)", errno);
@@ -201,7 +207,10 @@ static void test_streams(void)
 	zassert_equal(0, r, "k_thread_join() failed (%d)", r);
 }
 
-ZTEST(server_function_tests, test_http2_concurrent_streams) { test_streams(); }
+ZTEST(server_function_tests, test_http_concurrent_streams)
+{
+	test_streams();
+}
 
 static void server_thread_fn(void *arg0, void *arg1, void *arg2)
 {
@@ -231,21 +240,23 @@ static void server_thread_fn(void *arg0, void *arg1, void *arg2)
 		r = recv(client_fd, addrstr, sizeof(addrstr), 0);
 		zassert_not_equal(r, -1, "recv() failed (%d)", errno);
 
-		if (strncmp(addrstr, preface, strlen(preface)) != 0)
+		if (strncmp(addrstr, preface, strlen(preface)) != 0) {
 			support = SUPPORT_BACKWARD_COMPATIBILITY;
+		}
 
 		zassert_equal(support, SUPPORT_BACKWARD_COMPATIBILITY,
 			      "Server does not supprt backward compatibility");
-	} else if (test_support == SUPPORT_HTTP2_UPGRADE) {
+	} else if (test_support == SUPPORT_HTTP_UPGRADE) {
 
 		memset(addrstr, '\0', sizeof(addrstr));
 		r = recv(client_fd, addrstr, sizeof(addrstr), 0);
 		zassert_not_equal(r, -1, "recv() failed (%d)", errno);
 
-		if (strncmp(addrstr, preface, strlen(preface)) == 0)
-			support = SUPPORT_HTTP2_UPGRADE;
+		if (strncmp(addrstr, preface, strlen(preface)) == 0) {
+			support = SUPPORT_HTTP_UPGRADE;
+		}
 
-		zassert_equal(support, SUPPORT_HTTP2_UPGRADE,
+		zassert_equal(support, SUPPORT_HTTP_UPGRADE,
 			      "Server does not supprt HTTP1 to HTTP2 upgrade");
 	}
 	r = close(client_fd);
@@ -264,20 +275,19 @@ static void test_common(int test_support)
 
 	k_sem_init(&server_sem, 0, 1);
 
-	struct http2_server_config config;
-	struct http2_server_ctx ctx;
+	struct http_server_ctx ctx;
 
-	config.port = PORT;
-	config.address_family = AF_INET;
+	ctx.config.port = SERVER_PORT;
+	ctx.config.address_family = AF_INET;
 
-	int server_fd = http2_server_init(&ctx, &config);
+	int server_fd = http_server_init(&ctx);
 
 	zassert_true(server_fd >= 0, "Failed to create server socket");
 
-	server_thread_id = k_thread_create(
-	    &server_thread, server_stack, STACK_SIZE, server_thread_fn,
-	    INT_TO_POINTER(server_fd), INT_TO_POINTER(test_support), NULL,
-	    K_PRIO_PREEMPT(8), 0, K_NO_WAIT);
+	server_thread_id =
+		k_thread_create(&server_thread, server_stack, STACK_SIZE, server_thread_fn,
+				INT_TO_POINTER(server_fd), INT_TO_POINTER(test_support), NULL,
+				K_PRIO_PREEMPT(8), 0, K_NO_WAIT);
 
 	r = k_sem_take(&server_sem, K_MSEC(TIMEOUT));
 	zassert_equal(0, r, "failed to synchronize with server thread (%d)", r);
@@ -289,7 +299,7 @@ static void test_common(int test_support)
 	client_fd = r;
 
 	sa.sin_family = AF_INET;
-	sa.sin_port = htons(PORT);
+	sa.sin_port = htons(SERVER_PORT);
 
 	r = inet_pton(AF_INET, MY_IPV4_ADDR, &sa.sin_addr.s_addr);
 	zassert_not_equal(-1, r, "inet_pton() failed (%d)", errno);
@@ -297,8 +307,7 @@ static void test_common(int test_support)
 	zassert_equal(1, r, "inet_pton() failed to convert %s", MY_IPV4_ADDR);
 
 	memset(addrstr, '\0', sizeof(addrstr));
-	addrstrp =
-	    (char *)inet_ntop(AF_INET, &sa.sin_addr, addrstr, sizeof(addrstr));
+	addrstrp = (char *)inet_ntop(AF_INET, &sa.sin_addr, addrstr, sizeof(addrstr));
 	zassert_not_equal(addrstrp, NULL, "inet_ntop() failed (%d)", errno);
 
 	r = connect(client_fd, (struct sockaddr *)&sa, sizeof(sa));
@@ -310,13 +319,11 @@ static void test_common(int test_support)
 
 		r = send(client_fd, http1_request, strlen(http1_request), 0);
 		zassert_not_equal(r, -1, "send() failed (%d)", errno);
-	} else if (test_support == SUPPORT_HTTP2_UPGRADE) {
+	} else if (test_support == SUPPORT_HTTP_UPGRADE) {
 
-		char *http2_upgrade_request =
-		    "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+		char *http_upgrade_request = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
-		r = send(client_fd, http2_upgrade_request,
-			 strlen(http2_upgrade_request), 0);
+		r = send(client_fd, http_upgrade_request, strlen(http_upgrade_request), 0);
 		zassert_not_equal(r, -1, "send() failed (%d)", errno);
 	}
 
@@ -334,9 +341,9 @@ static void test_common(int test_support)
 	zassert_equal(0, r, "k_thread_join() failed (%d)", r);
 }
 
-ZTEST(server_function_tests, test_http2_upgrade)
+ZTEST(server_function_tests, test_http_upgrade)
 {
-	test_common(SUPPORT_HTTP2_UPGRADE);
+	test_common(SUPPORT_HTTP_UPGRADE);
 }
 
 ZTEST(server_function_tests, test_backward_compatibility)
@@ -353,51 +360,44 @@ ZTEST(server_function_tests, test_gen_gz_inc_file)
 	len = sizeof(inc_file);
 	len = len - 2;
 
-	zassert_equal(len, sizeof(compressed_inc_file),
-		      "Invalid compressed file size");
+	zassert_equal(len, sizeof(compressed_inc_file), "Invalid compressed file size");
 
 	int result = memcmp(data, compressed_inc_file, len);
 
-	zassert_equal(
-	    result, 0,
-	    "inc_file and compressed_inc_file contents are not identical");
+	zassert_equal(result, 0, "inc_file and compressed_inc_file contents are not identical");
 }
 
-ZTEST(server_function_tests, test_http2_support_ipv6)
+ZTEST(server_function_tests, test_http_support_ipv6)
 {
-	struct http2_server_config config;
-	struct http2_server_ctx ctx;
+	struct http_server_ctx ctx;
 
-	config.port = 8080;
-	config.address_family = AF_INET6;
+	ctx.config.port = SERVER_PORT;
+	ctx.config.address_family = AF_INET;
 
-	int server_fd = http2_server_init(&ctx, &config);
+	int server_fd = http_server_init(&ctx);
 
 	/* Check that the function returned a valid file descriptor */
-	zassert_true(server_fd >= 0,
-		     "Failed to initialize HTTP/2 server with IPv6");
+	zassert_true(server_fd >= 0, "Failed to initialize HTTP/2 server with IPv6");
 
 	close(server_fd);
 }
 
-ZTEST(server_function_tests, test_http2_support_ipv4)
+ZTEST(server_function_tests, test_http_support_ipv4)
 {
-	struct http2_server_config config;
-	struct http2_server_ctx ctx;
+	struct http_server_ctx ctx;
 
-	config.port = 8080;
-	config.address_family = AF_INET;
+	ctx.config.port = SERVER_PORT;
+	ctx.config.address_family = AF_INET;
 
-	int server_fd = http2_server_init(&ctx, &config);
+	int server_fd = http_server_init(&ctx);
 
 	/* Check that the function returned a valid file descriptor */
-	zassert_true(server_fd >= 0,
-		     "Failed to initialize HTTP/2 server with IPv4");
+	zassert_true(server_fd >= 0, "Failed to initialize HTTP/2 server with IPv4");
 
 	close(server_fd);
 }
 
-int http2_server_stop(struct http2_server_ctx *ctx)
+int http_server_stop(struct http_server_ctx *ctx)
 {
 	eventfd_write(ctx->event_fd, 1);
 
@@ -406,51 +406,47 @@ int http2_server_stop(struct http2_server_ctx *ctx)
 
 static void server_thread_stp_fn(void *arg0, void *arg1, void *arg2)
 {
-	struct http2_server_ctx *ctx = (struct http2_server_ctx *)arg0;
+	struct http_server_ctx *ctx = (struct http_server_ctx *)arg0;
 
 	k_sleep(K_SECONDS(2));
 
 	ctx->infinite = 0;
-	int program_status = http2_server_start(ctx);
+	int program_status = http_server_start(ctx);
 
-	zassert_equal(program_status, 0,
-		      "The server didn't shut down successfully");
+	zassert_equal(program_status, 0, "The server didn't shut down successfully");
 }
 
-ZTEST(server_function_tests, test_http2_server_stop)
+ZTEST(server_function_tests, test_http_server_stop)
 {
-	struct http2_server_config config;
-	struct http2_server_ctx ctx;
+	struct http_server_ctx ctx;
 
-	config.port = PORT;
-	config.address_family = AF_INET;
+	ctx.config.port = SERVER_PORT;
+	ctx.config.address_family = AF_INET;
 
-	int server_fd = http2_server_init(&ctx, &config);
+	int server_fd = http_server_init(&ctx);
 
 	zassert_true(server_fd >= 0, "Failed to create server socket");
 
-	k_thread_create(&server_thread, server_stack, STACK_SIZE,
-			server_thread_stp_fn, &ctx, NULL, NULL,
-			K_PRIO_PREEMPT(8), 0, K_NO_WAIT);
+	k_thread_create(&server_thread, server_stack, STACK_SIZE, server_thread_stp_fn, &ctx, NULL,
+			NULL, K_PRIO_PREEMPT(8), 0, K_NO_WAIT);
 
 	k_sleep(K_MSEC(100));
 
-	http2_server_stop(&ctx);
+	http_server_stop(&ctx);
 
 	k_thread_join(&server_thread, K_FOREVER);
 
 	close(server_fd);
 }
 
-ZTEST(server_function_tests, test_http2_server_init)
+ZTEST(server_function_tests, test_http_server_init)
 {
-	struct http2_server_config config;
-	struct http2_server_ctx ctx;
+	struct http_server_ctx ctx;
 
-	config.port = 8080;
-	config.address_family = AF_INET;
+	ctx.config.port = SERVER_PORT;
+	ctx.config.address_family = AF_INET;
 
-	int server_fd = http2_server_init(&ctx, &config);
+	int server_fd = http_server_init(&ctx);
 
 	/* Check that the function returned a valid file descriptor */
 	zassert_true(server_fd >= 0, "Failed to initiate server socket");
@@ -460,80 +456,78 @@ ZTEST(server_function_tests, test_http2_server_init)
 
 ZTEST(server_function_tests, test_get_frame_type_name)
 {
-	zassert_equal(strcmp(get_frame_type_name(HTTP2_DATA_FRAME), "DATA"), 0,
+	zassert_equal(strcmp(get_frame_type_name(HTTP_DATA_FRAME), "DATA"), 0,
 		      "Unexpected frame type");
-	zassert_equal(
-	    strcmp(get_frame_type_name(HTTP2_HEADERS_FRAME), "HEADERS"), 0,
-	    "Unexpected frame type");
-	zassert_equal(
-	    strcmp(get_frame_type_name(HTTP2_PRIORITY_FRAME), "PRIORITY"), 0,
-	    "Unexpected frame type");
-	zassert_equal(
-	    strcmp(get_frame_type_name(HTTP2_RST_STREAM_FRAME), "RST_STREAM"),
-	    0, "Unexpected frame type");
-	zassert_equal(
-	    strcmp(get_frame_type_name(HTTP2_SETTINGS_FRAME), "SETTINGS"), 0,
-	    "Unexpected frame type");
-	zassert_equal(strcmp(get_frame_type_name(HTTP2_PUSH_PROMISE_FRAME),
-			     "PUSH_PROMISE"),
-		      0, "Unexpected frame type");
-	zassert_equal(strcmp(get_frame_type_name(HTTP2_PING_FRAME), "PING"), 0,
+	zassert_equal(strcmp(get_frame_type_name(HTTP_HEADERS_FRAME), "HEADERS"), 0,
 		      "Unexpected frame type");
-	zassert_equal(strcmp(get_frame_type_name(HTTP2_GOAWAY_FRAME), "GOAWAY"),
-		      0, "Unexpected frame type");
-	zassert_equal(strcmp(get_frame_type_name(HTTP2_WINDOW_UPDATE_FRAME),
-			     "WINDOW_UPDATE"),
-		      0, "Unexpected frame type");
-	zassert_equal(strcmp(get_frame_type_name(HTTP2_CONTINUATION_FRAME),
-			     "CONTINUATION"),
-		      0, "Unexpected frame type");
-	zassert_equal(strcmp(get_frame_type_name(9999), "UNKNOWN"), 0,
+	zassert_equal(strcmp(get_frame_type_name(HTTP_PRIORITY_FRAME), "PRIORITY"), 0,
+		      "Unexpected frame type");
+	zassert_equal(strcmp(get_frame_type_name(HTTP_RST_STREAM_FRAME), "RST_STREAM"), 0,
+		      "Unexpected frame type");
+	zassert_equal(strcmp(get_frame_type_name(HTTP_SETTINGS_FRAME), "SETTINGS"), 0,
+		      "Unexpected frame type");
+	zassert_equal(strcmp(get_frame_type_name(HTTP_PUSH_PROMISE_FRAME), "PUSH_PROMISE"), 0,
+		      "Unexpected frame type");
+	zassert_equal(strcmp(get_frame_type_name(HTTP_PING_FRAME), "PING"), 0,
+		      "Unexpected frame type");
+	zassert_equal(strcmp(get_frame_type_name(HTTP_GOAWAY_FRAME), "GOAWAY"), 0,
+		      "Unexpected frame type");
+	zassert_equal(strcmp(get_frame_type_name(HTTP_WINDOW_UPDATE_FRAME), "WINDOW_UPDATE"), 0,
+		      "Unexpected frame type");
+	zassert_equal(strcmp(get_frame_type_name(HTTP_CONTINUATION_FRAME), "CONTINUATION"), 0,
 		      "Unexpected frame type");
 }
 
-ZTEST(server_function_tests, test_parse_http2_frames)
+ZTEST(server_function_tests, test_parse_http_frames)
 {
-	unsigned char buffer1[] = {
-	    0x00, 0x00, 0x0c, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
-	    0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0x00, 0xff, 0xff, 0x00};
-	unsigned char buffer2[] = {
-	    0x00, 0x00, 0x21, 0x01, 0x05, 0x00, 0x00, 0x00, 0x01, 0x82, 0x84,
-	    0x86, 0x41, 0x8a, 0x0b, 0xe2, 0x5c, 0x0b, 0x89, 0x70, 0xdc, 0x78,
-	    0x0f, 0x03, 0x53, 0x03, 0x2a, 0x2f, 0x2a, 0x90, 0x7a, 0x8a, 0xaa,
-	    0x69, 0xd2, 0x9a, 0xc4, 0xc0, 0x57, 0x68, 0x0b, 0x83};
-	struct http2_frame frame;
-	unsigned int buffer_len1 = ARRAY_SIZE(buffer1);
-	unsigned int buffer_len2 = ARRAY_SIZE(buffer2);
+	struct http_client_ctx ctx_client1;
+	struct http_client_ctx ctx_client2;
+	struct http_frame *frame;
+
+	unsigned char buffer1[] = {0x00, 0x00, 0x0c, 0x04, 0x00, 0x00, 0x00, 0x00,
+				   0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00,
+				   0x04, 0x00, 0x00, 0xff, 0xff, 0x00};
+	unsigned char buffer2[] = {0x00, 0x00, 0x21, 0x01, 0x05, 0x00, 0x00, 0x00, 0x01, 0x82, 0x84,
+				   0x86, 0x41, 0x8a, 0x0b, 0xe2, 0x5c, 0x0b, 0x89, 0x70, 0xdc, 0x78,
+				   0x0f, 0x03, 0x53, 0x03, 0x2a, 0x2f, 0x2a, 0x90, 0x7a, 0x8a, 0xaa,
+				   0x69, 0xd2, 0x9a, 0xc4, 0xc0, 0x57, 0x68, 0x0b, 0x83};
+
+	memcpy(ctx_client1.buffer, buffer1, sizeof(buffer1));
+	memcpy(ctx_client2.buffer, buffer2, sizeof(buffer2));
+
+	ctx_client1.offset = ARRAY_SIZE(buffer1);
+	ctx_client1.bytes_parsed_in_current_frame = 0;
+
+	ctx_client2.offset = ARRAY_SIZE(buffer2);
+	ctx_client2.bytes_parsed_in_current_frame = 0;
 
 	/* Test: Buffer with the first frame */
-	int parser1 = parse_http2_frame(buffer1, buffer_len1, &frame);
+	int parser1 = parse_http_frame_header(&ctx_client1);
 
-	zassert_true(parser1, "Failed to parse the first frame");
+	zassert_equal(parser1, 1, "Failed to parse the first frame");
+
+	frame = &ctx_client1.current_frame;
 
 	/* Validate frame details for the 1st frame */
-	zassert_equal(frame.length, 0x0C,
-		      "Expected length for the 1st frame doesn't match");
-	zassert_equal(frame.type, 0x04,
-		      "Expected type for the 1st frame doesn't match");
-	zassert_equal(frame.flags, 0x00,
-		      "Expected flags for the 1st frame doesn't match");
-	zassert_equal(
-	    frame.stream_identifier, 0x00,
-	    "Expected stream_identifier for the 1st frame doesn't match");
+	zassert_equal(frame->length, 0x0C, "Expected length for the 1st frame doesn't match");
+	zassert_equal(frame->type, 0x04, "Expected type for the 1st frame doesn't match");
+	zassert_equal(frame->flags, 0x00, "Expected flags for the 1st frame doesn't match");
+	zassert_equal(frame->stream_identifier, 0x00,
+		      "Expected stream_identifier for the 1st frame doesn't match");
 
 	/* Test: Buffer with the second frame */
-	int parser2 = parse_http2_frame(buffer2, buffer_len2, &frame);
+	int parser2 = parse_http_frame_header(&ctx_client2);
 
-	zassert_true(parser2, "Failed to parse the second frame");
+	zassert_equal(parser2, 1, "Failed to parse the second frame");
+
+	frame = &ctx_client2.current_frame;
 
 	/* Validate frame details for the 2nd frame */
-	zassert_equal(frame.length, 0x21,
-		      "Expected length for the 2nd frame doesn't match");
-	zassert_equal(frame.type, 0x01,
-		      "Expected type for the 2nd frame doesn't match");
-	zassert_equal(frame.flags, 0x05,
-		      "Expected flags for the 2nd frame doesn't match");
-	zassert_equal(
-	    frame.stream_identifier, 0x01,
-	    "Expected stream_identifier for the 2nd frame doesn't match");
+	zassert_equal(frame->length, 0x21, "Expected length for the 2nd frame doesn't match");
+	zassert_equal(frame->type, 0x01, "Expected type for the 2nd frame doesn't match");
+	zassert_equal(frame->flags, 0x05, "Expected flags for the 2nd frame doesn't match");
+	zassert_equal(frame->stream_identifier, 0x01,
+		      "Expected stream_identifier for the 2nd frame doesn't match");
 }
+
+ZTEST_SUITE(server_function_tests, NULL, NULL, NULL, NULL, NULL);

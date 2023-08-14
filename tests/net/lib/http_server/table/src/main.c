@@ -59,6 +59,38 @@ ZTEST(table, test_add)
 {
 }
 
+void test_header_parsing_path(void)
+{
+	struct http_client_ctx ctx;
+	uint8_t payload[] = {0x84};
+
+	ctx.current_frame.payload = payload;
+	ctx.current_frame.length = sizeof(payload);
+
+	char *result = header_parsing(&ctx, HTTP_HPACK_PATH);
+
+	zassert_true(strcmp(result, "/") == 0, "Expected /");
+}
+
+void test_header_parsing_method(void)
+{
+	struct http_client_ctx ctx;
+	uint8_t payload[] = {0x82};
+
+	ctx.current_frame.payload = payload;
+	ctx.current_frame.length = sizeof(payload);
+
+	char *result = header_parsing(&ctx, HTTP_HPACK_METHOD);
+
+	zassert_true(strcmp(result, "GET") == 0, "Expected GET");
+}
+
+ZTEST(table, test_header_parser)
+{
+	test_header_parsing_method();
+	test_header_parsing_path();
+}
+
 static void after(void *arg)
 {
 }
