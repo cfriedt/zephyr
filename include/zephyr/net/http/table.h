@@ -1,0 +1,118 @@
+/** @file
+ * @brief HTTP HPACK
+ */
+
+/*
+ * Copyright (c) 2023 Emna Rekik
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef ZEPHYR_INCLUDE_NET_HTTP_HPACK_H_
+#define ZEPHYR_INCLUDE_NET_HTTP_HPACK_H_
+
+#define HTTP_HPACK_SIZE   62
+#define HTTP_HPACK_METHOD 0
+#define HTTP_HPACK_PATH   1
+
+#include <stdint.h>
+
+#include <zephyr/net/http/server.h>
+
+#if defined(__linux__)
+
+#include <stdbool.h>
+
+#endif
+
+/**
+ * @brief HTTP HPACK
+ * @defgroup http_table HTTP HPACK
+ * @ingroup networking
+ * @{
+ */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum http_hpack_static_key {
+	HTTP_HPACK_INVALID = 0,
+	HTTP_HPACK_AUTHORITY = 1,
+	HTTP_HPACK_METHOD_GET = 2,
+	HTTP_HPACK_METHOD_POST = 3,
+	HTTP_HPACK_PATH_ROOT = 4,
+	HTTP_HPACK_PATH_INDEX = 5,
+	HTTP_HPACK_SCHEME_HTTP = 6,
+	HTTP_HPACK_SCHEME_HTTPS = 7,
+	HTTP_HPACK_STATUS_200 = 8,
+	HTTP_HPACK_STATUS_204 = 9,
+	HTTP_HPACK_STATUS_206 = 10,
+	HTTP_HPACK_STATUS_304 = 11,
+	HTTP_HPACK_STATUS_400 = 12,
+	HTTP_HPACK_STATUS_404 = 13,
+	HTTP_HPACK_STATUS_500 = 14,
+	HTTP_HPACK_ACCEPT_CHARSET = 15,
+	HTTP_HPACK_ACCEPT_ENCODING = 16,
+	HTTP_HPACK_ACCEPT_LANGUAGE = 17,
+	HTTP_HPACK_ACCEPT_RANGES = 18,
+	HTTP_HPACK_ACCEPT = 19,
+	HTTP_HPACK_ACCESS_CONTROL_ALLOW_ORIGIN = 20,
+	HTTP_HPACK_AGE = 21,
+	HTTP_HPACK_ALLOW = 22,
+	HTTP_HPACK_AUTHORIZATION = 23,
+	HTTP_HPACK_CACHE_CONTROL = 24,
+	HTTP_HPACK_CONTENT_DISPOSITION = 25,
+	HTTP_HPACK_CONTENT_ENCODING = 26,
+	HTTP_HPACK_CONTENT_LANGUAGE = 27,
+	HTTP_HPACK_CONTENT_LENGTH = 28,
+	HTTP_HPACK_CONTENT_LOCATION = 29,
+	HTTP_HPACK_CONTENT_RANGE = 30,
+	HTTP_HPACK_CONTENT_TYPE = 31,
+	HTTP_HPACK_COOKIE = 32,
+	HTTP_HPACK_DATE = 33,
+	HTTP_HPACK_ETAG = 34,
+	HTTP_HPACK_EXPECT = 35,
+	HTTP_HPACK_EXPIRES = 36,
+	HTTP_HPACK_FROM = 37,
+	HTTP_HPACK_HOST = 38,
+	HTTP_HPACK_IF_MATCH = 39,
+	HTTP_HPACK_IF_MODIFIED_SINCE = 40,
+	HTTP_HPACK_IF_NONE_MATCH = 41,
+	HTTP_HPACK_IF_RANGE = 42,
+	HTTP_HPACK_IF_UNMODIFIED_SINCE = 43,
+	HTTP_HPACK_LAST_MODIFIED = 44,
+	HTTP_HPACK_LINK = 45,
+	HTTP_HPACK_LOCATION = 46,
+	HTTP_HPACK_MAX_FORWARDS = 47,
+	HTTP_HPACK_PROXY_AUTHENTICATE = 48,
+	HTTP_HPACK_PROXY_AUTHORIZATION = 49,
+	HTTP_HPACK_RANGE = 50,
+	HTTP_HPACK_REFERER = 51,
+	HTTP_HPACK_REFRESH = 52,
+	HTTP_HPACK_RETRY_AFTER = 53,
+	HTTP_HPACK_SERVER = 54,
+	HTTP_HPACK_SET_COOKIE = 55,
+	HTTP_HPACK_STRICT_TRANSPORT_SECURITY = 56,
+	HTTP_HPACK_TRANSFER_ENCODING = 57,
+	HTTP_HPACK_USER_AGENT = 58,
+	HTTP_HPACK_VARY = 59,
+	HTTP_HPACK_VIA = 60,
+	HTTP_HPACK_WWW_AUTHENTICATE = 61,
+};
+
+int http_hpack_table_add(struct http_client_ctx *ctx, uint32_t key, void *value);
+int http_hpack_table_get(struct http_client_ctx *ctx, uint32_t key, void **value);
+int http_hpack_table_remove(struct http_client_ctx *ctx, uint32_t key);
+int http_hpack_table_contains(struct http_client_ctx *ctx, uint32_t key);
+char *header_parsing(struct http_client_ctx *ctx, int requested_data);
+
+#ifdef __cplusplus
+}
+#endif
+
+/**
+ * @}
+ */
+
+#endif
