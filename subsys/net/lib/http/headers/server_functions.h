@@ -11,6 +11,7 @@
 
 #include <zephyr/net/http/parser.h>
 #include <zephyr/net/http/server.h>
+#include <zephyr/net/http/service.h>
 #include <zephyr/net/http/table.h>
 #include <zephyr/net/http/frame.h>
 

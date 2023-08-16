@@ -97,13 +97,10 @@ struct http_server_ctx {
 	struct http_client_ctx clients[MAX_CLIENTS];
 };
 
-/* Initializes the HTTP2 server */
-int http_server_init(struct http_server_ctx *ctx);
-
 /* Starts the HTTP2 server */
-int http_server_start(struct http_server_ctx *ctx);
+int http_server_start(void);
 
 /* Stops the HTTP2 server */
-int http_server_stop(struct http_server_ctx *ctx);
+int http_server_stop(void);
 
 #endif

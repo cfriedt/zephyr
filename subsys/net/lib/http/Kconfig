@@ -44,6 +44,13 @@ config HTTP_SERVER
 
 #if HTTP_SERVER
 
+config NUM_HTTP_SERVICES
+	int "Number of HTTP Server Instances"
+	default 1
+	range 1 100
+	help
+	  This setting determines the maximum number of HTTP/2 clients that the server can handle at once.
+
 config NET_HTTP_MAX_CLIENTS
 	int "Max number of HTTP/2 clients"
 	default 3

@@ -5,4 +5,8 @@
 
 mainmenu "HTTP2 server sample application"
 
+config TEST_HTTP_SERVICE_PORT
+    int "Port number for http service"
+    default 0
+
 source "Kconfig.zephyr"

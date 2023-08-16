@@ -2405,11 +2405,6 @@ int zsock_getsockname_ctx(struct net_context *ctx, struct sockaddr *addr,
 {
 	socklen_t newlen = 0;
 
-	/* If we don't have a connection handler, the socket is not bound */
-	if (!ctx->conn_handler) {
-		SET_ERRNO(-EINVAL);
-	}
-
 	if (IS_ENABLED(CONFIG_NET_IPV4) && ctx->local.family == AF_INET) {
 		struct sockaddr_in addr4 = { 0 };
 

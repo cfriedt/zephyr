@@ -91,126 +91,47 @@ static const char content_404[] = {
 
 bool has_upgrade_header = true;
 
-int http_server_init(struct http_server_ctx *ctx)
+static struct http_server_ctx http_server_contexts[CONFIG_NUM_HTTP_SERVICES];
+
+/*
+ * index | fd 
+ * ----------
+ * 0     | server_fd for server instance 0
+ * 1     | client_fd 0 for server instance 0
+ * M     | client_fd M-1 for server instance 0
+ * M+1   | server_fd for server instance 1
+ * M+2   | client_fd 0 for server instance 1
+ * 2*M   | client_fd M-1 for server instance 1
+ * ...
+ * N-1   | event_fd used for stopping the server
+ */
+static struct pollfd
+	http_server_pollfds[CONFIG_NUM_HTTP_SERVICES * (1 + CONFIG_NET_HTTP_MAX_CLIENTS) + 1];
+
+static int http_server_init(void)
 {
-	/* Create a socket */
-#if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
-	ctx->server_fd = socket(ctx->config.address_family, SOCK_STREAM, 0);
-#else
-	ctx->server_fd = zsock_socket(ctx->config.address_family, SOCK_STREAM, 0);
-#endif
-	if (ctx->server_fd < 0) {
-		LOG_ERR("socket");
-		return ctx->server_fd;
+	for (size_t i = 0; i < ARRAY_SIZE(http_server_pollfds); i++) {
+		http_server_pollfds[i] = (struct pollfd){
+			.fd = -1,
+			.events = POLLIN,
+		};
 	}
 
-#if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
-	if (setsockopt(ctx->server_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
-		LOG_ERR("setsockopt");
-		return -errno;
-	}
-#else
-	if (zsock_setsockopt(ctx->server_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) <
-	    0) {
-		LOG_ERR("setsockopt");
-		return -errno;
-	}
-#endif
-
-	/* Set up the server address struct according to address family */
-	if (ctx->config.address_family == AF_INET) {
-		struct sockaddr_in serv_addr;
-
-		memset(&serv_addr, 0, sizeof(serv_addr));
-		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_addr.s_addr = INADDR_ANY;
-		serv_addr.sin_port = htons(ctx->config.port);
-
-#if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
-		if (bind(ctx->server_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-			LOG_ERR("bind");
-			return -errno;
-		}
-#else
-		if (zsock_bind(ctx->server_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) <
-		    0) {
-			LOG_ERR("bind");
-			return -errno;
-		}
-#endif
-
-	} else if (ctx->config.address_family == AF_INET6) {
-		struct sockaddr_in6 serv_addr;
-
-		memset(&serv_addr, 0, sizeof(serv_addr));
-		serv_addr.sin6_family = AF_INET6;
-		serv_addr.sin6_addr = in6addr_any;
-		serv_addr.sin6_port = htons(ctx->config.port);
-
-#if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
-		if (bind(ctx->server_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-			LOG_ERR("bind");
-			return -errno;
-		}
-#else
-		if (zsock_bind(ctx->server_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) <
-		    0) {
-			LOG_ERR("bind");
-			return -errno;
-		}
-#endif
-	}
-
-	/* Listen for connections */
-#if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
-	if (listen(ctx->server_fd, MAX_CLIENTS) < 0) {
-		LOG_ERR("listen");
-		return -errno;
-	}
-#else
-	if (zsock_listen(ctx->server_fd, MAX_CLIENTS) < 0) {
-		LOG_ERR("listen");
-		return -errno;
-	}
-#endif
-
-	/* Create an eventfd*/
-	ctx->event_fd = eventfd(0, 0);
-	if (ctx->event_fd < 0) {
-		LOG_ERR("eventfd");
-		return -errno;
-	}
-
-	/* Initialize fds */
-	memset(ctx->fds, 0, sizeof(ctx->fds));
-	memset(ctx->clients, 0, sizeof(ctx->clients));
-
-	ctx->fds[0].fd = ctx->server_fd;
-	ctx->fds[0].events = POLLIN;
-
-	ctx->fds[1].fd = ctx->event_fd;
-	ctx->fds[1].events = POLLIN;
-
-	ctx->num_clients = 0;
-	ctx->infinite = 1;
-
-	return ctx->server_fd;
+	return 0;
 }
+SYS_INIT(http_server_init, PRE_KERNEL_1, 0);
 
 int accept_new_client(int server_fd)
 {
 	int new_socket;
+
 	socklen_t addrlen;
-	struct sockaddr_storage sa;
+	struct sockaddr_in sa;
 
 	memset(&sa, 0, sizeof(sa));
 	addrlen = sizeof(sa);
 
-#if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
 	new_socket = accept(server_fd, (struct sockaddr *)&sa, &addrlen);
-#else
-	new_socket = zsock_accept(server_fd, (struct sockaddr *)&sa, &addrlen);
-#endif
 	if (new_socket < 0) {
 		LOG_ERR("accept failed");
 		return new_socket;
@@ -219,107 +140,218 @@ int accept_new_client(int server_fd)
 	return new_socket;
 }
 
-int http_server_start(struct http_server_ctx *ctx)
+int http_server_runtime_init(void)
 {
-	LOG_INF("Waiting for incoming connections at http://%s:%d", SERVER_IPV4_ADDR, ctx->config.port);
+	int i;
+	int ret;
+	int *fd;
+	uint8_t af;
+	socklen_t len;
+	struct sockaddr_in6 addr_storage;
+	const union {
+		struct sockaddr *addr;
+		struct sockaddr_in *addr4;
+		struct sockaddr_in6 *addr6;
+	} _addr = {.addr = (struct sockaddr *)&addr_storage};
 
-	eventfd_t value;
+	/* Create an eventfd */
+	ret = eventfd(0, 0);
+	if (ret < 0) {
+		LOG_ERR("eventfd: %d", errno);
+		return -errno;
+	}
+	fd = &http_server_pollfds[ARRAY_SIZE(http_server_pollfds) - 1].fd;
+	*fd = ret;
 
-	do {
-		int ret = poll(ctx->fds, ctx->num_clients + 2, 0);
+	/* First create server socket resources */
+	i = 0;
+	HTTP_SERVICE_FOREACH(svc)
+	{
+		/* set the default address (in6addr_any / INADDR_ANY are all 0) */
+		addr_storage = (struct sockaddr_in6){0};
 
+		/* Set up the server address struct according to address family */
+		if (IS_ENABLED(CONFIG_NET_IPV6) &&
+		    inet_pton(AF_INET6, svc->host, &_addr.addr6->sin6_addr) == 1) {
+			/* if a literal IPv6 address is provided as the host, use IPv6 */
+			af = AF_INET6;
+			len = sizeof(*_addr.addr6);
+
+			_addr.addr6->sin6_family = AF_INET6;
+			_addr.addr6->sin6_port = *svc->port;
+		} else if (IS_ENABLED(CONFIG_NET_IPV4) &&
+			   inet_pton(AF_INET, svc->host, &_addr.addr4->sin_addr) == 1) {
+			/* if a literal IPv4 address is provided as the host, use IPv4 */
+			af = AF_INET;
+			len = sizeof(*_addr.addr4);
+
+			_addr.addr4->sin_family = AF_INET;
+			_addr.addr4->sin_port = *svc->port;
+		} else if (IS_ENABLED(CONFIG_NET_IPV6)) {
+			/* prefer IPv6 if both IPv6 and IPv4 are supported */
+			af = AF_INET6;
+			len = sizeof(*_addr.addr6);
+
+			_addr.addr6->sin6_family = AF_INET6;
+			_addr.addr6->sin6_port = *svc->port;
+		} else if (IS_ENABLED(CONFIG_NET_IPV4)) {
+			af = AF_INET;
+			len = sizeof(*_addr.addr4);
+
+			_addr.addr4->sin_family = AF_INET;
+			_addr.addr4->sin_port = *svc->port;
+		} else {
+			LOG_ERR("Neither IPv4 nor IPv6 is enabled");
+			ret = -EOPNOTSUPP;
+			break;
+		}
+
+		/* Create a socket */
+		ret = socket(af, SOCK_STREAM, 0);
 		if (ret < 0) {
-			LOG_ERR("poll failed");
-			return -errno;
+			LOG_ERR("socket: %d", errno);
+			ret = -errno;
+			break;
+		}
+		fd = &http_server_pollfds[i * CONFIG_NET_HTTP_MAX_CLIENTS].fd;
+		*fd = ret;
+
+		if (setsockopt(*fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+			LOG_ERR("setsockopt: %d", errno);
+			ret = -errno;
+			break;
 		}
 
-		for (int i = 0; i < ctx->num_clients + 2; i++) {
-			struct http_client_ctx *client = &ctx->clients[i - 2];
-
-			if (ctx->fds[i].revents & POLLERR) {
-				LOG_ERR("Error on fd %d", ctx->fds[i].fd);
-				close_client_connection(ctx, i);
-				continue;
-			}
-
-			if (ctx->fds[i].revents & POLLHUP) {
-				LOG_INF("Client on fd %d has disconnected", ctx->fds[i].fd);
-				close_client_connection(ctx, i);
-				continue;
-			}
-
-			if (!(ctx->fds[i].revents & POLLIN)) {
-				continue;
-			}
-
-			if (i == 0) {
-				int new_socket = accept_new_client(ctx->server_fd);
-
-				bool found_slot = false;
-
-				for (int j = 2; j < MAX_CLIENTS + 1; j++) {
-					if (ctx->fds[j].fd != 0) {
-						continue;
-					}
-
-					ctx->fds[j].fd = new_socket;
-					ctx->fds[j].events = POLLIN;
-
-					initialize_client_ctx(&ctx->clients[j - 2], new_socket);
-
-					if (j > ctx->num_clients) {
-						ctx->num_clients++;
-					}
-
-					found_slot = true;
-					break;
-				}
-				if (!found_slot) {
-					LOG_INF("No free slot found.");
-#if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
-					close(new_socket);
-#else
-					zsock_close(new_socket);
-#endif
-				}
-				continue;
-			}
-
-			if (i == 1) {
-#ifdef __ZEPHYR__
-				eventfd_read(ctx->event_fd, &value);
-#else
-				read(ctx->event_fd, &value, sizeof(value));
-#endif
-				LOG_DBG("Received stop event. exiting ..");
-
-				return 0;
-			}
-
-#if !defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
-			int valread = recv(client->client_fd, client->buffer + client->offset,
-					   sizeof(client->buffer) - client->offset, 0);
-#else
-			int valread = zsock_recv(client->client_fd, client->buffer + client->offset,
-						 sizeof(client->buffer) - client->offset, 0);
-#endif
-
-			if (valread <= 0) {
-				if (valread == 0) {
-					LOG_INF("Connection closed by peer");
-				} else {
-					LOG_ERR("ERROR reading from socket");
-				}
-
-				close_client_connection(ctx, i);
-				continue;
-			}
-
-			client->offset += valread;
-			handle_http_request(ctx, client, i);
+		/* Bind to the specified address */
+		if (bind(*fd, _addr.addr, len) < 0) {
+			LOG_ERR("bind: %d", errno);
+			ret = -errno;
+			break;
 		}
-	} while (ctx->infinite == 1);
+
+		if (*svc->port == 0) {
+			/* ephemeral port - read back the port number */
+			len = sizeof(addr_storage);
+			ret = getsockname(*fd, _addr.addr, &len);
+			if (ret < 0) {
+				LOG_ERR("getsockname: %d", errno);
+				ret = -errno;
+				break;
+			}
+			/*
+			 * FIXME: Zephyr's getsockname() should return the port in network byte
+			 * order so the htons() should be removed eventually (it must be removed for
+			 * Linux).
+			 */
+			*svc->port = htons(_addr.addr4->sin_port);
+		}
+
+		/* Listen for connections */
+		if (listen(*fd, MAX_CLIENTS) < 0) {
+			LOG_ERR("listen: %d", errno);
+			ret = -errno;
+			break;
+		}
+
+		LOG_INF("Initialized HTTP Service %d http://%s:%u\n", i, svc->host,
+			htons(*svc->port));
+	}
+
+	if (ret == 0) {
+		return 0;
+	}
+
+	for (; i >= 0; --i) {
+		/* close server fd */
+		fd = &http_server_pollfds[i * CONFIG_NET_HTTP_MAX_CLIENTS].fd;
+		(void)close(*fd);
+		*fd = -1;
+	}
+
+	/* close event fd */
+	fd = &http_server_pollfds[ARRAY_SIZE(http_server_pollfds) - 1].fd;
+	(void)close(*fd);
+	*fd = -1;
+
+	return ret;
+}
+
+int http_server_handle_pollfd_events(size_t n_events)
+{
+
+	/* linear search will be costly for large numbers of sockets */
+	for (int i = ARRAY_SIZE(http_server_pollfds) - 1; i >= 0 && n_events > 0; --i) {
+	}
+
 	return 0;
+}
+
+int http_server_iterate(void)
+{
+	int ret;
+	struct pollfd *const event_pfd = &http_server_pollfds[ARRAY_SIZE(http_server_pollfds) - 1];
+
+	ret = poll(http_server_pollfds, ARRAY_SIZE(http_server_pollfds), -1);
+	if (ret < 0) {
+		LOG_ERR("poll failed");
+		return -errno;
+	}
+	__ASSERT_NO_MSG(ret > 0);
+
+	if ((event_pfd->revents & POLLIN) == POLLIN) {
+		/* received request to stop from application */
+		return -EINTR;
+	}
+
+	return http_server_handle_pollfd_events(ret);
+}
+
+/*
+ * A couple of things to consider here. Unless `CONFIG_MULTITHREADING=n`, I
+ * think that `http_server_start()` should spawn a separate thread with a
+ * Kconfig variable for how large the thread stack is. Wild guess would be
+ * >= 2048 bytes for 32-bit machine, and >= 4096 bytes for a 64-bit machine.
+ *
+ * 1. For the purposes of a sample app, it may make sense to automatically
+ *    call this via a separate SYS_INIT(). There should be a Kconfig option
+ *    to enable / disable that. Priority POST_KERNEL. It would be ideal if
+ *    there were some check to ensure that the network stack is up too.
+ *
+ * 2. For testing purposes, and also for the case of `CONFIG_MULTITHREADING=y`
+ *    it would likely make sense to disable this from automatically starting,
+ *    via Kconfig.
+ *
+ *    i) it may be preferable to individually call http_server_runtime_init() in
+ *       one testsuite, and call http_server_iterate() several times. Almost like
+ *       "step debugging" the HTTP server, eventually calling http_server_stop()
+ *       at the end (or an an "after()" function)
+ *
+ *    ii) in another testsuite, http_server_start() can be called from
+ *      a ZTest before() function, and http_server_stop() can be called from a
+ *      ZTest after() function, which should allow you to focus purely on
+ *      test-specific traffic exchanges, much like a sequence diagram.
+ *      In this case, you would expect the http server to be "free running".
+ */
+int http_server_start()
+{
+	int ret;
+
+	ret = http_server_runtime_init();
+	if (ret < 0) {
+		return ret;
+	}
+
+	while (true) {
+		ret = http_server_iterate();
+		if (ret == -EINTR) {
+			ret = 0;
+			break;
+		}
+	}
+
+	// http_server_cleanup();
+
+	return ret;
 }
 
 void close_client_connection(struct http_server_ctx *ctx_server, int client_index)
@@ -530,7 +562,7 @@ int enter_http_frame_priority_state(struct http_client_ctx *ctx_client)
 }
 
 int enter_http_frame_rst_stream_state(struct http_server_ctx *ctx_server,
-				       struct http_client_ctx *ctx_client, int client_index)
+				      struct http_client_ctx *ctx_client, int client_index)
 {
 	ctx_client->server_state = HTTP_FRAME_RST_STREAM_STATE;
 

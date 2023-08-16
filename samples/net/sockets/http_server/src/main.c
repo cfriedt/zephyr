@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include <zephyr/net/http/server.h>
+#include <zephyr/net/http/service.h>
 
 #if defined(__ZEPHYR__) || defined(CONFIG_POSIX_API)
 
@@ -18,21 +19,16 @@
 
 #endif
 
+static uint16_t test_http_service_port = htons(CONFIG_TEST_HTTP_SERVICE_PORT);
+HTTP_SERVICE_DEFINE(test_http_service, CONFIG_NET_CONFIG_MY_IPV4_ADDR, &test_http_service_port, 1,
+		    10, NULL);
+
+static const uint8_t index_html_gz[] = {
+#include "index.html.gz.inc"
+};
+HTTP_RESOURCE_DEFINE(index_html_gz_resource, test_http_service, "/", index_html_gz);
+
 int main(void)
 {
-	struct http_server_ctx ctx;
-
-	ctx.config.port = 8080;
-	ctx.config.address_family = AF_INET;
-
-	int server_fd = http_server_init(&ctx);
-
-	if (server_fd < 0) {
-		printf("Failed to initialize HTTP2 server\n");
-		return -1;
-	}
-
-	http_server_start(&ctx);
-
-	return 0;
+	return http_server_start();
 }
