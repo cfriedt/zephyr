@@ -1,0 +1,7 @@
+&uart0 {
+    status = "okay";
+    loguart0 {
+        compatible = "zephyr,log-uart";
+        status = "okay";
+    };
+};

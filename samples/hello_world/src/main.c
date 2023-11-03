@@ -6,8 +6,17 @@
 
 #include <stdio.h>
 
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(hello);
+
 int main(void)
 {
-	printf("Hello World! %s\n", CONFIG_BOARD);
+	for (;;) {
+		LOG_INF("Hello World! %s", CONFIG_BOARD);
+		k_msleep(1000);
+	}
+
 	return 0;
 }
