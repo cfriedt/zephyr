@@ -16,16 +16,6 @@
 BUILD_ASSERT(CONFIG_POSIX_LIMITS_RTSIG_MAX >= 0);
 BUILD_ASSERT(CONFIG_POSIX_RTSIG_MAX >= CONFIG_POSIX_LIMITS_RTSIG_MAX);
 
-static inline bool signo_valid(int signo)
-{
-	return ((signo > 0) && (signo < _NSIG));
-}
-
-static inline bool signo_is_rt(int signo)
-{
-	return ((signo >= SIGRTMIN) && (signo <= SIGRTMAX));
-}
-
 int sigemptyset(sigset_t *set)
 {
 	*set = (sigset_t){0};
@@ -43,7 +33,7 @@ int sigfillset(sigset_t *set)
 
 int sigaddset(sigset_t *set, int signo)
 {
-	if (!signo_valid(signo)) {
+	if (!__z_signo_is_valid(signo)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -55,7 +45,7 @@ int sigaddset(sigset_t *set, int signo)
 
 int sigdelset(sigset_t *set, int signo)
 {
-	if (!signo_valid(signo)) {
+	if (!__z_signo_is_valid(signo)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -67,7 +57,7 @@ int sigdelset(sigset_t *set, int signo)
 
 int sigismember(const sigset_t *set, int signo)
 {
-	if (!signo_valid(signo)) {
+	if (!__z_signo_is_valid(signo)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -80,12 +70,12 @@ char *strsignal(int signum)
 	/* Using -INT_MAX here because compiler resolves INT_MIN to (-2147483647 - 1) */
 	static char buf[sizeof("RT signal -" STRINGIFY(INT_MAX))];
 
-	if (!signo_valid(signum)) {
+	if (!__z_signo_is_valid(signum)) {
 		errno = EINVAL;
 		return "Invalid signal";
 	}
 
-	if (signo_is_rt(signum)) {
+	if (__z_signo_is_rt(signum)) {
 		snprintf(buf, sizeof(buf), "RT signal %d", signum - SIGRTMIN);
 		return buf;
 	}

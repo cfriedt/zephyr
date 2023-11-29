@@ -90,6 +90,16 @@ struct sigevent {
 	pthread_attr_t *sigev_notify_attributes;
 };
 
+static inline bool __z_signo_is_valid(int signo)
+{
+	return ((signo > 0) && (signo < _NSIG));
+}
+
+static inline bool __z_signo_is_rt(int signo)
+{
+	return ((signo >= SIGRTMIN) && (signo <= SIGRTMAX));
+}
+
 #ifdef __cplusplus
 }
 #endif

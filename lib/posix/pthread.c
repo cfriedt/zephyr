@@ -1073,6 +1073,41 @@ int pthread_atfork(void (*prepare)(void), void (*parent)(void), void (*child)(vo
 	return ENOSYS;
 }
 
+int raise(int sig)
+{
+	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
+		return pthread_kill(pthread_self(), sig);
+	} else {
+#if 0
+		return kill(getpid(), sig);
+#else
+		return -ENOSYS;
+#endif
+	}
+}
+
+int pthread_kill(pthread_t thread, int sig)
+{
+	struct posix_thread *t;
+
+	if (!__z_signo_is_valid(sig)) {
+		return EINVAL;
+	}
+
+	t = to_posix_thread(pthread);
+	if (t == NULL) {
+		return EINVAL;
+	}
+
+	if (sig == 0) {
+		return 0;
+	}
+}
+
+int pthread_sigmask(pthread_t thread, int sig)
+{
+}
+
 static int posix_thread_pool_init(void)
 {
 	size_t i;
