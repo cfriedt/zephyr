@@ -30,6 +30,10 @@
 #ifndef _COVERAGE_H_
 #define _COVERAGE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if (__GNUC__ >= 10)
 #define GCOV_COUNTERS 8U
 #elif (__GNUC__ >= 8)
@@ -124,5 +128,40 @@ struct gcov_info {
 struct gcov_info *gcov_get_list_head(void);
 size_t gcov_populate_buffer(uint8_t *buffer, struct gcov_info *info);
 size_t gcov_calculate_buff_size(struct gcov_info *info);
+
+typedef int (*gcov_foreach_callback_t)(struct gcov_info *node, void *arg);
+
+/**
+ * @brief Execute a callback function for each @ref gcov_info node found.
+ *
+ * @note Iterating over the @ref gcov_info list is done with the scheduler
+ * locked.
+ *
+ * @param head The @ref gcov_info list to iterate over
+ * @param cb user-supplied callback
+ * @param arg user-supplied argument passed to @p cb
+ * @param begin_msg a message to print before
+ * @param end_msg a message to print after
+ * @return 0 on success or a negative errno value on error
+ */
+int gcov_list_foreach_msg(struct gcov_info *head, gcov_foreach_callback_t cb, void *arg,
+			  const char *begin_msg, const char *end_msg);
+
+/**
+ * @brief Execute a callback function for each @ref gcov_info node found.
+ *
+ * @note Iterating over the @ref gcov_info list is done with the scheduler
+ * locked.
+ *
+ * @param head The @ref gcov_info list to iterate over
+ * @param cb user-supplied callback
+ * @param arg user-supplied argument passed to @p cb
+ * @return 0 on success or a negative errno value on error
+ */
+int gcov_list_foreach(struct gcov_info *head, gcov_foreach_callback_t cb, void *arg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _COVERAGE_H_ */

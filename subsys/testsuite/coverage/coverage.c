@@ -250,54 +250,75 @@ void dump_on_console_data(char *ptr, size_t len)
 	}
 }
 
-/**
- * Retrieves gcov coverage data and sends it over the given interface.
- */
-void gcov_coverage_dump(void)
+int gcov_list_foreach_msg(struct gcov_info *head, gcov_foreach_callback_t cb, void *arg,
+			  const char *begin_msg, const char *end_msg)
+{
+	if (cb == NULL || head == NULL) {
+		return;
+	}
+
+	k_sched_lock();
+
+	if (begin_msg != NULL) {
+		printk("%s", begin_msg);
+	}
+
+	for (struct gcov_info *iter = head; iter != NULL && iter != head; iter = iter->next) {
+		int ret = cb(iter, arg);
+		if (ret < 0) {
+			break;
+		}
+	}
+
+	if (end_msg != NULL) {
+		printk("%s", end_msg);
+	}
+
+	k_sched_unlock();
+}
+
+int gcov_list_foreach(struct gcov_info *head, gcov_foreach_callback_t cb, void *arg)
+{
+	return gcov_list_foreach_msg(head, cb, arg, NULL, NULL);
+}
+
+static int gcov_coverage_dump_cb(struct gcov_info *node, void *arg)
 {
 	uint8_t *buffer;
 	size_t size;
 	size_t written_size;
-	struct gcov_info *gcov_list_first = gcov_info_head;
-	struct gcov_info *gcov_list = gcov_info_head;
 
-	k_sched_lock();
-	printk("\nGCOV_COVERAGE_DUMP_START");
-	while (gcov_list) {
+	dump_on_console_start(node->filename);
+	size = gcov_calculate_buff_size(node);
 
-		dump_on_console_start(gcov_list->filename);
-		size = gcov_calculate_buff_size(gcov_list);
-
-		buffer = k_heap_alloc(&gcov_heap, size, K_NO_WAIT);
-		if (CONFIG_COVERAGE_GCOV_HEAP_SIZE > 0 && !buffer) {
-			printk("No Mem available to continue dump\n");
-			goto coverage_dump_end;
-		}
-
-		written_size = gcov_to_gcda(buffer, gcov_list);
-		if (written_size != size) {
-			printk("Write Error on buff\n");
-			goto coverage_dump_end;
-		}
-
-		dump_on_console_data(buffer, size);
-
-		k_heap_free(&gcov_heap, buffer);
-		gcov_list = gcov_list->next;
-		if (gcov_list_first == gcov_list) {
-			goto coverage_dump_end;
-		}
+	buffer = k_heap_alloc(&gcov_heap, size, K_NO_WAIT);
+	if (CONFIG_COVERAGE_GCOV_HEAP_SIZE > 0 && buffer == NULL) {
+		return -ENOMEM;
 	}
-coverage_dump_end:
-	printk("\nGCOV_COVERAGE_DUMP_END\n");
-	k_sched_unlock();
-	return;
+
+	written_size = gcov_to_gcda(buffer, node);
+	if (written_size != size) {
+		return -ENODATA;
+	}
+
+	dump_on_console_data(buffer, size);
+
+	k_heap_free(&gcov_heap, buffer);
 }
 
 struct gcov_info *gcov_get_list_head(void)
 {
 	/* Locking someway before getting this is recommended. */
 	return gcov_info_head;
+}
+
+/**
+ * Retrieves gcov coverage data and sends it over the given interface.
+ */
+void gcov_coverage_dump(void)
+{
+	(void)gcov_list_foreach_msg(gcov_get_list_head(), gcov_coverage_dump_cb, NULL,
+				    "\nGCOV_COVERAGE_DUMP_START", "\nGCOV_COVERAGE_DUMP_END\n");
 }
 
 /* Initialize the gcov by calling the required constructors */
