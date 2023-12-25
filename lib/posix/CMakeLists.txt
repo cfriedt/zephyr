@@ -6,6 +6,18 @@ zephyr_syscall_header(
   ${ZEPHYR_BASE}/include/zephyr/posix/time.h
 )
 
+if(CONFIG_NEED_POSIX_C_SOURCE)
+  zephyr_compile_definitions(_POSIX_C_SOURCE=200809)
+endif()
+
+if(CONFIG_NEED_XOPEN_SOURCE)
+  zephyr_compile_definitions(_XOPEN_SOURCE=700)
+endif()
+
+if(CONFIG_NEED_XOPEN_SOURCE_EXTENDED)
+  zephyr_compile_definitions(_XOPEN_SOURCE_EXTENDED)
+endif()
+
 zephyr_interface_library_named(posix_subsys)
 
 if(CONFIG_POSIX_API)
@@ -24,14 +36,6 @@ if(CONFIG_POSIX_SIGNAL)
     -o ${STRSIGNAL_TABLE_H}
     DEPENDS ${ZEPHYR_BASE}/include/zephyr/posix/signal.h
   )
-endif()
-
-if(CONFIG_POSIX_API OR CONFIG_PTHREAD_IPC OR CONFIG_POSIX_CLOCK OR
-  CONFIG_POSIX_MQUEUE OR CONFIG_POSIX_FS OR CONFIG_EVENTFD OR CONFIG_GETOPT)
-  # This is a temporary workaround so that Newlib declares the appropriate
-  # types for us. POSIX features to be formalized as part of #51211
-  zephyr_compile_options($<$<COMPILE_LANGUAGE:C>:-D_POSIX_THREADS>)
-  zephyr_compile_options($<$<COMPILE_LANGUAGE:CXX>:-D_POSIX_THREADS>)
 endif()
 
 zephyr_library()

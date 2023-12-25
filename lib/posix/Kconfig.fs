@@ -7,6 +7,7 @@ config POSIX_FS
 	default y if POSIX_API
 	depends on FILE_SYSTEM
 	select FDTABLE
+	select NEED_POSIX_C_SOURCE
 	help
 	  This enables POSIX style file system related APIs.
 

@@ -5,6 +5,7 @@
 config POSIX_SIGNAL
 	bool "Support for POSIX signal APIs"
 	default y if POSIX_API
+	select NEED_POSIX_C_SOURCE
 	help
 	  Enable support for POSIX signal APIs.
 
