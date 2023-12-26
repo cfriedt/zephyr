@@ -4,6 +4,9 @@ config SOC_POSIX
 	bool "Native port"
 	select ARCH_POSIX
 	select CPU_HAS_FPU
+	select NEED_POSIX_C_SOURCE
+	select NEED_XOPEN_SOURCE
+	select NEED_XOPEN_SOURCE_EXTENDED
 	help
 	  SOC for to the POSIX arch. It emulates a CPU running at an infinitely fast
 	  clock. That means the CPU will always run in zero time until completion after

@@ -12,6 +12,7 @@ config SOC_SERIES_ESP32S3
 	select XIP if !MCUBOOT
 	select HAS_ESPRESSIF_HAL
 	select CPU_HAS_FPU
+	select NEED_POSIX_C_SOURCE if WIFI_ESP32
 
 config SOC_ESP32S3_PROCPU
 	bool "Application runs in ESP32S3 PROCPU (core 0)"

@@ -14,5 +14,6 @@ config SOC_SERIES_ESP32S2
 	select ARCH_SUPPORTS_COREDUMP
 	select HAS_PM
 	select HAS_POWEROFF
+	select NEED_POSIX_C_SOURCE if WIFI_ESP32
 	help
 	  Enable support for Espressif ESP32-S2
