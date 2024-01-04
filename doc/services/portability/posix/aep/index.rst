@@ -25,7 +25,7 @@ Minimal Realtime System Profile (PSE51)
    :header: Symbol, Support, Remarks
    :widths: 50, 10, 50
 
-    POSIX_C_LANG_JUMP,,
+    POSIX_C_LANG_JUMP, yes, via Picolibc
     POSIX_C_LANG_SUPPORT, yes, :ref:`†<posix_undefined_behaviour>`
     POSIX_DEVICE_IO,, :ref:`†<posix_undefined_behaviour>`
     POSIX_FILE_LOCKING,,
@@ -77,7 +77,7 @@ Realtime Controller System Profile (PSE52)
    :header: Symbol, Support, Remarks
    :widths: 50, 10, 50
 
-    POSIX_C_LANG_JUMP,,
+    POSIX_C_LANG_JUMP, yes, via Picolibc
     POSIX_C_LANG_MATH, yes,
     POSIX_C_LANG_SUPPORT, yes, :ref:`†<posix_undefined_behaviour>`
     POSIX_DEVICE_IO,, :ref:`†<posix_undefined_behaviour>`
@@ -134,7 +134,7 @@ Dedicated Realtime System Profile (PSE53)
    :header: Symbol, Support, Remarks
    :widths: 50, 10, 50
 
-    POSIX_C_LANG_JUMP,,
+    POSIX_C_LANG_JUMP, yes, via Picolibc
     POSIX_C_LANG_MATH, yes,
     POSIX_C_LANG_SUPPORT, yes, :ref:`†<posix_undefined_behaviour>`
     POSIX_DEVICE_IO,, :ref:`†<posix_undefined_behaviour>`
