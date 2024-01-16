@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include <zephyr/posix/signal.h>
+#include <zephyr/sys/__assert.h>
 
 #define SIGNO_WORD_IDX(_signo) (signo / BITS_PER_LONG)
 #define SIGNO_WORD_BIT(_signo) (signo & BIT_MASK(LOG2(BITS_PER_LONG)))

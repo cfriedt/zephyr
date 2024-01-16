@@ -6,7 +6,7 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_UNISTD_H_
 #define ZEPHYR_INCLUDE_POSIX_UNISTD_H_
 
-#include <zephyr/posix/sys/posix_types.h>
+#include <zephyr/posix/sys/types.h>
 #include <zephyr/posix/sys/stat.h>
 #ifdef CONFIG_NETWORKING
 /* For zsock_gethostname() */

@@ -1,109 +1,87 @@
 /*
- * Copyright (c) 2018 Intel Corporation
+ * Copyright (c) 2024, Meta
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef ZEPHYR_INCLUDE_POSIX_TYPES_H_
-#define ZEPHYR_INCLUDE_POSIX_TYPES_H_
+#ifndef ZEPHYR_INCLUDE_POSIX_SYS_TYPES_H_
+#define ZEPHYR_INCLUDE_POSIX_SYS_TYPES_H_
 
-#if !(defined(CONFIG_ARCH_POSIX) && defined(CONFIG_EXTERNAL_LIBC))
-#include <sys/types.h>
-#endif
-
-#ifdef CONFIG_NEWLIB_LIBC
-#include <sys/_pthreadtypes.h>
-#endif
-
-#include <zephyr/kernel.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef int pid_t;
+struct pthread_attr;
+struct pthread_barrierattr;
+struct pthread_condattr;
+struct pthread_mutexattr;
+struct pthread_once;
 
-#ifndef __useconds_t_defined
-typedef unsigned long useconds_t;
-#endif
+typedef signed long blkcnt_t;
+typedef signed long blksize_t;
+typedef unsigned long clock_t;
+typedef unsigned long clockid_t;
+typedef int16_t dev_t;
+typedef uint64_t fsblkcnt_t;
+typedef uint32_t fsfilcnt_t;
+typedef uint16_t gid_t;
+typedef uint32_t id_t;
+typedef uint16_t ino_t;
+typedef signed long key_t;
+typedef uint32_t mode_t;
+typedef uint16_t nlink_t;
+typedef signed long off_t;
+typedef int32_t pid_t;
+typedef struct pthread_attr pthread_attr_t;
+typedef uint32_t pthread_barrier_t;
+typedef struct pthread_barrierattr pthread_barrierattr_t;
+typedef uint32_t pthread_cond_t;
+typedef struct pthread_condattr pthread_condattr_t;
+typedef uint32_t pthread_key_t;
+typedef uint32_t pthread_mutex_t;
+typedef struct pthread_mutexattr pthread_mutexattr_t;
+typedef struct pthread_once pthread_once_t;
+typedef uint32_t pthread_rwlock_t;
+typedef uint32_t pthread_rwlockattr_t;
+typedef uint32_t pthread_spinlock_t;
+typedef uint32_t pthread_t;
+/* size_t defined by stddef.h */
+typedef long int ssize_t;
+typedef long int suseconds_t;
+typedef signed long time_t;
+typedef long unsigned int timer_t;
+typedef uint32_t trace_attr_t;
+typedef uint32_t trace_event_id_t;
+typedef uint32_t trace_event_set_t;
+typedef uint32_t trace_id_t;
+typedef uint16_t uid_t;
+typedef unsigned long int useconds_t;
 
-/* time related attributes */
-#if !defined(CONFIG_NEWLIB_LIBC) && !defined(CONFIG_ARCMWDT_LIBC)
-#ifndef __clockid_t_defined
-typedef uint32_t clockid_t;
-#endif
-#endif /* !CONFIG_NEWLIB_LIBC && !CONFIG_ARCMWDT_LIBC */
-#ifndef __timer_t_defined
-typedef unsigned long timer_t;
-#endif
-
-/* Thread attributes */
 struct pthread_attr {
 	void *stack;
 	uint32_t details[2];
 };
-
-#if defined(CONFIG_MINIMAL_LIBC) || defined(CONFIG_PICOLIBC) || defined(CONFIG_ARMCLANG_STD_LIBC) \
-	|| defined(CONFIG_ARCMWDT_LIBC)
-typedef struct pthread_attr pthread_attr_t;
-#endif
-
-BUILD_ASSERT(sizeof(pthread_attr_t) >= sizeof(struct pthread_attr));
-
-typedef uint32_t pthread_t;
-typedef uint32_t pthread_spinlock_t;
-
-/* Mutex */
-typedef uint32_t pthread_mutex_t;
-
-struct pthread_mutexattr {
-	int type;
+struct pthread_barrierattr {
+	int pshared;
 };
-#if defined(CONFIG_MINIMAL_LIBC) || defined(CONFIG_PICOLIBC) || defined(CONFIG_ARMCLANG_STD_LIBC) \
-	|| defined(CONFIG_ARCMWDT_LIBC)
-typedef struct pthread_mutexattr pthread_mutexattr_t;
-#endif
-BUILD_ASSERT(sizeof(pthread_mutexattr_t) >= sizeof(struct pthread_mutexattr));
-
-/* Condition variables */
-typedef uint32_t pthread_cond_t;
-
 struct pthread_condattr {
 	clockid_t clock;
 };
-
-#if defined(CONFIG_MINIMAL_LIBC) || defined(CONFIG_PICOLIBC) || defined(CONFIG_ARMCLANG_STD_LIBC) \
-	|| defined(CONFIG_ARCMWDT_LIBC)
-typedef struct pthread_condattr pthread_condattr_t;
-#endif
-BUILD_ASSERT(sizeof(pthread_condattr_t) >= sizeof(struct pthread_condattr));
-
-/* Barrier */
-typedef uint32_t pthread_barrier_t;
-
-typedef struct pthread_barrierattr {
-	int pshared;
-} pthread_barrierattr_t;
-
-typedef uint32_t pthread_rwlockattr_t;
-
-typedef uint32_t pthread_rwlock_t;
-
+struct pthread_mutexattr {
+	int type;
+};
 struct pthread_once {
-	bool flag;
+	uint8_t flag;
 };
 
-#if defined(CONFIG_MINIMAL_LIBC) || defined(CONFIG_PICOLIBC) || defined(CONFIG_ARMCLANG_STD_LIBC) \
-	|| defined(CONFIG_ARCMWDT_LIBC)
-typedef uint32_t pthread_key_t;
-typedef struct pthread_once pthread_once_t;
-#endif
-
-/* Newlib typedefs pthread_once_t as a struct with two ints */
-BUILD_ASSERT(sizeof(pthread_once_t) >= sizeof(struct pthread_once));
+#define __off_t off_t
+#define _fpos_t off_t
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif	/* ZEPHYR_INCLUDE_POSIX_TYPES_H_ */
+#endif /* ZEPHYR_INCLUDE_POSIX_SYS_TYPES_H_ */
