@@ -14,6 +14,7 @@
 #include <zephyr/posix/time.h>
 #include <zephyr/posix/unistd.h>
 #include <zephyr/posix/sched.h>
+#include <zephyr/posix/sys/posix_types.h>
 
 #ifdef __cplusplus
 extern "C" {

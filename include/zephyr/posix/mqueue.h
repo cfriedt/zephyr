@@ -10,8 +10,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/posix/time.h>
 #include <zephyr/posix/fcntl.h>
+#include <zephyr/posix/sys/posix_types.h>
 #include <zephyr/posix/sys/stat.h>
-#include "posix_types.h"
 
 #ifdef __cplusplus
 extern "C" {

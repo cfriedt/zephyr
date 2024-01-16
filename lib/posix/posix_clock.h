@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/posix/posix_types.h>
+#include <zephyr/posix/sys/posix_types.h>
 
 __syscall int __posix_clock_get_base(clockid_t clock_id, struct timespec *ts);
 

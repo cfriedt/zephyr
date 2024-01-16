@@ -7,7 +7,7 @@
 #define ZEPHYR_INCLUDE_POSIX_DIRENT_H_
 
 #include <limits.h>
-#include "posix_types.h"
+#include <zephyr/posix/sys/posix_types.h>
 
 #ifdef CONFIG_POSIX_FS
 #include <zephyr/fs/fs.h>
