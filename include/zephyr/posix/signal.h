@@ -12,6 +12,9 @@
 extern "C" {
 #endif
 
+#define SIG_IGN 0
+#define SIG_DFL (-1)
+
 #define SIGHUP    1  /**< Hangup */
 #define SIGINT    2  /**< Interrupt */
 #define SIGQUIT   3  /**< Quit */
@@ -51,9 +54,12 @@ extern "C" {
 
 BUILD_ASSERT(RTSIG_MAX >= 0);
 
+#ifndef _SIGSET_T_DECLARED
+#define _SIGSET_T_DECLARED
 typedef struct {
 	unsigned long sig[DIV_ROUND_UP(_NSIG, BITS_PER_LONG)];
 } sigset_t;
+#endif /* _SIGSET_T_DECLARED */
 
 #ifndef SIGEV_NONE
 #define SIGEV_NONE 1
