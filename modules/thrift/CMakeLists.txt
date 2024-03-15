@@ -14,8 +14,10 @@ zephyr_include_directories(${THRIFT_UPSTREAM}/lib/cpp/src)
 zephyr_library_sources(
   src/_stat.c
   src/thrift/server/TFDServer.cpp
+  ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/concurrency/Mutex.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/protocol/TProtocol.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/server/TConnectedClient.cpp
+  ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/server/TServerFramework.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/server/TSimpleServer.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/transport/SocketCommon.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/transport/TBufferTransports.cpp
@@ -25,16 +27,11 @@ zephyr_library_sources(
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/transport/TSocket.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/TApplicationException.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/TOutput.cpp
-
-  # Replace with upstream equivalents when Zephyr's std::thread, etc, are fixed
-  src/thrift/concurrency/Mutex.cpp
-  src/thrift/server/TServerFramework.cpp
 )
 
 zephyr_library_sources_ifdef(CONFIG_THRIFT_SSL_SOCKET
-  # Replace with upstream equivalents when Zephyr's std::thread, etc, are fixed
-  src/thrift/transport/TSSLSocket.cpp
-  src/thrift/transport/TSSLServerSocket.cpp
+  ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/transport/TSSLSocket.cpp
+  ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/transport/TSSLServerSocket.cpp
 )
 
 # needed because std::iterator was deprecated with -std=c++17
