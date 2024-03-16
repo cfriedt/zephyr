@@ -8,12 +8,12 @@ set(THRIFT_UPSTREAM ${ZEPHYR_THRIFT_MODULE_DIR})
 zephyr_library()
 
 zephyr_include_directories(src)
-zephyr_include_directories(include)
 zephyr_include_directories(${THRIFT_UPSTREAM}/lib/cpp/src)
 
 zephyr_library_sources(
   src/_stat.c
   src/thrift/server/TFDServer.cpp
+  ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/concurrency/Monitor.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/concurrency/Mutex.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/protocol/TProtocol.cpp
   ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/server/TConnectedClient.cpp
@@ -30,8 +30,8 @@ zephyr_library_sources(
 )
 
 zephyr_library_sources_ifdef(CONFIG_THRIFT_SSL_SOCKET
-  ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/transport/TSSLSocket.cpp
-  ${THRIFT_UPSTREAM}/lib/cpp/src/thrift/transport/TSSLServerSocket.cpp
+  src/thrift/transport/TSSLSocket.cpp
+  src/thrift/transport/TSSLServerSocket.cpp
 )
 
 # needed because std::iterator was deprecated with -std=c++17

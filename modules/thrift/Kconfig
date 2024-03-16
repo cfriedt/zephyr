@@ -11,6 +11,7 @@ menuconfig THRIFT
 	depends on STD_CPP17
 	depends on CPP_EXCEPTIONS
 	depends on POSIX_API
+	depends on COMMON_LIBC_THRD
 	help
 	  Enable this option to support Apache Thrift
 
