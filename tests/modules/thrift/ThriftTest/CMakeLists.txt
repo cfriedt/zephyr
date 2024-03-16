@@ -6,6 +6,8 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(thrift_test)
 
 set(THRIFT_UPSTREAM ${ZEPHYR_THRIFT_MODULE_DIR})
+zephyr_include_directories(${ZEPHYR_BASE}/modules/thrift/src)
+zephyr_include_directories(${THRIFT_UPSTREAM}/lib/cpp/src)
 
 include(${ZEPHYR_BASE}/modules/thrift/cmake/thrift.cmake)
 

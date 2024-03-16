@@ -14,6 +14,5 @@ config THRIFTTEST_LOG_LEVEL
 config THRIFT_COMPACT_PROTOCOL
 	bool "Use TCompactProtocol for tests"
 	depends on THRIFT
-	default y
 	help
 	  Enable this option to include TCompactProtocol in tests
