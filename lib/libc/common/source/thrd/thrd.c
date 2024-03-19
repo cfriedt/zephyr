@@ -8,6 +8,7 @@
 #include <threads.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/posix/pthread.h>
 #include <zephyr/posix/sched.h>
 
@@ -20,9 +21,13 @@ int thrd_create(thrd_t *thr, thrd_start_t func, void *arg)
 {
 	typedef void *(*pthread_func_t)(void *arg);
 
+	int ret;
 	pthread_func_t pfunc = (pthread_func_t)func;
 
-	switch (pthread_create(thr, NULL, pfunc, arg)) {
+	ret = pthread_create(thr, NULL, pfunc, arg);
+	printk("pthread_create returned %d\n", ret);
+
+	switch (ret) {
 	case 0:
 		return thrd_success;
 	case EAGAIN:
@@ -34,7 +39,10 @@ int thrd_create(thrd_t *thr, thrd_start_t func, void *arg)
 
 int thrd_equal(thrd_t lhs, thrd_t rhs)
 {
-	return pthread_equal(lhs, rhs);
+	int rv = pthread_equal(lhs, rhs);
+	printk("pthread_equal returned %d\n", rv);
+
+	return rv;
 }
 
 thrd_t thrd_current(void)
@@ -44,7 +52,9 @@ thrd_t thrd_current(void)
 
 int thrd_sleep(const struct timespec *duration, struct timespec *remaining)
 {
-	return nanosleep(duration, remaining);
+	int rv = nanosleep(duration, remaining);
+	printk("nanosleep returned %d\n", rv);
+	return rv;
 }
 
 void thrd_yield(void)
@@ -61,7 +71,10 @@ FUNC_NORETURN void thrd_exit(int res)
 
 int thrd_detach(thrd_t thr)
 {
-	switch (pthread_detach(thr)) {
+	int rv = pthread_detach(thr);
+	printk("pthread_detach returned %d\n", rv);
+
+	switch (rv) {
 	case 0:
 		return thrd_success;
 	default:
@@ -71,9 +84,13 @@ int thrd_detach(thrd_t thr)
 
 int thrd_join(thrd_t thr, int *res)
 {
+	int rv;
 	void *ret;
 
-	switch (pthread_join(thr, &ret)) {
+	rv = pthread_join(thr, &ret);
+	printk("pthread_join returned %d\n", rv);
+
+	switch (rv) {
 	case 0:
 		if (res != NULL) {
 			*res = POINTER_TO_INT(ret);

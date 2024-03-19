@@ -903,7 +903,7 @@ void pthread_exit(void *retval)
 
 	if (self == NULL) {
 		/* not a valid posix_thread */
-		LOG_DBG("Aborting non-pthread %p", k_current_get());
+		LOG_DBG("Aborting non-pthread %p (%s)", k_current_get(), k_thread_name_get(k_current_get()));
 		k_thread_abort(k_current_get());
 
 		CODE_UNREACHABLE;

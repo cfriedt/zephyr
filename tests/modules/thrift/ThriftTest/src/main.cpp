@@ -26,7 +26,7 @@ using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 
 ctx context;
-static K_THREAD_STACK_DEFINE(ThriftTest_server_stack, CONFIG_THRIFTTEST_SERVER_STACK_SIZE);
+
 static const char cert_pem[] = {
 #include "qemu_cert.pem.inc"
 	'\0'
@@ -35,15 +35,6 @@ static const char key_pem[] = {
 #include "qemu_key.pem.inc"
 	'\0'
 };
-
-static void *server_func(void *arg)
-{
-	(void)arg;
-
-	context.server->serve();
-
-	return nullptr;
-}
 
 static void *thrift_test_setup(void)
 {
@@ -57,7 +48,7 @@ static void *thrift_test_setup(void)
 	return NULL;
 }
 
-static std::unique_ptr<ThriftTestClient> setup_client()
+std::unique_ptr<ThriftTestClient> setup_client()
 {
 	std::shared_ptr<TTransport> transport;
 	std::shared_ptr<TProtocol> protocol;
@@ -119,54 +110,37 @@ static void thrift_test_before(void *data)
 	ARG_UNUSED(data);
 	int rv;
 
-	pthread_attr_t attr;
-	pthread_attr_t *attrp = &attr;
-
-	if (IS_ENABLED(CONFIG_ARCH_POSIX)) {
-		attrp = NULL;
-	} else {
-		rv = pthread_attr_init(attrp);
-		zassert_equal(0, rv, "pthread_attr_init failed: %d", rv);
-		rv = pthread_attr_setstack(attrp, ThriftTest_server_stack,
-					   CONFIG_THRIFTTEST_SERVER_STACK_SIZE);
-		zassert_equal(0, rv, "pthread_attr_setstack failed: %d", rv);
-	}
-
 	// create the communication channel
+	printf("creating socketpair\n");
 	rv = socketpair(AF_UNIX, SOCK_STREAM, 0, &context.fds.front());
 	zassert_equal(0, rv, "socketpair failed: %d\n", rv);
 
 	// set up server
+	printf("setting up server..\n");
 	context.server = setup_server();
-
-	// start the server
-	rv = pthread_create(&context.server_thread, attrp, server_func, nullptr);
-	zassert_equal(0, rv, "pthread_create failed: %d", rv);
-
-	/* Give the server thread a chance to start and prepare the socket */
-	k_msleep(50);
-
-	// set up client
-	context.client = setup_client();
+	printf("finished setting up server\n");
 }
 
 static void thrift_test_after(void *data)
 {
 	ARG_UNUSED(data);
 
-	context.server->stop();
-
-	pthread_join(context.server_thread, NULL);
-
 	for (auto &fd : context.fds) {
+		printf("closing fd %d\n", fd);
 		close(fd);
 		fd = -1;
 	}
 
-	context.client.reset();
-	context.server.reset();
+	// try {
+	// printf("resetting client..\n");
+	// context.client.reset();
+	// printf("resetting server..\n");
+	// context.server.reset();
+	// } catch (std::exception &e) {
+	// 	printf("failed: %s\n", e.what());
+	// }
 
-	k_msleep(CONFIG_NET_TCP_TIME_WAIT_DELAY);
+	// k_msleep(CONFIG_NET_TCP_TIME_WAIT_DELAY);
 }
 
 ZTEST_SUITE(thrift, NULL, thrift_test_setup, thrift_test_before, thrift_test_after, NULL);

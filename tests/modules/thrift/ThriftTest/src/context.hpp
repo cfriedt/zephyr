@@ -27,9 +27,20 @@ struct ctx {
 	std::array<int, CLIENT + 1> fds;
 	std::unique_ptr<ThriftTestClient> client;
 	std::unique_ptr<TServer> server;
-	pthread_t server_thread;
+	std::thread server_thread;
 };
 
+std::unique_ptr<ThriftTestClient> setup_client();
+
 extern ctx context;
+
+#define PRE() \
+	std::thread th([]{context.server->serve();}); \
+	k_msleep(100); \
+	context.client = setup_client()
+
+#define POST() \
+	context.server->stop(); \
+	th.join()
 
 #endif /* TESTS_LIB_THRIFT_THRIFTTEST_SRC_CONTEXT_HPP_ */
