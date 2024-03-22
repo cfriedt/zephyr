@@ -1240,6 +1240,22 @@ bool arch_pcie_msi_vector_connect(msi_vector_t *vector,
  */
 void arch_spin_relax(void);
 
+/**
+ * @brief Architecture specific hook to set IRQ affinity.
+ *
+ * Pin @a irq to CPU cores identified by @a mask such that the associated ISR
+ * only executes on the respective CPU cores. The least-significant bit of
+ * @mask refers to CPU core 0.
+ *
+ * @param irq IRQ line.
+ * @param mask CPU core mask.
+ *
+ * @retval 0 on success
+ * @retval -ENOTSUP if the underlying architecture does not support IRQ pinning.
+ * @retval -EINVAL if an invalid argument was provided.
+ */
+int arch_irq_affinity_set(uint32_t irq, uint32_t mask);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -310,6 +310,22 @@ void z_smp_global_unlock(unsigned int key);
 #define irq_is_enabled(irq) arch_irq_is_enabled(irq)
 
 /**
+ * @brief Set IRQ affinity.
+ *
+ * Pin @a irq to CPU cores identified by @a mask such that the associated ISR
+ * only executes on the respective CPU cores. The least-significant bit of
+ * @mask refers to CPU core 0.
+ *
+ * @param irq IRQ line.
+ * @param mask CPU core mask.
+ *
+ * @retval 0 on success
+ * @retval -ENOTSUP if the underlying architecture does not support IRQ pinning.
+ * @retval -EINVAL if an invalid argument was provided.
+ */
+#define irq_affinity_set(irq, mask) arch_irq_affinity_set(irq, mask)
+
+/**
  * @}
  */
 
