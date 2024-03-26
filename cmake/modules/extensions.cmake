@@ -504,6 +504,46 @@ function(zephyr_library_compile_definitions item)
   target_compile_definitions(${ZEPHYR_CURRENT_LIBRARY} PRIVATE ${item} ${ARGN})
 endfunction()
 
+# Provides a consistent method for specifying the _POSIX_C_SOURCE application conformance macro.
+function(target_posix_library_compile_options target)
+  if(CONFIG_POSIX_C_SOURCE_CHOICE_NONE)
+    # Do not specify any application conformance level
+    return()
+  endif()
+
+  set(level CONFIG_POSIX_C_SOURCE)
+  if(level GREATER 2)
+    # append L (required for _POSIX_C_SOURCE > 2)
+    set(level "${level}L")
+  endif()
+
+  target_compile_options(${target} PRIVATE -U_POSIX_C_SOURCE -D_POSIX_C_SOURCE=${level})
+endfunction()
+
+# Provides a consistent method for specifying the _POSIX_C_SOURCE application conformance macro
+# for the current Zephyr library.
+function(zephyr_posix_library_compile_options)
+  target_posix_library_compile_options(${ZEPHYR_CURRENT_LIBRARY} ${ARGN})
+endfunction()
+
+# Provides a consistent method for specifying the _XOPEN_SOURCE application conformance macro.
+function(target_xopen_library_compile_options target)
+  if(CONFIG_XOPEN_SOURCE_CHOICE_NONE)
+    # Do not specify any application conformance level
+    return()
+  endif()
+
+  set(level CONFIG_XOPEN_SOURCE)
+
+  target_compile_options(${target} PRIVATE -U_XOPEN_SOURCE -D_XOPEN_SOURCE=${level})
+endfunction()
+
+# Provides a consistent method for specifying the _XOPEN_SOURCE application conformance macro for
+# the current Zephyr library.
+function(zephyr_xopen_library_compile_options)
+  target_xopen_library_compile_options(${ZEPHYR_CURRENT_LIBRARY} ${ARGV})
+endfunction()
+
 function(zephyr_library_compile_options item)
   # The compiler is relied upon for sane behaviour when flags are in
   # conflict. Compilers generally give precedence to flags given late

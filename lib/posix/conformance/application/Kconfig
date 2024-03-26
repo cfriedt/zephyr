@@ -1,0 +1,63 @@
+# Copyright (c) 2024, Friedt Professional Engineering Services, Inc
+#
+# SPDX-License-Identifier: Apache-2.0
+
+menu "Application Conformance"
+
+choice XOPEN_SOURCE_CHOICE
+	prompt "Selection for _XOPEN_SOURCE"
+	default XOPEN_SOURCE_CHOICE_NONE
+	help
+	  X/Open application conformance level.
+
+config XOPEN_SOURCE_CHOICE_NONE
+	bool "None"
+	help
+	  The application does not require X/Open.
+
+config XOPEN_SOURCE_CHOICE_700
+	bool "700 (IEEE 1003.1-2017)"
+	help
+	  Prefer _XOPEN_SOURCE=700. This is the value specified in IEEE Std. 1003.1-2008
+	  and IEEE Std. 1003.1-2017.
+
+endchoice # XOPEN_SOURCE_CHOICE
+
+if !XOPEN_SOURCE_CHOICE_NONE
+
+config XOPEN_SOURCE
+	int
+	default 700 if XOPEN_SOURCE_CHOICE_700
+	default 0
+
+endif # !XOPEN_SOURCE_CHOICE_NONE
+
+choice POSIX_C_SOURCE_CHOICE
+	prompt "Selection for _POSIX_C_SOURCE"
+	default POSIX_C_SOURCE_CHOICE_NONE
+	help
+	  POSIX application conformance level.
+
+config POSIX_C_SOURCE_CHOICE_NONE
+	bool "None"
+	help
+	  The application does not require POSIX.
+
+config POSIX_C_SOURCE_CHOICE_200809L
+	bool "200809L (IEEE 1003.1-2017)"
+	help
+	  Prefer _POSIX_C_SOURCE=200809L. This is the value specified in both
+	  IEEE Std. 1003.1-2008 and IEEE Std. 1003.1-2017.
+
+endchoice # POSIX_C_SOURCE_CHOICE
+
+if !POSIX_C_SOURCE_CHOICE_NONE || !XOPEN_SOURCE_CHOICE_NONE
+
+config POSIX_C_SOURCE
+	int
+	default 200809 if (POSIX_C_SOURCE_CHOICE_200809L || XOPEN_SOURCE_CHOICE_700)
+	default 0
+
+endif # !POSIX_C_SOURCE_CHOICE_NONE
+
+endmenu # "Application Conformance"
