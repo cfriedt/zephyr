@@ -647,6 +647,13 @@ char *z_setup_new_thread(struct k_thread *new_thread,
 		CONFIG_SCHED_THREAD_USAGE_AUTO_ENABLE;
 #endif /* CONFIG_SCHED_THREAD_USAGE */
 
+#ifdef CONFIG_SIGNALS
+	sys_dlist_init(&new_thread->sigactions);
+	sys_dlist_init(&new_thread->sigqueue);
+	new_thread->sigaltstack = (struct k_signal_stack){0};
+	new_thread->sigmask = (struct k_sigset){0};
+#endif /* CONFIG_SIGNALS */
+
 	SYS_PORT_TRACING_OBJ_FUNC(k_thread, create, new_thread);
 
 	return stack_ptr;

@@ -364,6 +364,13 @@ struct k_thread {
 	struct _pipe_desc pipe_desc;
 #endif /* CONFIG_PIPES */
 
+#ifdef CONFIG_SIGNALS
+	sys_dlist_t sigactions; /* container type is k_signal_action */
+	sys_dlist_t sigqueue;   /* container type is k_queued_signal */
+	struct k_signal_stack sigaltstack;
+	struct k_sigset sigmask;
+#endif
+
 #ifdef CONFIG_OBJ_CORE_THREAD
 	struct k_obj_core  obj_core;
 #endif /* CONFIG_OBJ_CORE_THREAD */

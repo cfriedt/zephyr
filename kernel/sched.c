@@ -239,6 +239,9 @@ static ALWAYS_INLINE struct k_thread *next_up(void)
 
 	struct k_thread *thread = runq_best();
 
+	extern void z_check_signals(struct k_thread * thread);
+	z_check_signals(thread);
+
 #if (CONFIG_NUM_METAIRQ_PRIORITIES > 0) &&                                                         \
 	(CONFIG_NUM_COOP_PRIORITIES > CONFIG_NUM_METAIRQ_PRIORITIES)
 	/* MetaIRQs must always attempt to return back to a
@@ -1427,8 +1430,7 @@ int z_impl_k_thread_join(struct k_thread *thread, k_timeout_t timeout)
 		ret = 0;
 	} else if (K_TIMEOUT_EQ(timeout, K_NO_WAIT)) {
 		ret = -EBUSY;
-	} else if ((thread == _current) ||
-		   (thread->base.pended_on == &_current->join_queue)) {
+	} else if ((thread == _current) || (thread->base.pended_on == &_current->join_queue)) {
 		ret = -EDEADLK;
 	} else {
 		__ASSERT(!arch_is_in_isr(), "cannot join in ISR");

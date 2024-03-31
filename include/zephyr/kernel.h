@@ -86,6 +86,9 @@ struct k_mem_domain;
 struct k_mem_partition;
 struct k_futex;
 struct k_event;
+struct k_signal_action;
+struct k_signal_stack;
+struct k_sigset;
 
 enum execution_context_types {
 	K_ISR = 0,
@@ -5635,11 +5638,10 @@ struct k_poll_signal {
 	int result;
 };
 
-#define K_POLL_SIGNAL_INITIALIZER(obj) \
-	{ \
-	.poll_events = SYS_DLIST_STATIC_INIT(&obj.poll_events), \
-	.signaled = 0, \
-	.result = 0, \
+#define K_SIGNAL_INITIALIZER(obj)                                                                  \
+	{                                                                                          \
+		.poll_events = SYS_DLIST_STATIC_INIT(&obj.poll_events), .signaled = 0,             \
+		.result = 0,                                                                       \
 	}
 /**
  * @brief Poll Event
@@ -5653,19 +5655,19 @@ struct k_poll_event {
 	struct z_poller *poller;
 
 	/** optional user-specified tag, opaque, untouched by the API */
-	uint32_t tag:8;
+	uint32_t tag: 8;
 
 	/** bitfield of event types (bitwise-ORed K_POLL_TYPE_xxx values) */
-	uint32_t type:_POLL_NUM_TYPES;
+	uint32_t type : _POLL_NUM_TYPES;
 
 	/** bitfield of event states (bitwise-ORed K_POLL_STATE_xxx values) */
-	uint32_t state:_POLL_NUM_STATES;
+	uint32_t state : _POLL_NUM_STATES;
 
 	/** mode of operation, from enum k_poll_modes */
-	uint32_t mode:1;
+	uint32_t mode: 1;
 
 	/** unused bits in 32-bit word */
-	uint32_t unused:_POLL_EVENT_NUM_UNUSED_BITS;
+	uint32_t unused : _POLL_EVENT_NUM_UNUSED_BITS;
 
 	/** per-type data */
 	union {
@@ -5681,29 +5683,22 @@ struct k_poll_event {
 	};
 };
 
-#define K_POLL_EVENT_INITIALIZER(_event_type, _event_mode, _event_obj) \
-	{ \
-	.poller = NULL, \
-	.type = _event_type, \
-	.state = K_POLL_STATE_NOT_READY, \
-	.mode = _event_mode, \
-	.unused = 0, \
-	{ \
-		.obj = _event_obj, \
-	}, \
+#define K_POLL_EVENT_INITIALIZER(_event_type, _event_mode, _event_obj)                             \
+	{                                                                                          \
+		.poller = NULL, .type = _event_type, .state = K_POLL_STATE_NOT_READY,              \
+		.mode = _event_mode, .unused = 0,                                                  \
+		{                                                                                  \
+			.obj = _event_obj,                                                         \
+		},                                                                                 \
 	}
 
-#define K_POLL_EVENT_STATIC_INITIALIZER(_event_type, _event_mode, _event_obj, \
-					event_tag) \
-	{ \
-	.tag = event_tag, \
-	.type = _event_type, \
-	.state = K_POLL_STATE_NOT_READY, \
-	.mode = _event_mode, \
-	.unused = 0, \
-	{ \
-		.obj = _event_obj, \
-	}, \
+#define K_POLL_EVENT_STATIC_INITIALIZER(_event_type, _event_mode, _event_obj, event_tag)           \
+	{                                                                                          \
+		.tag = event_tag, .type = _event_type, .state = K_POLL_STATE_NOT_READY,            \
+		.mode = _event_mode, .unused = 0,                                                  \
+		{                                                                                  \
+			.obj = _event_obj,                                                         \
+		},                                                                                 \
 	}
 
 /**
@@ -5721,8 +5716,7 @@ struct k_poll_event {
  * @param obj Kernel object or poll signal.
  */
 
-void k_poll_event_init(struct k_poll_event *event, uint32_t type,
-			      int mode, void *obj);
+void k_poll_event_init(struct k_poll_event *event, uint32_t type, int mode, void *obj);
 
 /**
  * @brief Wait for one or many of multiple poll events to occur
@@ -5767,8 +5761,7 @@ void k_poll_event_init(struct k_poll_event *event, uint32_t type,
  * @retval -EINVAL Bad parameters (user mode only)
  */
 
-__syscall int k_poll(struct k_poll_event *events, int num_events,
-		     k_timeout_t timeout);
+__syscall int k_poll(struct k_poll_event *events, int num_events, k_timeout_t timeout);
 
 /**
  * @brief Initialize a poll signal object.
@@ -5797,8 +5790,7 @@ __syscall void k_poll_signal_reset(struct k_poll_signal *sig);
  *		   result value if the object was signaled, or an undefined
  *		   value if it was not.
  */
-__syscall void k_poll_signal_check(struct k_poll_signal *sig,
-				   unsigned int *signaled, int *result);
+__syscall void k_poll_signal_check(struct k_poll_signal *sig, unsigned int *signaled, int *result);
 
 /**
  * @brief Signal a poll signal object.
@@ -5825,6 +5817,150 @@ __syscall void k_poll_signal_check(struct k_poll_signal *sig,
  */
 
 __syscall int k_poll_signal_raise(struct k_poll_signal *sig, int result);
+
+#if defined(CONFIG_SIGNALS) || defined(__DOXYGEN__)
+
+/** @brief Value to pass to @ref k_poll_sigaction to remove a @ref k_sigaction. */
+#define K_SIGACTION_REMOVE ((const struct k_signal_action *)-1)
+
+/** @brief Value to pass to @ref k_poll_sigaltstack to remove a @ref k_signal_stack. */
+#define K_SIGALTSTACK_REMOVE ((const struct k_signal_stack *)-1)
+
+/** @brief Indicates the sigaltstack is currently in use */
+#define K_SIGALTSTACK_ONSTACK 1
+
+/**
+ * @brief Block signals in the accompanying @ref k_sigset
+ *
+ * @see @ref k_sigmask
+ */
+#define K_SIGBLOCK 0
+
+/**
+ * @brief Set signals in the accompanying @ref k_sigset
+ *
+ * @see @ref k_sigmask
+ */
+#define K_SIGSETMASK 1
+
+/**
+ * @brief Unblock signals in the accompanying @ref k_sigset
+ *
+ * @see @ref k_sigmask
+ */
+#define K_SIGUNBLOCK 2
+
+/**
+ * @brief Examine or specify the action for a signal sent to the current thread.
+ *
+ * Signal actions can be executed asynchronously during execution of the calling thread. For that
+ * reason, signal actions should not attempt to perform any blocking operations or system calls.
+ *
+ * Pass @ref K_SIGACTION_REMOVE as @a act to remove the current action.
+ *
+ * @param sig The signal number.
+ * @param act The new action to be peformed (may be `NULL`).
+ * @param oact The old action to be peformed (may be `NULL`).
+ *
+ * @return 0 on success.
+ * @retval -EINVAL when an invalid argument is provided.
+ * @retval -ENOMEM If the system lacks sufficient resources to install another signal handler.
+ * @retval -EOPNOTSUP when an signal handling is not enabled.
+ */
+__syscall int k_sigaction(int sig, const struct k_signal_action *ZRESTRICT act,
+			  struct k_signal_action *ZRESTRICT oact);
+
+/**
+ * @brief Examine or specify an alternate signal handler thread stack for the current thread.
+ *
+ * Pass @ref K_SIGALTSTACK_REMOVE as @a act to remove the current alternate stack.
+ *
+ * @param ss The new signal stack to be used (may be `NULL`).
+ * @param old_ss The old signal stack to be used (may be `NULL`).
+ *
+ * @retval 0 on success.
+ * @retval -EINVAL when an invalid argument is provided.
+ * @retval -ENOMEM when there is not enough memory.
+ * @retval -EPERM when an attempt is made to modify an active stack.
+ * @retval -EOPNOTSUP when an signal handling is not enabled.
+ */
+__syscall int k_sigaltstack(const struct k_signal_stack *ZRESTRICT ss,
+			    struct k_signal_stack *ZRESTRICT old_ss);
+
+/**
+ * @brief Manipulate the signal mask of the current thread.
+ *
+ * @param how One of @ref K_SIGBLOCK, @ref K_POLL_SETMASK, or @ref K_POLL_UNBLOCK.
+ * @param set The set of signals used to change the currently blocked set (may be `NULL`).
+ * @param oset If non-`NULL`, the previous set of signals is stored in this location.
+ *
+ * @retval 0 on success
+ * @retval -EINVAL if @a how is invalid
+ */
+__syscall int k_sigmask(int how, const struct k_sigset *ZRESTRICT set,
+			struct k_sigset *ZRESTRICT oset);
+
+/**
+ * @brief Send a signal @a sig to thread @a thread.
+ *
+ * Any thread may attempt to signal any other thread. However, if the calling thread lacks the
+ * appropriate permissions to act on the target thread, then the signal will not be delivered.
+ *
+ * Assuming the calling thread has sufficient permissions, the call may be dropped if the target
+ * thread has masked the signal in question. In that case, a return value of 0 is issued to
+ * indicate that the operation was successful.
+ *
+ * When @a sig is specified as 0, no action will be performed but a check will be made to ensure
+ * that @a thread is a valid thread.
+ *
+ * In case of an error, no action will be performed and this call will return a negative error
+ * value.
+ *
+ * @param thread The thread to receive the signal.
+ * @param sig The signal to send to the thread (must be >= 0).
+ *
+ * @retval 0 on success.
+ * @retval -EINVAL If @a thread is not a valid thread or @a sig is not a valid signal.
+ * @retval -EOPNOTSUP when an signal handling is not enabled.
+ * @retval -EPERM If the calling thread does not have sufficient permissions to signal @a thread.
+ */
+__syscall int k_thread_kill(k_tid_t thread, int sig);
+
+/**
+ * @brief Obtain the set of signals pending delivery for the current thread.
+ *
+ * @param set
+ *
+ * @retval 0 on success.
+ * @retval -EFAULT If @a set is not a valid pointer.
+ * @retval -EOPNOTSUP when an signal handling is not enabled.
+ */
+__syscall int k_sigpending(struct k_sigset *set);
+
+/**
+ * @brief Obtain the set of signals pending delivery for the current thread.
+ *
+ * @param mask
+ *
+ * @retval 0 on success.
+ * @retval -EFAULT If @a set is not a valid pointer.
+ * @retval -EOPNOTSUP when an signal handling is not enabled.
+ */
+__syscall int k_sigsuspend(struct k_sigset *set);
+
+/**
+ * @brief Suspend execution of the current thread until one of the signals in @a set is delivered.
+ *
+ * @param set The set of signals to wait for.
+ * @param info Information about the received signal (may be `NULL`).
+ * @param timeout The maximum time to wait for a signal.
+ *
+ * @return the signal number on success otherwise a negative error value.
+ */
+__syscall int k_sigtimedwait(const struct k_sigset *ZRESTRICT set, struct k_siginfo *ZRESTRICT info,
+			     const k_timeout_t *ZRESTRICT timeout);
+
+#endif /* defined(CONFIG_POLL_SIGNALS) || defined(__DOXYGEN__) */
 
 /** @} */
 

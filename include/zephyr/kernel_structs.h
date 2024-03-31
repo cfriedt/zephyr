@@ -316,6 +316,45 @@ struct _timeout {
 
 typedef void (*k_thread_timeslice_fn_t)(struct k_thread *thread, void *data);
 
+union k_sigval {
+	void *sival_ptr;
+	int sival_int;
+};
+
+struct k_siginfo {
+	int si_signo;
+	int si_code;
+	union k_sigval si_value;
+};
+
+#ifdef CONFIG_SIGNAL_NSIG
+#define K_NSIG CONFIG_SIGNAL_NSIG
+#else
+#define K_NSIG 32
+#endif
+
+struct k_sigset {
+	unsigned long sig[DIV_ROUND_UP(K_NSIG, BITS_PER_LONG)];
+};
+
+struct k_signal_action {
+	void (*sa_handler)(int sig);
+	void (*sa_sigaction)(int sig, struct k_siginfo *info, void *context);
+	struct k_sigset sa_mask;
+	int sa_flags;
+};
+
+struct k_signal_stack {
+	void *ss_sp;
+	size_t ss_size;
+	int ss_flags;
+};
+
+struct k_queued_signal {
+	sys_dnode_t head;
+	int signal;
+};
+
 #ifdef __cplusplus
 }
 #endif

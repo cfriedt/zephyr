@@ -1,0 +1,24 @@
+# Copyright (c) 2014-2015 Wind River Systems, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+config SIGNALS
+	bool "Signal one thread from another"
+    depends on MULTITHREADING
+	help
+	  Send an integer signal from one thread to another.
+
+if SIGNALS
+
+config SIGNAL_HANDLERS_MAX
+	int "Maximum number of signal handlers"
+	default 1
+	help
+	  The maximum number of signal handlers for all threads.
+
+config QUEUED_SIGNALS_MAX
+	int "Maximum number of queued signals"
+	default 1
+	help
+	  The maximum number of signals queued for delivery to all threads.
+
+endif
