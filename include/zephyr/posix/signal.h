@@ -93,15 +93,18 @@ struct sigevent {
 };
 
 #ifdef CONFIG_POSIX_SIGNAL
-char *strsignal(int signum);
-int sigemptyset(sigset_t *set);
-int sigfillset(sigset_t *set);
+int pthread_sigmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset);
 int sigaddset(sigset_t *set, int signo);
 int sigdelset(sigset_t *set, int signo);
+int sigemptyset(sigset_t *set);
+int sigfillset(sigset_t *set);
 int sigismember(const sigset_t *set, int signo);
 int sigprocmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset);
-
-int pthread_sigmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset);
+int sigtimedwait(const sigset_t *restrict set, siginfo_t *restrict info,
+		 const struct timespec *restrict timeout);
+int sigwait(const sigset_t *ZRESTRICT set, int *ZRESTRICT sig);
+int sigwaitinfo(const sigset_t *ZRESTRICT set, siginfo_t *ZRESTRICT value);
+char *strsignal(int signum);
 #endif /* CONFIG_POSIX_SIGNAL */
 
 #ifdef __cplusplus

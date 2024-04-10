@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2023 Meta
+ * Copyright (c) 2024, Tenstorrent
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -117,4 +118,93 @@ int sigprocmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset
 
 	errno = ENOSYS;
 	return -1;
+}
+
+int sigwait(const sigset_t *ZRESTRICT set, int *ZRESTRICT sig)
+{
+	int ret;
+
+	ret = sigwaitinfo(set, NULL);
+	if (ret == -1) {
+		return -1;
+	}
+
+	if (sig != NULL) {
+		*sig = ret;
+	}
+
+	return 0;
+}
+
+int sigwaitinfo(const sigset_t *ZRESTRICT set, siginfo_t *ZRESTRICT info)
+{
+	return sigwaitinfo(set, info, NULL);
+}
+
+int sigtimedwait(const sigset_t *ZRESTRICT set, siginfo_t *ZRESTRICT info,
+		 const struct timespec *ZRESTRICT timeout)
+{
+	int ret;
+	k_timeout_t kto;
+	sigset_t pending;
+
+	if (set == NULL) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	sigemptyset(&pending);
+	if (memcmp(&pending, set, sizeof(*set)) == 0) {
+		/* user has requested to wait on an empty set of signals */
+		return 0;
+	}
+
+	ret = sigpending(&pending);
+	if (ret < 0) {
+		return -1;
+	}
+
+	ret = -1;
+	ARRAY_FOR_EACH(set->sig, i)
+	{
+		size_t bits = set->sig[i] & pending.sig[i];
+
+		if (bits == 0) {
+			continue;
+		}
+
+		bits = (sizeof(bits) == sizeof(uint64_t)) ? u64_count_leading_zeros(bits)
+							  : u32_count_leading_zeros(bits);
+
+		if (info != NULL) {
+			info->si_signo = i * BITS_PER_LONG + bits;
+			/* TODO: capture the reason for the signal! */
+			info->si_code = SI_USER;
+			info->si_value.sival_int = 0;
+		}
+
+		ret = bits;
+	}
+
+	if (ret != -1) {
+		return ret;
+	}
+
+	if (timeout == NULL) {
+		kto = K_FOREVER;
+	} else if (timeout->tv_sec == 0 && timeout->tv_nsec == 0) {
+		/* equivalent of K_NO_WAIT - return immediately */
+		errno = EAGAIN;
+		return -1;
+	} else {
+		kto = timespec_to_timeout(timeout);
+	}
+
+	ret = k_sem_take(&posix_signal_sem, kto);
+	if (ret < 0) {
+		errno = -ret;
+		ret = -1;
+	}
+
+	return ret;
 }
