@@ -137,6 +137,10 @@ void z_check_signals(struct k_thread *thread)
 	struct k_sig_and_action *act = NULL;
 	struct k_queued_signal *found = NULL;
 
+	if (thread == NULL) {
+		return;
+	}
+
 	K_SPINLOCK(&sig_lock) {
 		SYS_DLIST_FOR_EACH_CONTAINER(&thread->sigqueue, qsig, head) {
 			if (k_sigismember(&thread->sigmask, qsig->signal)) {
@@ -147,23 +151,28 @@ void z_check_signals(struct k_thread *thread)
 			break;
 		}
 
-		if (found != NULL) {
-			sys_dlist_remove(&found->head);
-			printk("Found signal %d\n", found->signal);
+		if (found == NULL) {
+			K_SPINLOCK_BREAK;
+		}
 
-			SYS_DLIST_FOR_EACH_CONTAINER(&thread->sigactions, act, head) {
-				if (act->sig == found->signal) {
-					printk("Found action %p for signal %d\n", act,
-					       found->signal);
-					break;
-				}
+		sys_dlist_remove(&found->head);
+		printk("Found signal %d\n", found->signal);
+
+		SYS_DLIST_FOR_EACH_CONTAINER(&thread->sigactions, act, head) {
+			if (act->sig == found->signal) {
+				break;
 			}
 		}
+	}
 
-		if (act != NULL) {
-			printk("executing action %p\n", act->act.sa_handler);
-			act->act.sa_handler(found->signal);
-		}
+	if (act != NULL) {
+		__ASSERT_NO_MSG(found != NULL);
+		printk("executing action %p\n", act->act.sa_handler);
+		act->act.sa_handler(found->signal);
+	}
+
+	if (found != NULL) {
+		sig_free(found);
 	}
 }
 
@@ -327,7 +336,7 @@ int z_impl_k_thread_kill(k_tid_t thread, int sig)
 		}
 
 		qsig->signal = sig;
-		sys_dlist_append(thread->sigqueue, &qsig->head);
+		sys_dlist_append(&thread->sigqueue, &qsig->head);
 	}
 
 	return ret;
