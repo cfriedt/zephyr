@@ -5,7 +5,29 @@
 config POSIX_NETWORKING
 	bool "POSIX Networking API"
 	default y if POSIX_API
-	depends on NETWORKING
+	select NETWORKING
+	select NET_SOCKETS
+	select NET_SOCKETPAIR
+	select NET_IP
+	select DNS_RESOLVER
 	help
 	  Enable this option to support the POSIX networking API. This includes
 	  support for BSD Sockets.
+
+if POSIX_NETWORKING
+
+config POSIX_IPV6
+	bool "POSIX IPv6 networking support"
+	default y if POSIX_API
+	select NET_IPV6
+	help
+	  Enable this option to support IP version 6 networking in the POSIX API.
+
+config POSIX_RAW_SOCKETS
+	bool "POSIX raw socket support"
+	default y if POSIX_API
+	select NET_SOCKETS_PACKET
+	help
+	  Enable this option to support raw sockets in the POSIX API.
+
+endif # POSIX_NETWORKING

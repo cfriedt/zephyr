@@ -83,14 +83,14 @@ POSIX System Interfaces
     _POSIX_ADVISORY_INFO, -1,
     _POSIX_CPUTIME, 200809L, :kconfig:option:`CONFIG_POSIX_CLOCK`
     :ref:`_POSIX_FSYNC<posix_option_fsync>`, 200809L, :kconfig:option:`CONFIG_POSIX_FSYNC`
-    _POSIX_IPV6, 200809L, :kconfig:option:`CONFIG_NET_IPV6`
+    _POSIX_IPV6, 200809L, :kconfig:option:`CONFIG_POSIX_IPV6`
     _POSIX_MEMLOCK, -1,
     _POSIX_MEMLOCK_RANGE, -1,
     :ref:`_POSIX_MESSAGE_PASSING<posix_option_message_passing>`, 200809L, :kconfig:option:`CONFIG_POSIX_MQUEUE`
     :ref:`_POSIX_MONOTONIC_CLOCK<posix_option_monotonic_clock>`, 200809L, :kconfig:option:`CONFIG_POSIX_CLOCK`
     _POSIX_PRIORITIZED_IO, -1,
     :ref:`_POSIX_PRIORITY_SCHEDULING<posix_option_priority_scheduling>`, 200809L, :kconfig:option:`CONFIG_POSIX_PRIORITY_SCHEDULING`
-    _POSIX_RAW_SOCKETS, 200809L, :kconfig:option:`CONFIG_NET_SOCKETS_PACKET`
+    _POSIX_RAW_SOCKETS, 200809L, :kconfig:option:`CONFIG_POSIX_RAW_SOCKETS`
     _POSIX_SHARED_MEMORY_OBJECTS, -1,
     _POSIX_SPAWN, -1, :ref:`†<posix_undefined_behaviour>`
     _POSIX_SPORADIC_SERVER, -1, :ref:`†<posix_undefined_behaviour>`
