@@ -1,5 +1,27 @@
 #include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include <zephyr/internal/syscall_handler.h>
+
+LOG_MODULE_REGISTER(k_signal, LOG_LEVEL_DBG);
+
+#if 0
+static char *k_sigset_to_str(const struct k_sigset *set)
+{
+	static char buf[sizeof(struct k_sigset) * 2 + 1];
+
+	for (size_t i = sizeof(buf); i > 0; --i) {
+		uint8_t byte = set[i - 1];
+		size_t j = i * 2 - 1;
+
+		buf[j] = byte & 0xf;
+		buf[j - 1] = (byte & 0xf0) >> 4;
+	}
+
+	buf[sizeof(buf) - 1] = '\0';
+
+	return buf;
+}
+#endif
 
 int k_sigaddset(struct k_sigset *set, int sig)
 {
@@ -74,14 +96,15 @@ struct k_sig_and_action {
 };
 
 static struct k_spinlock sig_lock;
-K_MEM_SLAB_DEFINE_STATIC(sigact_slab, sizeof(struct k_sig_and_action), CONFIG_SIGNAL_HANDLERS_MAX,
-			 __alignof(struct k_sig_and_action));
+static uintptr_t sigact_bitset[DIV_ROUND_UP(CONFIG_SIGNAL_HANDLERS_MAX, sizeof(uintptr_t))];
+static struct k_sig_and_action[CONFIG_SIGNAL_HANDLERS_MAX];
 
 static struct k_sig_and_action *sigact_alloc(void)
 {
 	struct k_sig_and_action *ent = NULL;
 
 	if (k_mem_slab_alloc(&sigact_slab, (void **)&ent, K_NO_WAIT) < 0) {
+		LOG_DBG("failed to allocate sigact");
 		return NULL;
 	}
 
@@ -94,6 +117,8 @@ static struct k_sig_and_action *sigact_alloc(void)
 static void sigact_free(struct k_sig_and_action *ent)
 {
 	k_mem_slab_free(&sigact_slab, ent);
+
+	LOG_DBG("freed sigact %p", ent);
 }
 
 static struct k_sig_and_action *sigaction_find(struct k_thread *th, int sig)
@@ -102,6 +127,7 @@ static struct k_sig_and_action *sigaction_find(struct k_thread *th, int sig)
 
 	SYS_DLIST_FOR_EACH_CONTAINER(&th->sigactions, it, head) {
 		if (it->sig == sig) {
+			LOG_DBG("found sigaction %p for signal %d", it, sig);
 			return it;
 		}
 	}
@@ -117,6 +143,7 @@ static struct k_queued_signal *sig_alloc(void)
 	struct k_queued_signal *ent = NULL;
 
 	if (k_mem_slab_alloc(&sig_slab, (void **)&ent, K_NO_WAIT) < 0) {
+		LOG_DBG("failed to allocate sig");
 		return NULL;
 	}
 
@@ -129,6 +156,7 @@ static struct k_queued_signal *sig_alloc(void)
 static void sig_free(struct k_queued_signal *ent)
 {
 	k_mem_slab_free(&sig_slab, ent);
+	LOG_DBG("freed sig %p", ent);
 }
 
 void z_check_signals(struct k_thread *thread)
@@ -156,7 +184,7 @@ void z_check_signals(struct k_thread *thread)
 		}
 
 		sys_dlist_remove(&found->head);
-		printk("Found signal %d\n", found->signal);
+		LOG_DBG("Found signal %d", found->signal);
 
 		SYS_DLIST_FOR_EACH_CONTAINER(&thread->sigactions, act, head) {
 			if (act->sig == found->signal) {
@@ -167,7 +195,7 @@ void z_check_signals(struct k_thread *thread)
 
 	if (act != NULL) {
 		__ASSERT_NO_MSG(found != NULL);
-		printk("executing action %p\n", act->act.sa_handler);
+		LOG_DBG("executing action %p for signal %d", act->act.sa_handler, found->signal);
 		act->act.sa_handler(found->signal);
 	}
 
@@ -203,6 +231,7 @@ int z_impl_k_sigaction(int sig, const struct k_signal_action *ZRESTRICT act,
 
 		if (act == K_SIGACTION_REMOVE) {
 			if (sa != NULL) {
+				LOG_DBG("Removing action %p for signal %d", sa, sig);
 				sys_dlist_remove(&sa->head);
 				sigact_free(sa);
 			}
@@ -222,6 +251,8 @@ int z_impl_k_sigaction(int sig, const struct k_signal_action *ZRESTRICT act,
 			ret = -ENOMEM;
 			K_SPINLOCK_BREAK;
 		}
+
+		LOG_DBG("Allocated action %p for signal %d", sa, sig);
 
 		*sa = (struct k_sig_and_action){
 			.sig = sig,
@@ -334,6 +365,8 @@ int z_impl_k_thread_kill(k_tid_t thread, int sig)
 			ret = -ENOMEM;
 			K_SPINLOCK_BREAK;
 		}
+
+		LOG_DBG("Allocated sig %p for signal %d", qsig, sig);
 
 		qsig->signal = sig;
 		sys_dlist_append(&thread->sigqueue, &qsig->head);

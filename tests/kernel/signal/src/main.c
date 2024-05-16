@@ -134,11 +134,15 @@ static void infinite_loop_thread_fn(void *arg1, void *arg2, void *arg3)
 	zassert_ok(k_sigaction(1, &sa, NULL));
 
 	infinite_loop_thread_started = true;
+	infinite_loop_thread_done = false;
 	printk("Infinite loop thread has started\n");
 
-	while (!infinite_loop_thread_signaled) {
+	for (size_t i = 0; !infinite_loop_thread_signaled; i++) {
+		if (i >= 3) {
+			return;
+		}
 		printk("In infinite loop\n");
-		k_msleep(1000);
+		k_msleep(300);
 	}
 
 	infinite_loop_thread_done = true;
@@ -188,15 +192,16 @@ ZTEST(signals, test_k_thread_kill)
 
 	printk("Killing infinite loop thread with signal 1\n");
 	zassert_ok(k_thread_kill(&infinite_loop_thread, 1));
-	/* until we have a hook in sched.c */
 
-	while (!infinite_loop_thread_signaled) {
-		printk("Waiting for thread to join\n");
-		k_msleep(1000);
+	printk("Joining infinite loop thread\n");
+	int ret = k_thread_join(&infinite_loop_thread, K_MSEC(300));
+	zexpect_ok(ret);
+	zexpect_true(infinite_loop_thread_signaled);
+
+	if (ret != 0) {
+		/* let the infinite loop counter time-out */
+		k_thread_join(&infinite_loop_thread, K_FOREVER);
 	}
-
-	zassert_ok(k_thread_join(&infinite_loop_thread, K_MSEC(300)));
-	zassert_true(infinite_loop_thread_signaled);
 }
 
 ZTEST(signals, test_k_sigpending)

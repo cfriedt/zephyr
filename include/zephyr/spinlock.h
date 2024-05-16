@@ -133,7 +133,9 @@ static ALWAYS_INLINE void z_spinlock_validate_pre(struct k_spinlock *l)
 {
 	ARG_UNUSED(l);
 #ifdef CONFIG_SPIN_VALIDATE
-	__ASSERT(z_spin_lock_valid(l), "Invalid spinlock %p", l);
+	if (!z_spin_lock_valid(l)) {
+		__ASSERT(z_spin_lock_valid(l), "Invalid spinlock %p", l);
+	}
 #ifdef CONFIG_KERNEL_COHERENCE
 	__ASSERT_NO_MSG(z_spin_lock_mem_coherent(l));
 #endif
