@@ -36,18 +36,9 @@
 #include <sys/_locale.h>
 #endif
 
-// As per the GCC source, _SIZE_T_DECLARD is FreeBSD 5
-// So: Also check for _SIZE_T
-#if !defined(_SIZE_T_DECLARED) && !defined(_SIZE_T)
-typedef	__size_t	size_t;
-#endif
-
 #ifndef _SIZE_T_DECLARED
+typedef	__size_t	size_t;
 #define	_SIZE_T_DECLARED
-#endif
-
-#ifndef _SIZE_T
-#define _SIZE_T
 #endif
 
 __BEGIN_DECLS

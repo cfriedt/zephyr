@@ -1,37 +1,4 @@
 /*
-Copyright (c) 1991, 1993
-The Regents of the University of California.  All rights reserved.
-c) UNIX System Laboratories, Inc.
-All or some portions of this file are derived from material licensed
-to the University of California by American Telephone and Telegraph
-Co. or Unix System Laboratories, Inc. and are reproduced herein with
-the permission of UNIX System Laboratories, Inc.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-1. Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-2. Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-3. Neither the name of the University nor the names of its contributors
-may be used to endorse or promote products derived from this software
-without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-SUCH DAMAGE.
- */
-/*
  * time.h
  * 
  * Struct and function declarations for dealing with time.
@@ -42,6 +9,7 @@ SUCH DAMAGE.
 
 #include "_ansi.h"
 #include <sys/cdefs.h>
+#include <sys/reent.h>
 
 #define __need_size_t
 #define __need_NULL
@@ -51,23 +19,11 @@ SUCH DAMAGE.
 #include <machine/time.h>
 
 #ifndef _CLOCKS_PER_SEC_
-#ifdef CLK_TCK
-#define _CLOCKS_PER_SEC_ CLK_TCK
-#else
-#ifdef CLOCKS_PER_SEC
-#define _CLOCKS_PER_SEC_ CLOCKS_PER_SEC
-#else
 #define _CLOCKS_PER_SEC_ 1000
 #endif
-#endif
-#endif
 
-#ifndef CLOCKS_PER_SEC
 #define CLOCKS_PER_SEC _CLOCKS_PER_SEC_
-#endif
-#ifndef CLK_TCK
 #define CLK_TCK CLOCKS_PER_SEC
-#endif
 
 #include <sys/types.h>
 #include <sys/timespec.h>
@@ -100,9 +56,6 @@ struct tm
 clock_t	   clock (void);
 double	   difftime (time_t _time2, time_t _time1);
 time_t	   mktime (struct tm *_timeptr);
-#if __BSD_VISIBLE || __SVID_VISIBLE || __GNU_VISIBLE
-time_t	   timegm (struct tm *_timeptr);
-#endif
 time_t	   time (time_t *_timer);
 #ifndef _REENT_ONLY
 char	  *asctime (const struct tm *_tblock);
@@ -147,13 +100,35 @@ char *strptime_l (const char *__restrict, const char *__restrict,
 #if __POSIX_VISIBLE
 void      tzset 	(void);
 #endif
+void      _tzset_r 	(struct _reent *);
+
+typedef struct __tzrule_struct
+{
+  char ch;
+  int m;
+  int n;
+  int d;
+  int s;
+  time_t change;
+  long offset; /* Match type of _timezone. */
+} __tzrule_type;
+
+typedef struct __tzinfo_struct
+{
+  int __tznorth;
+  int __tzyear;
+  __tzrule_type __tzrule[2];
+} __tzinfo_type;
+
+__tzinfo_type *__gettzinfo (void);
 
 /* getdate functions */
 
 #ifdef HAVE_GETDATE
 #if __XSI_VISIBLE >= 4
 #ifndef _REENT_ONLY
-extern NEWLIB_THREAD_LOCAL int getdate_err;
+#define getdate_err (*__getdate_err())
+int *__getdate_err (void);
 
 struct tm *	getdate (const char *);
 /* getdate_err is set to one of the following values to indicate the error.

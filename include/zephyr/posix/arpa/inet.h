@@ -1,30 +1,31 @@
-/* Copyright (c) 2004 Jeff Johnston  <jjohnstn@redhat.com> */
-#ifndef __ARPA_INET_H__
-#define __ARPA_INET_H__
+/*
+ * Copyright (c) 2019 Linaro Limited
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+#ifndef ZEPHYR_INCLUDE_POSIX_ARPA_INET_H_
+#define ZEPHYR_INCLUDE_POSIX_ARPA_INET_H_
 
-#include <endian.h>
+#include <stddef.h>
 
-/* byteorder(3) - simimlar to linux <arpa/inet.h> */
-#ifndef __machine_host_to_from_network_defined
-#if _BYTE_ORDER == _LITTLE_ENDIAN
-#define	__htonl(_x)	__bswap32(_x)
-#define	__htons(_x)	__bswap16(_x)
-#define	__ntohl(_x)	__bswap32(_x)
-#define	__ntohs(_x)	__bswap16(_x)
-#define	htonl(_x)	__htonl(_x)
-#define	htons(_x)	__htons(_x)
-#define	ntohl(_x)	__htonl(_x)
-#define	ntohs(_x)	__htons(_x)
-#else
-#define	__htonl(_x)	((__uint32_t)(_x))
-#define	__htons(_x)	((__uint16_t)(_x))
-#define	__ntohl(_x)	((__uint32_t)(_x))
-#define	__ntohs(_x)	((__uint16_t)(_x))
-#define	htonl(_x)	__htonl(_x)
-#define	htons(_x)	__htons(_x)
-#define	ntohl(_x)	__ntohl(_x)
-#define	ntohs(_x)	__ntohs(_x)
+#include <zephyr/posix/netinet/in.h>
+#include <zephyr/posix/sys/socket.h>
+
+#include <zephyr/net/socket.h>
+
+#ifdef __cplusplus
+extern "C" {
 #endif
-#endif /* __machine_host_to_from_network_defined */
 
-#endif /* __ARPA_INET_H__ */
+typedef uint32_t in_addr_t;
+
+in_addr_t inet_addr(const char *cp);
+char *inet_ntoa(struct in_addr in);
+char *inet_ntop(sa_family_t family, const void *src, char *dst, size_t size);
+int inet_pton(sa_family_t family, const char *src, void *dst);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ZEPHYR_INCLUDE_POSIX_ARPA_INET_H_ */

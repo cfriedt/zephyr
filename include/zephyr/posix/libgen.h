@@ -1,4 +1,3 @@
-/* Copyright (c) 2005 Jeff Johnston  <jjohnstn@redhat.com> */
 /*
  * libgen.h - defined by XPG4
  */
@@ -8,6 +7,7 @@
 
 #include "_ansi.h"
 #include <sys/cdefs.h>
+#include <sys/reent.h>
 
 #ifdef __cplusplus
 extern "C" {
