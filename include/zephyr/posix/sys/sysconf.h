@@ -146,8 +146,9 @@ enum {
 	COND_CODE_1(CONFIG_POSIX_ASYNCHRONOUS_IO, (_POSIX_ASYNCHRONOUS_IO), (-1L))
 #define __z_posix_sysconf_SC_BARRIERS COND_CODE_1(CONFIG_PTHREAD_BARRIER, (_POSIX_BARRIERS), (-1L))
 #define __z_posix_sysconf_SC_CLOCK_SELECTION                                                       \
-	COND_CODE_1(CONFIG_POSIX_CLOCK, (_POSIX_CLOCK_SELECTION), (-1L))
-#define __z_posix_sysconf_SC_CPUTIME           (-1L)
+	COND_CODE_1(CONFIG_POSIX_CLOCK_SELECTION, (_POSIX_CLOCK_SELECTION), (-1L))
+#define __z_posix_sysconf_SC_CPUTIME \
+	COND_CODE_1(CONFIG_POSIX_CPUTIME, (_POSIX_CPUTIME), (-1L))
 #define __z_posix_sysconf_SC_FSYNC                                                                 \
 	COND_CODE_1(CONFIG_POSIX_FSYNC, (_POSIX_FSYNC), (-1L))
 #define __z_posix_sysconf_SC_IPV6              COND_CODE_1(CONFIG_NET_IPV6, (_POSIX_IPV6), (-1L))
@@ -159,7 +160,7 @@ enum {
 #define __z_posix_sysconf_SC_MESSAGE_PASSING                                                       \
 	COND_CODE_1(CONFIG_POSIX_MQUEUE, (_POSIX_MESSAGE_PASSING), (-1L))
 #define __z_posix_sysconf_SC_MONOTONIC_CLOCK                                                       \
-	COND_CODE_1(CONFIG_POSIX_CLOCK, (_POSIX_MONOTONIC_CLOCK), (-1L))
+	COND_CODE_1(CONFIG_POSIX_MONOTONIC_CLOCK, (_POSIX_MONOTONIC_CLOCK), (-1L))
 #define __z_posix_sysconf_SC_PRIORITIZED_IO (-1L)
 #define __z_posix_sysconf_SC_PRIORITY_SCHEDULING                                                   \
 	COND_CODE_1(CONFIG_POSIX_PRIORITY_SCHEDULING, (_POSIX_PRIORITY_SCHEDULING), (-1L))
@@ -199,9 +200,9 @@ enum {
 #define __z_posix_sysconf_SC_THREADS                                                               \
 	COND_CODE_1(CONFIG_PTHREAD_IPC, (_POSIX_THREADS), (-1L))
 #define __z_posix_sysconf_SC_TIMEOUTS                                                              \
-	COND_CODE_1(CONFIG_POSIX_CLOCK, (_POSIX_TIMEOUTS), (-1L))
+	COND_CODE_1(CONFIG_POSIX_TIMEOUTS, (_POSIX_TIMEOUTS), (-1L))
 #define __z_posix_sysconf_SC_TIMERS                                                                \
-	COND_CODE_1(CONFIG_TIMERS, (_POSIX_TIMERS), (-1))
+	COND_CODE_1(CONFIG_POSIX_TIMEOUTS, (_POSIX_TIMERS), (-1))
 #define __z_posix_sysconf_SC_TRACE                        (-1L)
 #define __z_posix_sysconf_SC_TRACE_EVENT_FILTER           (-1L)
 #define __z_posix_sysconf_SC_TRACE_EVENT_NAME_MAX         _POSIX_TRACE_NAME_MAX
@@ -228,7 +229,7 @@ enum {
 #define __z_posix_sysconf_SC_2_C_DEV                      _POSIX2_C_DEV
 #define __z_posix_sysconf_SC_2_CHAR_TERM                  (-1L)
 #define __z_posix_sysconf_SC_COLL_WEIGHTS_MAX             _POSIX2_COLL_WEIGHTS_MAX
-#define __z_posix_sysconf_SC_DELAYTIMER_MAX               _POSIX2_DELAYTIMER_MAX
+#define __z_posix_sysconf_SC_DELAYTIMER_MAX               _POSIX_DELAYTIMER_MAX
 #define __z_posix_sysconf_SC_EXPR_NEST_MAX                _POSIX2_EXPR_NEST_MAX
 #define __z_posix_sysconf_SC_2_FORT_DEV                   (-1L)
 #define __z_posix_sysconf_SC_2_FORT_RUN                   (-1L)

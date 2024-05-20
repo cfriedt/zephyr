@@ -265,3 +265,15 @@ int unsetenv(const char *name)
 
 	return ret;
 }
+
+#ifdef CONFIG_XSI_SINGLE_PROCESS
+int putenv(char *string)
+{
+	if (string == NULL) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	return setenv(string, strchr(string, '='), true);
+}
+#endif

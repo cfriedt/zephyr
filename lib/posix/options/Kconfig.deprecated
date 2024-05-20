@@ -4,6 +4,22 @@
 
 # This file should be removed after Zephyr 4.0 is released
 
+config MAX_TIMER_COUNT
+	int "Maximum number of timer_t [DEPRECATED]"
+	default 0
+	help
+	  This option is deprecated.
+
+	  Please use CONFIG_POSIX_TIMER_MAX instead.
+
+config POSIX_CLOCK
+	bool "clock and sleep APIs [DEPRECATED]"
+	select DEPRECATED
+	help
+	  This option is deprecated.
+
+	  Please use CONFIG_POSIX_TIMERS instead.
+
 config POSIX_LIMITS_RTSIG_MAX
 	int "_POSIX_RTSIG_MAX value in limits.h [DEPRECATED]"
 	default 0
@@ -11,3 +27,11 @@ config POSIX_LIMITS_RTSIG_MAX
 	  This option is deprecated.
 
 	  Please use CONFIG_POSIX_RTSIG_MAX instead.
+
+config TIMER
+	bool "Timer support [DEPRECATED]"
+	select DEPRECATED
+	help
+	  This option is deprecated.
+
+	  Please use CONFIG_POSIX_TIMERS instead.
