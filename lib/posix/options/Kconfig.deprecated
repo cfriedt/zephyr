@@ -6,6 +6,27 @@
 
 menu "Deprecated POSIX options"
 
+config MAX_TIMER_COUNT
+	int "Maximum number of timer_t [DEPRECATED]"
+	default 0
+	help
+	  This option is deprecated.
+
+	  Please use CONFIG_POSIX_TIMER_MAX instead.
+
+config POSIX_CLOCK
+	bool "clock and sleep APIs [DEPRECATED]"
+	select DEPRECATED
+	select POSIX_CLOCK_SELECTION
+	select POSIX_CPUTIME
+	select POSIX_MONOTONIC_CLOCK
+	select POSIX_TIMERS
+	select POSIX_TIMEOUTS
+	help
+	  This option is deprecated.
+
+	  Please use CONFIG_POSIX_TIMERS instead.
+
 config POSIX_LIMITS_RTSIG_MAX
 	int "_POSIX_RTSIG_MAX value in limits.h [DEPRECATED]"
 	default 0
@@ -13,5 +34,22 @@ config POSIX_LIMITS_RTSIG_MAX
 	  This option is deprecated.
 
 	  Please use CONFIG_POSIX_RTSIG_MAX instead.
+
+config TIMER
+	bool "Timer support [DEPRECATED]"
+	select DEPRECATED
+	select POSIX_TIMERS
+	help
+	  This option is deprecated.
+
+	  Please use CONFIG_POSIX_TIMERS instead.
+
+config TIMER_DELAYTIMER_MAX
+	int "Maximum count returned my timer_getoverrun() in POSIX application [DEPRECATED]"
+	default 0
+	help
+	  This option is deprecated.
+
+	  Please use CONFIG_POSIX_DELAYTIMER_MAX instead.
 
 endmenu
