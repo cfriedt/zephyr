@@ -10,11 +10,14 @@
 
 #include <zephyr/posix/signal.h>
 
+#if defined(CONFIG_POSIX_LIMITS_RTSIG_MAX) && CONFIG_POSIX_LIMITS_RTSIG_MAX > 0
+__WARN("CONFIG_POSIX_LIMITS_RTSIG_MAX is deprecated. Please use CONFIG_POSIX_RTSIG_MAX instead.");
+#endif
+
 #define SIGNO_WORD_IDX(_signo) (signo / BITS_PER_LONG)
 #define SIGNO_WORD_BIT(_signo) (signo & BIT_MASK(LOG2(BITS_PER_LONG)))
 
-BUILD_ASSERT(CONFIG_POSIX_LIMITS_RTSIG_MAX >= 0);
-BUILD_ASSERT(CONFIG_POSIX_RTSIG_MAX >= CONFIG_POSIX_LIMITS_RTSIG_MAX);
+BUILD_ASSERT(CONFIG_POSIX_RTSIG_MAX >= 0);
 
 static inline bool signo_valid(int signo)
 {
