@@ -5,4 +5,13 @@
 # This file should be removed after Zephyr 4.0 is released
 
 menu "Deprecated POSIX options"
+
+config POSIX_LIMITS_RTSIG_MAX
+	int "_POSIX_RTSIG_MAX value in limits.h [DEPRECATED]"
+	default 0
+	help
+	  This option is deprecated.
+
+	  Please use CONFIG_POSIX_RTSIG_MAX instead.
+
 endmenu
