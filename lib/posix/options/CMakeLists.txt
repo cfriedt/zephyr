@@ -36,6 +36,7 @@ zephyr_library()
 zephyr_library_sources_ifdef(CONFIG_EVENTFD eventfd.c)
 zephyr_library_sources_ifdef(CONFIG_GETENTROPY getentropy.c)
 zephyr_library_sources_ifdef(CONFIG_POSIX_ASYNCHRONOUS_IO aio.c)
+zephyr_library_sources_ifdef(CONFIG_POSIX_BARRIERS barrier.c)
 zephyr_library_sources_ifdef(CONFIG_POSIX_C_LIB_EXT
   fnmatch.c
   getopt/getopt.c
