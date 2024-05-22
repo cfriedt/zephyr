@@ -33,11 +33,21 @@ if(CONFIG_POSIX_API OR CONFIG_PTHREAD_IPC OR CONFIG_POSIX_CLOCK OR
 endif()
 
 zephyr_library()
-add_subdirectory_ifdef(CONFIG_GETOPT getopt)
 zephyr_library_sources_ifdef(CONFIG_EVENTFD eventfd.c)
-zephyr_library_sources_ifdef(CONFIG_FNMATCH fnmatch.c)
 zephyr_library_sources_ifdef(CONFIG_GETENTROPY getentropy.c)
 zephyr_library_sources_ifdef(CONFIG_POSIX_ASYNCHRONOUS_IO aio.c)
+zephyr_library_sources_ifdef(CONFIG_POSIX_C_LIB_EXT
+  fnmatch.c
+  getopt/getopt.c
+  getopt/getopt_common.c
+)
+zephyr_include_directories_ifdef(CONFIG_POSIX_C_LIB_EXT
+  getopt/
+)
+zephyr_sources_ifdef(CONFIG_GETOPT_LONG
+  getopt/getopt_long.c
+)
+
 zephyr_library_sources_ifdef(CONFIG_POSIX_CONFSTR confstr.c)
 zephyr_library_sources_ifdef(CONFIG_POSIX_DEVICE_IO
   # perror should be moved to the common libc
