@@ -47,8 +47,6 @@ zephyr_include_directories_ifdef(CONFIG_POSIX_C_LIB_EXT
 zephyr_sources_ifdef(CONFIG_GETOPT_LONG
   getopt/getopt_long.c
 )
-
-zephyr_library_sources_ifdef(CONFIG_POSIX_CONFSTR confstr.c)
 zephyr_library_sources_ifdef(CONFIG_POSIX_DEVICE_IO
   # perror should be moved to the common libc
   perror.c
@@ -63,13 +61,17 @@ zephyr_library_sources_ifdef(CONFIG_POSIX_MULTI_PROCESS
 zephyr_library_sources_ifdef(CONFIG_POSIX_NETWORKING net.c)
 zephyr_library_sources_ifdef(CONFIG_POSIX_PUTMSG stropts.c)
 zephyr_library_sources_ifdef(CONFIG_POSIX_SIGNAL signal.c ${STRSIGNAL_TABLE_H})
-zephyr_library_sources_ifdef(CONFIG_POSIX_SYSCONF_IMPL_FULL sysconf.c)
+zephyr_library_sources_ifdef(CONFIG_POSIX_SINGLE_PROCESS
+  confstr.c
+  env.c
+  sysconf.c
+  uname.c
+)
 zephyr_library_sources_ifdef(CONFIG_POSIX_SYSLOG syslog.c)
 zephyr_library_sources_ifdef(CONFIG_POSIX_TIMERS
   clock.c
   timer.c
 )
-zephyr_library_sources_ifdef(CONFIG_POSIX_UNAME uname.c)
 zephyr_library_sources_ifdef(CONFIG_PTHREAD_IPC _common.c)
 zephyr_library_sources_ifdef(CONFIG_PTHREAD_BARRIER barrier.c)
 zephyr_library_sources_ifdef(CONFIG_PTHREAD_COND cond.c)
