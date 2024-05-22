@@ -74,7 +74,6 @@ zephyr_library_sources_ifdef(CONFIG_POSIX_TIMERS
   timer.c
 )
 zephyr_library_sources_ifdef(CONFIG_PTHREAD_IPC _common.c)
-zephyr_library_sources_ifdef(CONFIG_PTHREAD_BARRIER barrier.c)
 zephyr_library_sources_ifdef(CONFIG_PTHREAD_COND cond.c)
 zephyr_library_sources_ifdef(CONFIG_PTHREAD_KEY key.c)
 zephyr_library_sources_ifdef(CONFIG_PTHREAD_MUTEX mutex.c)
