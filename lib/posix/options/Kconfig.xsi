@@ -2,6 +2,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+config XOPEN_STREAMS
+	bool "X/Open Stream support"
+	default y if POSIX_API
+	help
+	  Select 'y' here and Zephyr will provide implementations of
+	  fattach(), fdetach(), getmsg(), getpmsg(), ioctl(), isastream(), putmsg(), and putpmsg().
+
+	  For more information, please see
+	  https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap02.html
+
 config XSI_SINGLE_PROCESS
 	bool "X/Open Single Process"
 	default y if POSIX_API

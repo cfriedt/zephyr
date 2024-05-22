@@ -80,12 +80,7 @@ static int posix_mode_to_zephyr(int mf)
 	return mode;
 }
 
-/**
- * @brief Open a file.
- *
- * See IEEE 1003.1
- */
-int open(const char *name, int flags, ...)
+int zvfs_open(const char *name, int flags)
 {
 	int rc, fd;
 	struct posix_fs_desc *ptr = NULL;
@@ -122,10 +117,6 @@ int open(const char *name, int flags, ...)
 
 	return fd;
 }
-
-#if !defined(CONFIG_NEWLIB_LIBC) && !defined(CONFIG_PICOLIBC)
-FUNC_ALIAS(open, _open, int);
-#endif
 
 static int fs_close_vmeth(void *obj)
 {

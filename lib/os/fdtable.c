@@ -31,12 +31,12 @@ struct fd_entry {
 	struct k_condvar cond;
 };
 
-#ifdef CONFIG_POSIX_API
+#if defined(CONFIG_POSIX_DEVICE_IO)
 static const struct fd_op_vtable stdinout_fd_op_vtable;
-#endif
+#endif /* defined(CONFIG_POSIX_DEVICE_IO) */
 
 static struct fd_entry fdtable[CONFIG_POSIX_MAX_FDS] = {
-#ifdef CONFIG_POSIX_API
+#if defined(CONFIG_POSIX_DEVICE_IO)
 	/*
 	 * Predefine entries for stdin/stdout/stderr.
 	 */
@@ -296,9 +296,7 @@ int z_alloc_fd(void *obj, const struct fd_op_vtable *vtable)
 	return fd;
 }
 
-#ifdef CONFIG_POSIX_API
-
-ssize_t read(int fd, void *buf, size_t sz)
+ssize_t zvfs_read(int fd, void *buf, size_t sz)
 {
 	ssize_t res;
 
@@ -314,9 +312,8 @@ ssize_t read(int fd, void *buf, size_t sz)
 
 	return res;
 }
-FUNC_ALIAS(read, _read, ssize_t);
 
-ssize_t write(int fd, const void *buf, size_t sz)
+ssize_t zvfs_write(int fd, const void *buf, size_t sz)
 {
 	ssize_t res;
 
@@ -332,9 +329,8 @@ ssize_t write(int fd, const void *buf, size_t sz)
 
 	return res;
 }
-FUNC_ALIAS(write, _write, ssize_t);
 
-int close(int fd)
+int zvfs_close(int fd)
 {
 	int res;
 
@@ -352,7 +348,6 @@ int close(int fd)
 
 	return res;
 }
-FUNC_ALIAS(close, _close, int);
 
 #ifdef CONFIG_POSIX_FSYNC
 int fsync(int fd)
@@ -366,16 +361,7 @@ int fsync(int fd)
 FUNC_ALIAS(fsync, _fsync, int);
 #endif /* CONFIG_POSIX_FSYNC */
 
-off_t lseek(int fd, off_t offset, int whence)
-{
-	if (_check_fd(fd) < 0) {
-		return -1;
-	}
-
-	return z_fdtable_call_ioctl(fdtable[fd].vtable, fdtable[fd].obj, ZFD_IOCTL_LSEEK,
-			  offset, whence);
-}
-FUNC_ALIAS(lseek, _lseek, off_t);
+#if defined(CONFIG_XOPEN_STREAMS)
 
 int ioctl(int fd, unsigned long request, ...)
 {
@@ -393,6 +379,9 @@ int ioctl(int fd, unsigned long request, ...)
 	return res;
 }
 
+#endif /* defined(CONFIG_XOPEN_STREAMS) */
+
+#if defined(CONFIG_POSIX_FD_MGMT)
 int fcntl(int fd, int cmd, ...)
 {
 	va_list args;
@@ -417,6 +406,20 @@ int fcntl(int fd, int cmd, ...)
 	return res;
 }
 
+off_t lseek(int fd, off_t offset, int whence)
+{
+	if (_check_fd(fd) < 0) {
+		return -1;
+	}
+
+	return z_fdtable_call_ioctl(fdtable[fd].vtable, fdtable[fd].obj, ZFD_IOCTL_LSEEK, offset,
+				    whence);
+}
+FUNC_ALIAS(lseek, _lseek, off_t);
+
+#endif /* defined(CONFIG_POSIX_FD_MGMT) */
+
+#if defined(CONFIG_POSIX_DEVICE_IO)
 /*
  * fd operations for stdio/stdout/stderr
  */
@@ -452,4 +455,4 @@ static const struct fd_op_vtable stdinout_fd_op_vtable = {
 	.ioctl = stdinout_ioctl_vmeth,
 };
 
-#endif /* CONFIG_POSIX_API */
+#endif /* defined(CONFIG_POSIX_DEVICE_IO) */
