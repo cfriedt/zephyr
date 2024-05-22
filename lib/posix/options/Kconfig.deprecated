@@ -14,6 +14,14 @@ config MAX_TIMER_COUNT
 
 	  Please use CONFIG_POSIX_TIMER_MAX instead.
 
+config MSG_COUNT_MAX
+	int "Maximum number of messages in a POSIX message queue [DEPRECATED]"
+	default 0
+	help
+	  This option is deprecated.
+
+	  Please use POSIX_MQ_OPEN_MAX instead.
+
 config POSIX_CLOCK
 	bool "clock and sleep APIs [DEPRECATED]"
 	select DEPRECATED
@@ -72,6 +80,15 @@ config POSIX_MAX_OPEN_FILES
 	  Please use CONFIG_POSIX_OPEN_MAX instead.
 
 	  See also CONFIG_ZVFS_OPEN_MAX.
+
+config POSIX_MQUEUE
+	bool "Message queue support [DEPRECATED]"
+	select DEPRECATED
+	select POSIX_MESSAGE_PASSING
+	help
+	  This option is deprecated.
+
+	  Please use CONFIG_POSIX_MESSAGE_PASSING instead.
 
 config POSIX_SYSCONF
 	bool "Support for sysconf() [DEPRECATED]"
