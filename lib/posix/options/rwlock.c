@@ -34,16 +34,16 @@ LOG_MODULE_REGISTER(pthread_rwlock, CONFIG_PTHREAD_RWLOCK_LOG_LEVEL);
 
 static struct k_spinlock posix_rwlock_spinlock;
 
-static struct posix_rwlock posix_rwlock_pool[CONFIG_MAX_PTHREAD_RWLOCK_COUNT];
-SYS_BITARRAY_DEFINE_STATIC(posix_rwlock_bitarray, CONFIG_MAX_PTHREAD_RWLOCK_COUNT);
+static struct posix_rwlock posix_rwlock_pool[CONFIG_MAX_POSIX_READER_WRITER_LOCKS_COUNT];
+SYS_BITARRAY_DEFINE_STATIC(posix_rwlock_bitarray, CONFIG_MAX_POSIX_READER_WRITER_LOCKS_COUNT);
 
 /*
  * We reserve the MSB to mark a pthread_rwlock_t as initialized (from the
  * perspective of the application). With a linear space, this means that
  * the theoretical pthread_rwlock_t range is [0,2147483647].
  */
-BUILD_ASSERT(CONFIG_MAX_PTHREAD_RWLOCK_COUNT < PTHREAD_OBJ_MASK_INIT,
-	     "CONFIG_MAX_PTHREAD_RWLOCK_COUNT is too high");
+BUILD_ASSERT(CONFIG_MAX_POSIX_READER_WRITER_LOCKS_COUNT < PTHREAD_OBJ_MASK_INIT,
+	     "CONFIG_MAX_POSIX_READER_WRITER_LOCKS_COUNT is too high");
 
 static inline size_t posix_rwlock_to_offset(struct posix_rwlock *rwl)
 {
@@ -86,7 +86,7 @@ struct posix_rwlock *to_posix_rwlock(pthread_rwlock_t *rwlock)
 	size_t bit;
 	struct posix_rwlock *rwl;
 
-	if (*rwlock != PTHREAD_RWLOCK_INITIALIZER) {
+	if (*rwlock != POSIX_RWLOCK_INITIALIZER) {
 		return get_posix_rwlock(*rwlock);
 	}
 
@@ -116,7 +116,7 @@ int pthread_rwlock_init(pthread_rwlock_t *rwlock,
 	struct posix_rwlock *rwl;
 
 	ARG_UNUSED(attr);
-	*rwlock = PTHREAD_RWLOCK_INITIALIZER;
+	*rwlock = POSIX_RWLOCK_INITIALIZER;
 
 	rwl = to_posix_rwlock(rwlock);
 	if (rwl == NULL) {
