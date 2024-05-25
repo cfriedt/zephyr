@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <stdio.h>
 
+#include <zephyr/posix/pthread.h>
 #include <zephyr/posix/signal.h>
 
 #if defined(CONFIG_POSIX_LIMITS_RTSIG_MAX) && CONFIG_POSIX_LIMITS_RTSIG_MAX > 0
