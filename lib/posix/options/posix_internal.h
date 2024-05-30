@@ -99,6 +99,11 @@ static inline uint32_t mark_pthread_obj_uninitialized(uint32_t obj)
 	return obj & ~PTHREAD_OBJ_MASK_INIT;
 }
 
+static inline int32_t _ts_to_ms(const struct timespec *to)
+{
+	return (to->tv_sec * MSEC_PER_SEC) + (to->tv_nsec / NSEC_PER_MSEC);
+}
+
 struct posix_thread *to_posix_thread(pthread_t pth);
 
 /* get and possibly initialize a posix_mutex */

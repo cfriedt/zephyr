@@ -6,8 +6,7 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_SIGNAL_H_
 #define ZEPHYR_INCLUDE_POSIX_SIGNAL_H_
 
-#include "posix_types.h"
-#include "posix_features.h"
+#include <zephyr/posix/sys/_pthreadtypes.h>
 
 #ifdef __cplusplus
 extern "C" {

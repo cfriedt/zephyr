@@ -7,12 +7,13 @@
 
 #include "posix_clock.h"
 
-#include <zephyr/kernel.h>
 #include <errno.h>
-#include <zephyr/posix/time.h>
+#include <time.h>
+
+#include <zephyr/internal/syscall_handler.h>
+#include <zephyr/kernel.h>
 #include <zephyr/posix/sys/time.h>
 #include <zephyr/posix/unistd.h>
-#include <zephyr/internal/syscall_handler.h>
 #include <zephyr/spinlock.h>
 
 /*

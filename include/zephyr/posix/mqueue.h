@@ -8,7 +8,7 @@
 #define ZEPHYR_INCLUDE_POSIX_MESSAGE_PASSING_H_
 
 #include <zephyr/kernel.h>
-#include <zephyr/posix/time.h>
+#include <time.h>
 #include <zephyr/posix/fcntl.h>
 #include <zephyr/posix/signal.h>
 #include <zephyr/posix/sys/stat.h>

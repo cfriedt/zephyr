@@ -54,6 +54,47 @@ struct tm *gmtime_r(const time_t *ZRESTRICT timep,
 
 time_t time(time_t *tloc);
 
+#if defined(_POSIX_C_SOURCE) || defined(__DOXYGEN__)
+
+#define CLOCK_REALTIME ((clockid_t)1)
+
+#define TIMER_ABSTIME 4
+
+#if defined(_POSIX_CPUTIME) || defined(__DOXYGEN__)
+#define CLOCK_PROCESS_CPUTIME_ID ((clockid_t)2)
+#endif
+
+#if defined(_POSIX_THREAD_CPUTIME) || defined(__DOXYGEN__)
+#define CLOCK_THREAD_CPUTIME_ID ((clockid_t)3)
+#endif
+
+#if defined(_POSIX_MONOTONIC_CLOCK) || defined(__DOXYGEN__)
+#define CLOCK_MONOTONIC ((clockid_t)4)
+#endif
+
+#if defined(_POSIX_TIMERS) || defined(__DOXYGEN__)
+int clock_gettime(clockid_t clock_id, struct timespec *ts);
+int clock_getres(clockid_t clock_id, struct timespec *ts);
+int clock_settime(clockid_t clock_id, const struct timespec *ts);
+int timer_create(clockid_t clockId, struct sigevent *evp, timer_t *timerid);
+int timer_delete(timer_t timerid);
+int timer_gettime(timer_t timerid, struct itimerspec *its);
+int timer_settime(timer_t timerid, int flags, const struct itimerspec *value,
+		  struct itimerspec *ovalue);
+int timer_getoverrun(timer_t timerid);
+int nanosleep(const struct timespec *rqtp, struct timespec *rmtp);
+#endif
+
+#if defined(_POSIX_CLOCK_SELECTION) || defined(__DOXYGEN__)
+int clock_nanosleep(clockid_t clock_id, int flags, const struct timespec *rqtp,
+		    struct timespec *rmtp);
+#endif
+
+#if defined(_POSIX_CPUTIME) || defined(__DOXYGEN__)
+int clock_getcpuclockid(pid_t pid, clockid_t *clock_id);
+#endif
+#endif
+
 #ifdef __cplusplus
 }
 #endif

@@ -4,13 +4,16 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+#include "posix_internal.h"
+
 #include <errno.h>
+#include <time.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/posix/pthread.h>
 #include <zephyr/posix/signal.h>
-#include <zephyr/posix/time.h>
 
 #if defined(CONFIG_MAX_TIMER_COUNT) && CONFIG_MAX_TIMER_COUNT > 0
 __WARN("CONFIG_MAX_TIMER_COUNT is deprecated. Use CONFIG_POSIX_TIMER_MAX instead.");

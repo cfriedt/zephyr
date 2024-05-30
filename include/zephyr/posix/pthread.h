@@ -11,7 +11,7 @@
 #include <string.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/posix/time.h>
+#include <time.h>
 #include <zephyr/posix/unistd.h>
 #include <zephyr/posix/sched.h>
 

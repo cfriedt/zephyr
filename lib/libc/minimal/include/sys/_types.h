@@ -14,5 +14,6 @@
 
 typedef int64_t _TIME_T_;
 typedef int32_t _SUSECONDS_T_;
+typedef unsigned long clockid_t;
 
 #endif /* ZEPHYR_LIB_LIBC_MINIMAL_INCLUDE_SYS_XTYPES_H_ */

@@ -6,11 +6,10 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_SCHED_H_
 #define ZEPHYR_INCLUDE_POSIX_SCHED_H_
 
-#include <zephyr/kernel.h>
-
-#include "posix_types.h"
-
 #include <time.h>
+
+#include <zephyr/kernel.h>
+#include <zephyr/posix/sys/_pthreadtypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,13 +27,6 @@ extern "C" {
 
 /* Priority based preemptive scheduling policy */
 #define SCHED_RR 2
-
-#if defined(CONFIG_MINIMAL_LIBC) || defined(CONFIG_PICOLIBC) || defined(CONFIG_ARMCLANG_STD_LIBC) \
-	|| defined(CONFIG_ARCMWDT_LIBC)
-struct sched_param {
-	int sched_priority;
-};
-#endif
 
 /**
  * @brief Yield the processor
