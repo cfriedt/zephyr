@@ -22,6 +22,8 @@ void __weak sys_trace_thread_priority_set_user(struct k_thread *thread, int prio
 void __weak sys_trace_isr_enter_user(void) {}
 void __weak sys_trace_isr_exit_user(void) {}
 void __weak sys_trace_idle_user(void) {}
+void __weak sys_trace_gpio_pin_active_user(const struct device *port, gpio_pin_t pin) {}
+void __weak sys_trace_gpio_pin_inactive_user(const struct device *port, gpio_pin_t pin) {}
 
 void sys_trace_thread_create(struct k_thread *thread)
 {
@@ -91,4 +93,12 @@ void sys_trace_isr_exit(void)
 void sys_trace_idle(void)
 {
 	sys_trace_idle_user();
+}
+
+void sys_trace_gpio_pin_active(const struct device *port, gpio_pin_t pin) {
+	sys_trace_gpio_pin_active_user(port, pin);
+}
+
+void sys_trace_gpio_pin_inactive(const struct device *port, gpio_pin_t pin) {
+	sys_trace_gpio_pin_inactive_user(port, pin);
 }

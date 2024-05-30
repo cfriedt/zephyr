@@ -1994,6 +1994,28 @@
 
 /** @} */ /* end of subsys_tracing_apis_pm_device_runtime */
 
+/**
+ * @brief GPIO Tracing APIs
+ * @defgroup subsys_tracing_apis_gpio GPIO Tracing APIs
+ * @{
+ */
+
+/**
+ * @brief Trace a GPIO pin becoming active
+ * @param port @ref device representin the GPIO port
+ * @param pin @ref gpio_pin_t representing the pin
+ */
+#define sys_port_trace_gpio_pin_active(port, pin)
+
+/**
+ * @brief Trace a GPIO pin becoming inactive
+ * @param port @ref device representin the GPIO port
+ * @param pin @ref gpio_pin_t representing the pin
+ */
+#define sys_port_trace_gpio_pin_inactive(port, pin)
+
+/** @} */ /* end of subsys_tracing_apis_gpio */
+
 #if defined(CONFIG_PERCEPIO_TRACERECORDER)
 #include "tracing_tracerecorder.h"
 #else

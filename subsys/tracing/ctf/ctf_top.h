@@ -102,8 +102,9 @@ typedef enum {
 	CTF_EVENT_TIMER_STOP = 0x30,
 	CTF_EVENT_TIMER_STATUS_SYNC_ENTER = 0x31,
 	CTF_EVENT_TIMER_STATUS_SYNC_BLOCKING = 0x32,
-	CTF_EVENT_TIMER_STATUS_SYNC_EXIT = 0x33
-
+	CTF_EVENT_TIMER_STATUS_SYNC_EXIT = 0x33,
+	CTF_EVENT_GPIO_ACTIVE = 0x34,
+	CTF_EVENT_GPIO_INACTIVE = 0x35,
 } ctf_event_t;
 
 typedef struct {
@@ -328,5 +329,14 @@ static inline void ctf_top_timer_status_sync_exit(uint32_t timer, uint32_t resul
 	CTF_EVENT(CTF_LITERAL(uint8_t, CTF_EVENT_TIMER_STATUS_SYNC_EXIT), timer, result);
 }
 
+static inline void ctf_top_gpio_pin_active(uint32_t port, uint32_t pin)
+{
+	CTF_EVENT(CTF_LITERAL(uint8_t, CTF_EVENT_GPIO_ACTIVE), port, pin);
+}
+
+static inline void ctf_top_gpio_pin_inactive(uint32_t port, uint32_t pin)
+{
+	CTF_EVENT(CTF_LITERAL(uint8_t, CTF_EVENT_GPIO_INACTIVE), port, pin);
+}
 
 #endif /* SUBSYS_DEBUG_TRACING_CTF_TOP_H */

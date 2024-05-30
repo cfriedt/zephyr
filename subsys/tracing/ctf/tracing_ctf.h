@@ -174,6 +174,9 @@ extern "C" {
 #define sys_port_trace_k_timer_status_sync_exit(timer, result)			\
 	sys_trace_k_timer_status_sync_exit(timer, result)
 
+/* GPIO */
+#define sys_port_trace_gpio_pin_active(port, pin)   sys_trace_gpio_pin_active(port, pin)
+#define sys_port_trace_gpio_pin_inactive(port, pin) sys_trace_gpio_pin_inactive(port, pin)
 
 #define sys_port_trace_k_condvar_init(condvar, ret)
 #define sys_port_trace_k_condvar_signal_enter(condvar)
@@ -433,6 +436,11 @@ void sys_trace_k_timer_status_sync_enter(struct k_timer *timer);
 void sys_trace_k_timer_status_sync_exit(struct k_timer *timer, uint32_t result);
 
 void sys_trace_k_event_init(struct k_event *event);
+
+/* GPIO */
+typedef uint8_t gpio_pin_t;
+void sys_trace_gpio_pin_active(const struct device *port, gpio_pin_t pin);
+void sys_trace_gpio_pin_inactive(const struct device *port, gpio_pin_t pin);
 
 #ifdef __cplusplus
 }

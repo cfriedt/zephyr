@@ -319,3 +319,14 @@ void sys_trace_k_timer_status_sync_exit(struct k_timer *timer, uint32_t result)
 		result
 		);
 }
+
+/* GPIO */
+void sys_port_trace_gpio_pin_active(const struct device *port, gpio_pin_t pin)
+{
+	ctf_top_gpio_pin_active((uint32_t)(uintptr_t)port, (uint32_t)pin);
+}
+
+void sys_port_trace_gpio_pin_inactive(const struct device *port, gpio_pin_t pin)
+{
+	ctf_top_gpio_pin_inactive((uint32_t)(uintptr_t)port, (uint32_t)pin);
+}
