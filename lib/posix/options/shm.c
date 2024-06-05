@@ -75,12 +75,14 @@ static void shm_obj_add(struct shm_obj *shm)
 
 static void shm_obj_remove(struct shm_obj *shm)
 {
-	uintptr_t phys = 0;
-
 	sys_dlist_remove(&shm->node);
 	if (shm->size > 0) {
 		if (IS_ENABLED(CONFIG_MMU)) {
-			if (arch_page_phys_get(shm->mem, &phys) == 0) {
+			/*
+			 * If the user has mapped the file, the user must unmap, due to a quirk with
+			 * Zephyr's k_mem_unmap().d
+			 */
+			if (!shm->mapped) {
 				k_mem_unmap(shm->mem, ROUND_UP(shm->size, _page_size));
 			}
 		} else {

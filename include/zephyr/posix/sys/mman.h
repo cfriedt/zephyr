@@ -37,6 +37,8 @@ void *mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t off);
 int msync(void *addr, size_t length, int flags);
 int munlock(const void *addr, size_t len);
 int munmap(void *addr, size_t len);
+int shm_open(const char *name, int oflag, mode_t mode);
+int shm_unlink(const char *name);
 
 #ifdef __cplusplus
 }
