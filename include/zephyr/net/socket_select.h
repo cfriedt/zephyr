@@ -19,8 +19,11 @@
  * @{
  */
 
+#include <time.h>
+
 #include <zephyr/toolchain.h>
 #include <zephyr/net/socket_types.h>
+#include <zephyr/sys/fdtable.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,10 +50,15 @@ typedef struct zsock_fd_set {
  * it may conflict with generic POSIX ``select()`` function).
  * @endrst
  */
-__syscall int zsock_select(int nfds, zsock_fd_set *readfds,
-			   zsock_fd_set *writefds,
-			   zsock_fd_set *exceptfds,
-			   struct zsock_timeval *timeout);
+static inline int zsock_select(int nfds, zsock_fd_set *readfds, zsock_fd_set *writefds,
+			       zsock_fd_set *exceptfds, struct zsock_timeval *timeout)
+{
+	struct timespec to = {.tv_sec = (timeout == NULL) ? 0 : timeout->tv_sec,
+			      .tv_nsec = (timeout == NULL) ? 0 : timeout->tv_usec * NSEC_PER_USEC};
+
+	return zvfs_select(nfds, (struct zvfs_fd_set *)readfds, (struct zvfs_fd_set *)writefds,
+			   (struct zvfs_fd_set *)exceptfds, (timeout == NULL) ? NULL : &to, NULL);
+}
 
 /** Number of file descriptors which can be added to zsock_fd_set */
 #define ZSOCK_FD_SETSIZE (sizeof(((zsock_fd_set *)0)->bitset) * 8)
@@ -67,7 +75,10 @@ __syscall int zsock_select(int nfds, zsock_fd_set *readfds,
  * if :kconfig:option:`CONFIG_POSIX_API` is defined.
  * @endrst
  */
-void ZSOCK_FD_ZERO(zsock_fd_set *set);
+static inline void ZSOCK_FD_ZERO(zsock_fd_set *set)
+{
+	ZVFS_FD_ZERO((struct zvfs_fd_set *)set);
+}
 
 /**
  * @brief Check whether socket is a member of fd_set
@@ -81,7 +92,10 @@ void ZSOCK_FD_ZERO(zsock_fd_set *set);
  * if :kconfig:option:`CONFIG_POSIX_API` is defined.
  * @endrst
  */
-int ZSOCK_FD_ISSET(int fd, zsock_fd_set *set);
+static inline int ZSOCK_FD_ISSET(int fd, zsock_fd_set *set)
+{
+	return ZVFS_FD_ISSET(fd, (struct zvfs_fd_set *)set);
+}
 
 /**
  * @brief Remove socket from fd_set
@@ -95,7 +109,10 @@ int ZSOCK_FD_ISSET(int fd, zsock_fd_set *set);
  * if :kconfig:option:`CONFIG_POSIX_API` is defined.
  * @endrst
  */
-void ZSOCK_FD_CLR(int fd, zsock_fd_set *set);
+static inline void ZSOCK_FD_CLR(int fd, zsock_fd_set *set)
+{
+	ZVFS_FD_CLR(fd, (struct zvfs_fd_set *)set);
+}
 
 /**
  * @brief Add socket to fd_set
@@ -109,7 +126,10 @@ void ZSOCK_FD_CLR(int fd, zsock_fd_set *set);
  * if :kconfig:option:`CONFIG_POSIX_API` is defined.
  * @endrst
  */
-void ZSOCK_FD_SET(int fd, zsock_fd_set *set);
+static inline void ZSOCK_FD_SET(int fd, zsock_fd_set *set)
+{
+	ZVFS_FD_SET(fd, (struct zvfs_fd_set *)set);
+}
 
 /** @cond INTERNAL_HIDDEN */
 
@@ -152,8 +172,6 @@ static inline void FD_SET(int fd, zsock_fd_set *set)
 #ifdef __cplusplus
 }
 #endif
-
-#include <zephyr/syscalls/socket_select.h>
 
 /**
  * @}
