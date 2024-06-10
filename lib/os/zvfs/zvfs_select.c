@@ -21,9 +21,6 @@
 	bit_mask = 1 << b_idx; \
 	}
 
-/** Number of file descriptors which can be added to zsock_fd_set */
-#define ZVFS_FD_SETSIZE (sizeof(((struct zvfs_fd_set *)0)->bitset) * 8)
-
 int zvfs_poll_internal(struct zvfs_pollfd *fds, int nfds, k_timeout_t timeout);
 
 void ZVFS_FD_ZERO(struct zvfs_fd_set *set)

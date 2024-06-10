@@ -12,6 +12,8 @@
 #include <zephyr/sys/fdtable.h>
 #include <zephyr/toolchain.h>
 
+#define FD_SETSIZE ZVFS_FD_SETSIZE
+
 #ifdef __cplusplus
 extern "C" {
 #endif

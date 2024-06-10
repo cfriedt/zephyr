@@ -212,6 +212,8 @@ struct zvfs_fd_set {
 	uint32_t bitset[(CONFIG_ZVFS_OPEN_MAX + 31) / 32];
 };
 
+#define ZVFS_FD_SETSIZE ((sizeof((struct zvfs_fd_set *)0)->bitset) * 8)
+
 void ZVFS_FD_CLR(int fd, struct zvfs_fd_set *fdset);
 int ZVFS_FD_ISSET(int fd, struct zvfs_fd_set *fdset);
 void ZVFS_FD_SET(int fd, struct zvfs_fd_set *fdset);
