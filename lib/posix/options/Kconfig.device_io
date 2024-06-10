@@ -6,8 +6,10 @@ menu "POSIX device I/O"
 
 config POSIX_DEVICE_IO
 	bool "POSIX device I/O [EXPERIMENTAL]"
-	select FDTABLE
 	select EXPERIMENTAL
+	select FDTABLE
+	select REQUIRES_FULL_LIBC
+	select ZVFS
 	help
 	  Select 'y' here and Zephyr will provide an implementation of the POSIX_DEVICE_IO Option
 	  Group such as FD_CLR(), FD_ISSET(), FD_SET(), FD_ZERO(), close(), fdopen(), fileno(), open(),
@@ -20,6 +22,14 @@ if POSIX_DEVICE_IO
 
 # These options are intended to be used for compatibility with external POSIX
 # implementations such as those in Newlib or Picolibc.
+
+config POSIX_DEVICE_IO_STDIN_STDOUT_STDERR
+	bool
+	help
+	  Select 'y' here and Zephyr will provide the stdin, stdout, and stderr variables.
+
+	  Some libc's that implement the POSIX API may already have declared these variables.
+	  However, it should be noted that they are a part of POSIX and not a part of ISO C.
 
 config POSIX_DEVICE_IO_ALIAS_CLOSE
 	bool
