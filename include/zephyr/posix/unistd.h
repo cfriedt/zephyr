@@ -77,6 +77,9 @@ size_t confstr(int name, char *buf, size_t len);
 long sysconf(int opt);
 #endif /* CONFIG_POSIX_SYSCONF_IMPL_FULL */
 
+int dup(int fildes);
+int dup2(int fildes, int fildes2);
+
 #ifdef __cplusplus
 }
 #endif
