@@ -52,50 +52,14 @@ static int zvfs_eventfd_poll_prepare(struct zvfs_eventfd *efd,
 				struct k_poll_event **pev,
 				struct k_poll_event *pev_end)
 {
-	if (pfd->events & ZSOCK_POLLIN) {
-		if (*pev == pev_end) {
-			errno = ENOMEM;
-			return -1;
-		}
-
-		(*pev)->obj = &efd->read_sig;
-		(*pev)->type = K_POLL_TYPE_SIGNAL;
-		(*pev)->mode = K_POLL_MODE_NOTIFY_ONLY;
-		(*pev)->state = K_POLL_STATE_NOT_READY;
-		(*pev)++;
-	}
-
-	if (pfd->events & ZSOCK_POLLOUT) {
-		if (*pev == pev_end) {
-			errno = ENOMEM;
-			return -1;
-		}
-
-		(*pev)->obj = &efd->write_sig;
-		(*pev)->type = K_POLL_TYPE_SIGNAL;
-		(*pev)->mode = K_POLL_MODE_NOTIFY_ONLY;
-		(*pev)->state = K_POLL_STATE_NOT_READY;
-		(*pev)++;
-	}
-
-	return 0;
+	return zvfs_poll_prepare(pfd, pev, pev_end, &efd->read_sig, &efd->write_sig);
 }
 
 static int zvfs_eventfd_poll_update(struct zvfs_eventfd *efd,
 			       struct zsock_pollfd *pfd,
 			       struct k_poll_event **pev)
 {
-	if (pfd->events & ZSOCK_POLLIN) {
-		pfd->revents |= ZSOCK_POLLIN * (efd->cnt > 0);
-		(*pev)++;
-	}
-
-	if (pfd->events & ZSOCK_POLLOUT) {
-		pfd->revents |= ZSOCK_POLLOUT * (efd->cnt < UINT64_MAX - 1);
-		(*pev)++;
-	}
-
-	return 0;
+	return zvfs_poll_update(pfd, pev, efd->cnt > 0, efd->cnt < UINT64_MAX - 1);
 }
 
 static int zvfs_eventfd_read_locked(struct zvfs_eventfd *efd, zvfs_eventfd_t *value)

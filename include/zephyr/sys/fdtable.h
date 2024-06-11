@@ -10,6 +10,7 @@
 #include <sys/types.h>
 /* FIXME: For native_posix ssize_t, off_t. */
 #include <zephyr/fs/fs.h>
+#include <zephyr/net/socket_poll.h>
 #include <zephyr/sys/mutex.h>
 
 #ifdef __cplusplus
@@ -171,6 +172,59 @@ enum {
 	ZFD_IOCTL_FIONREAD = 0x541B,
 	ZFD_IOCTL_FIONBIO = 0x5421,
 };
+
+/** @cond INTERNAL_HIDDEN */
+
+static inline int zvfs_poll_prepare(struct zsock_pollfd *pfd, struct k_poll_event **pev,
+				    struct k_poll_event *pev_end, struct k_poll_signal *read_sig,
+				    struct k_poll_signal *write_sig)
+{
+	if ((pfd->events & 1 /* POLLIN */) != 0) {
+		if (*pev == pev_end) {
+			errno = ENOMEM;
+			return -1;
+		}
+
+		(*pev)->obj = read_sig;
+		(*pev)->type = K_POLL_TYPE_SIGNAL;
+		(*pev)->mode = K_POLL_MODE_NOTIFY_ONLY;
+		(*pev)->state = K_POLL_STATE_NOT_READY;
+		(*pev)++;
+	}
+
+	if ((pfd->events & 4 /* POLLOUT */) != 0) {
+		if (*pev == pev_end) {
+			errno = ENOMEM;
+			return -1;
+		}
+
+		(*pev)->obj = write_sig;
+		(*pev)->type = K_POLL_TYPE_SIGNAL;
+		(*pev)->mode = K_POLL_MODE_NOTIFY_ONLY;
+		(*pev)->state = K_POLL_STATE_NOT_READY;
+		(*pev)++;
+	}
+
+	return 0;
+}
+
+static inline int zvfs_poll_update(struct zsock_pollfd *pfd, struct k_poll_event **pev,
+				   bool read_ready, bool write_ready)
+{
+	if (pfd->events & 1 /* POLLIN */) {
+		pfd->revents |= 1 /* POLLIN */ * read_ready;
+		(*pev)++;
+	}
+
+	if (pfd->events & 4 /* POLLOUT */) {
+		pfd->revents |= 4 /* POLLOUT */ * write_ready;
+		(*pev)++;
+	}
+
+	return 0;
+}
+
+/** @endcond */
 
 #ifdef __cplusplus
 }
