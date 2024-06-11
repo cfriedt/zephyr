@@ -371,15 +371,15 @@ POSIX_FILE_SYSTEM
    :widths: 50,10
 
     access(), yes
-    chdir(), yes
+    chdir(), yes (will fail with ``ENOSYS``:ref:`†<posix_undefined_behaviour>`)
     closedir(), yes
     creat(), yes
-    fchdir(), yes
+    fchdir(), yes (will fail with ``ENOSYS``:ref:`†<posix_undefined_behaviour>`)
     fpathconf(), yes
     fstat(), yes
     fstatvfs(), yes
-    getcwd(), yes
-    link(), yes
+    getcwd(), yes (will fail with ``ENOSYS``:ref:`†<posix_undefined_behaviour>`)
+    link(), yes (will fail with ``ENOSYS``:ref:`†<posix_undefined_behaviour>`)
     mkdir(), yes
     mkstemp(), yes
     opendir(), yes

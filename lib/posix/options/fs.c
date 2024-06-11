@@ -12,6 +12,7 @@
 #include <string.h>
 #include <zephyr/sys/fdtable.h>
 #include <zephyr/posix/sys/stat.h>
+#include <zephyr/posix/sys/statvfs.h>
 #include <zephyr/posix/fcntl.h>
 #include <zephyr/fs/fs.h>
 
@@ -415,3 +416,137 @@ int fstat(int fildes, struct stat *buf)
 #ifdef CONFIG_POSIX_FILE_SYSTEM_ALIAS_FSTAT
 FUNC_ALIAS(fstat, _fstat, int);
 #endif
+
+int access(const char *path, int amode)
+{
+	int rc;
+
+	rc = fs_access(path, amode);
+	if (rc < 0) {
+		errno = -rc;
+		return -1;
+	}
+
+	return 0;
+}
+
+int chdir(const char *path)
+{
+	/* This would imply the existence of processes, which do not exist */
+	ARG_UNUSED(path);
+	errno = ENOSYS;
+	return -1;
+}
+
+int fchdir(int fd)
+{
+	/* This would imply the existence of processes, which do not exist */
+	ARG_UNUSED(fd);
+	errno = ENOSYS;
+	return -1;
+}
+
+int creat(const char *path, mode_t mode)
+{
+	return zvfs_open(path, O_WRONLY | O_CREAT | O_TRUNC, mode);
+}
+
+long pathconf(const char *path, int name)
+{
+	ARG_UNUSED(path);
+	ARG_UNUSED(name);
+
+	errno = ENOSYS;
+	return -1;
+}
+
+long fpathconf(int fd, int name)
+{
+	ARG_UNUSED(fd);
+	ARG_UNUSED(name);
+
+	errno = ENOSYS;
+	return -1;
+}
+
+int fstatvfs(int fd, struct statvfs *buf)
+{
+	struct fs_statvfs fs_st = {0};
+
+	if (buf == NULL) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	if (fs_statvfs(fd, &fs_st) < 0) {
+		errno = EBADF;
+		return -1;
+	}
+
+	*buf = (struct statvfs *){
+		.f_bsize = fs_st.f_bsize,
+		.f_frsize = fs_st.f_frsize,
+		.f_blocks = fs_st.f_blocks,
+		.f_bfree = fs_st.f_bfree,
+	};
+
+	return 0;
+}
+
+int statvfs(const char *ZRESTRICT path, struct statvfs *ZRESTRICT buf)
+{
+	int fd;
+	int ret;
+
+	/*
+	 * FIXME: for both statvfs() and fstatvfs(), "Read, write, or execute permission of the
+	 * named file is not required.", so likely fs_statvfs() needs to change somehow.
+	 */
+	fd = zvfs_open(path, O_RDONLY, 0);
+	if (fd < 0) {
+		return -1;
+	}
+
+	ret = fstatvfs(fd, buf);
+	(void)zvfs_close(fd);
+
+	return ret;
+}
+
+char *getcwd(char *buf, size_t size)
+{
+	/* This would imply the existence of processes, which do not exist */
+	ARG_UNUSED(buf);
+	ARG_UNUSED(size);
+	errno = ENOSYS;
+	return -1;
+}
+
+int link(const char *path1, const char *path2)
+{
+	/* Not supported by the fs api */
+	ARG_UNUSED(path1);
+	ARG_UNUSED(path2);
+	errno = ENOSYS;
+	return -1;
+}
+
+int mkstemp(char *template)
+{
+	int fd;
+
+	fd = zvfs_open(pathname, O_RDWR | O_CREAT | O_EXCL, 0600);
+	if (fd < 0) {
+		return -1;
+	}
+}
+
+int mkdtemp(char *template)
+{
+	int fd;
+
+	fd = zvfs_open(pathname, O_RDWR | O_CREAT | O_EXCL, 0600);
+	if (fd < 0) {
+		return -1;
+	}
+}
