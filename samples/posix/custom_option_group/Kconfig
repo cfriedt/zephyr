@@ -1,0 +1,16 @@
+# Copyright (c) 2024, Tenstorrent AI ULC
+#
+# SPDX-License-Identifier: Apache-2.0
+
+source "Kconfig.zephyr"
+
+config POSIX_PIPE
+	bool "Default pipe()"
+	help
+	  Select 'y' here to use the default pipe() implementation.
+
+config CUSTOM_PIPE
+	bool "Custom pipe()"
+	select TC_PROVIDES_POSIX_PIPE
+	help
+	  Select 'y' here to use the custom pipe() implementation.
