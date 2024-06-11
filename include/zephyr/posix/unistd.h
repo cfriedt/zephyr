@@ -60,6 +60,7 @@ extern int opterr, optind, optopt;
 
 int getentropy(void *buffer, size_t length);
 pid_t getpid(void);
+int pipe(int fd[2]);
 unsigned sleep(unsigned int seconds);
 int usleep(useconds_t useconds);
 #if _POSIX_C_SOURCE >= 2

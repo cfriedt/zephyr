@@ -87,6 +87,10 @@ if (NOT CONFIG_TC_PROVIDES_POSIX_NETWORKING)
   zephyr_library_sources_ifdef(CONFIG_POSIX_NETWORKING net.c)
 endif()
 
+if (NOT CONFIG_TC_PROVIDES_POSIX_PIPE)
+  zephyr_library_sources_ifdef(CONFIG_POSIX_PIPE pipe.c)
+endif()
+
 if (NOT CONFIG_TC_PROVIDES_POSIX_SIGNALS)
   zephyr_library_sources_ifdef(CONFIG_POSIX_SIGNALS signal.c ${STRSIGNAL_TABLE_H})
 endif()
