@@ -362,36 +362,40 @@ POSIX_CLOCK_SELECTION
 POSIX_FILE_SYSTEM
 =================
 
+.. note::
+   When using Newlib, Picolibc, or other C libraries conforming to the ISO C Standard, the
+   C89 components of the ``POSIX_FILE_SYSTEM`` Option Group are considered supported.
+
 .. csv-table:: POSIX_FILE_SYSTEM
    :header: API, Supported
    :widths: 50,10
 
-    access(),
-    chdir(),
+    access(), yes
+    chdir(), yes
     closedir(), yes
-    creat(),
-    fchdir(),
-    fpathconf(),
+    creat(), yes
+    fchdir(), yes
+    fpathconf(), yes
     fstat(), yes
-    fstatvfs(),
-    getcwd(),
-    link(),
+    fstatvfs(), yes
+    getcwd(), yes
+    link(), yes
     mkdir(), yes
-    mkstemp(),
+    mkstemp(), yes
     opendir(), yes
-    pathconf(),
+    pathconf(), yes
     readdir(), yes
-    remove(),
+    remove(), yes
     rename(), yes
-    rewinddir(),
-    rmdir(),
+    rewinddir(), yes
+    rmdir(), yes
     stat(), yes
-    statvfs(),
-    tmpfile(),
-    tmpnam(),
-    truncate(),
+    statvfs(), yes
+    tmpfile(), yes
+    tmpnam(), yes
+    truncate(), yes
     unlink(), yes
-    utime(),
+    utime(), yes
 
 .. _posix_option_group_mapped_files:
 
