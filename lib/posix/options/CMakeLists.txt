@@ -59,6 +59,9 @@ zephyr_library_sources_ifdef(CONFIG_POSIX_MULTI_PROCESS
   multi_process.c
 )
 zephyr_library_sources_ifdef(CONFIG_POSIX_NETWORKING net.c)
+if (NOT CONFIG_TC_PROVIDES_POSIX_PIPE)
+  zephyr_library_sources_ifdef(CONFIG_POSIX_PIPE pipe.c)
+endif()
 zephyr_library_sources_ifdef(CONFIG_POSIX_SIGNALS signal.c ${STRSIGNAL_TABLE_H})
 zephyr_library_sources_ifdef(CONFIG_POSIX_SINGLE_PROCESS
   confstr.c

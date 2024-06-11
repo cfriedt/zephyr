@@ -235,7 +235,8 @@
 #define _POSIX_NGROUPS_MAX                  (8)
 #define _POSIX_OPEN_MAX                     CONFIG_POSIX_OPEN_MAX
 #define _POSIX_PATH_MAX                     (256)
-#define _POSIX_PIPE_BUF                     (512)
+#define _POSIX_PIPE_BUF \
+	COND_CODE_1(CONFIG_POSIX_PIPE, (CONFIG_POSIX_PIPE_BUF), (0))
 #define _POSIX_RE_DUP_MAX                   (255)
 #define _POSIX_RTSIG_MAX \
 	COND_CODE_1(CONFIG_POSIX_REALTIME_SIGNALS, (CONFIG_POSIX_RTSIG_MAX), (0))

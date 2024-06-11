@@ -1,0 +1,31 @@
+# Copyright (c) 2024 Tenstorrent AI ULC
+#
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig POSIX_PIPE
+	bool "POSIX pipes [EXPERIMENTAL]"
+	select FDTABLE
+	select EXPERIMENTAL
+	select POLL
+	select RING_BUFFER
+	help
+	  Select 'y' here for the pipe() function.
+
+	  For more informnation, please see
+	  https://pubs.opengroup.org/onlinepubs/9699919799/xrat/V4_subprofiles.html
+
+if POSIX_PIPE
+
+config POSIX_PIPE_MAX
+	int "Maximum number of POSIX pipes"
+	default 1
+	help
+	  This option determines the number of POSIX pipes available for use.
+
+config POSIX_PIPE_BUF
+	int "POSIX pipe buffer size"
+	default 512
+	help
+	  This option sets the size of the buffer, in bytes used by the pipe() function.
+
+endif
