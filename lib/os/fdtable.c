@@ -394,6 +394,47 @@ int zvfs_close(int fd)
 	return res;
 }
 
+int zvfs_dup(int fd, int *newfd)
+{
+	int ret;
+
+	if (_check_fd(fd) < 0) {
+		return -1;
+	}
+
+	(void)k_mutex_lock(&fdtable_lock, K_FOREVER);
+
+	if (newfd == NULL) {
+		/* dup() - just find lowest-numbered fd */
+		ret = _find_fd_entry();
+	} else {
+		/* dup2() - check if newfd is valid */
+		if (_check_fd(*newfd) < 0) {
+			ret = -1;
+		} else {
+			if (fdtable[fd].vtable->close) {
+				(void)fdtable[fd].vtable->close(fdtable[fd].obj);
+			}
+			ret = *newfd;
+		}
+	}
+
+	if (ret >= 0) {
+		/* Mark entry as used and initialize fields */
+		if (newfd == NULL) {
+			(void)z_fd_ref(ret);
+		}
+		fdtable[ret] = fdtable[fd];
+		fdtable[ret].offset = 0;
+		k_mutex_init(&fdtable[fd].lock);
+		k_condvar_init(&fdtable[fd].cond);
+	}
+
+	k_mutex_unlock(&fdtable_lock);
+
+	return ret;
+}
+
 int zvfs_fclose(FILE *file)
 {
 	int ret;
