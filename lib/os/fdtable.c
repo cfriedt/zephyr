@@ -213,7 +213,7 @@ static int z_get_fd_by_obj_and_vtable(void *obj, const struct fd_op_vtable *vtab
 }
 
 bool zvfs_get_obj_lock_and_cond(void *obj, const struct fd_op_vtable *vtable, struct k_mutex **lock,
-			     struct k_condvar **cond)
+				struct k_condvar **cond)
 {
 	int fd;
 	struct fd_entry *entry;
@@ -236,8 +236,7 @@ bool zvfs_get_obj_lock_and_cond(void *obj, const struct fd_op_vtable *vtable, st
 	return true;
 }
 
-void *zvfs_get_fd_obj_and_vtable(int fd, const struct fd_op_vtable **vtable,
-			      struct k_mutex **lock)
+void *zvfs_get_fd_obj_and_vtable(int fd, const struct fd_op_vtable **vtable, struct k_mutex **lock)
 {
 	struct fd_entry *entry;
 
@@ -301,8 +300,7 @@ void zvfs_finalize_typed_fd(int fd, void *obj, const struct fd_op_vtable *vtable
 	if (vtable && vtable->ioctl) {
 		int prev_errno = errno;
 
-		(void)zvfs_fdtable_call_ioctl(vtable, obj, ZFD_IOCTL_SET_LOCK,
-					   &fdtable[fd].lock);
+		(void)zvfs_fdtable_call_ioctl(vtable, obj, ZFD_IOCTL_SET_LOCK, &fdtable[fd].lock);
 		if ((prev_errno != EOPNOTSUPP) && (errno == EOPNOTSUPP)) {
 			/* restore backed-up errno value if the backend does not support locking */
 			errno = prev_errno;
@@ -465,6 +463,47 @@ int zvfs_fileno(FILE *file)
 	}
 
 	return fd;
+}
+
+int zvfs_dup(int fd, int *newfd)
+{
+	int ret;
+
+	if (_check_fd(fd) < 0) {
+		return -1;
+	}
+
+	(void)k_mutex_lock(&fdtable_lock, K_FOREVER);
+
+	if (newfd == NULL) {
+		/* dup() - just find lowest-numbered fd */
+		ret = _find_fd_entry();
+	} else {
+		/* dup2() - check if newfd is valid */
+		if (_check_fd(*newfd) < 0) {
+			ret = -1;
+		} else {
+			if (fdtable[fd].vtable->close) {
+				(void)fdtable[fd].vtable->close(fdtable[fd].obj);
+			}
+			ret = *newfd;
+		}
+	}
+
+	if (ret >= 0) {
+		/* Mark entry as used and initialize fields */
+		if (newfd == NULL) {
+			(void)z_fd_ref(ret);
+		}
+		fdtable[ret] = fdtable[fd];
+		fdtable[ret].offset = 0;
+		k_mutex_init(&fdtable[fd].lock);
+		k_condvar_init(&fdtable[fd].cond);
+	}
+
+	k_mutex_unlock(&fdtable_lock);
+
+	return ret;
 }
 
 int zvfs_fstat(int fd, struct stat *buf)
@@ -674,7 +713,6 @@ static int stdinout_ioctl_vmeth(void *obj, unsigned int request, va_list args)
 	errno = EINVAL;
 	return -1;
 }
-
 
 static const struct fd_op_vtable stdinout_fd_op_vtable = {
 	.read = stdinout_read_vmeth,
