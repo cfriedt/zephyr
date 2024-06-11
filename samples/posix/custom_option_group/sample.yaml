@@ -1,0 +1,29 @@
+sample:
+  description: Custom POSIX Option Group Implementation
+  name: custom_option_group
+common:
+  filter: not CONFIG_NATIVE_LIBC
+  harness: console
+  tags:
+    - posix
+  platform_exclude:
+    - native_posix
+    - native_posix/native/64
+tests:
+  sample.posix.custom_option_group.normal:
+    harness_config:
+      type: one_line
+      ordered: true
+      regex:
+        - "write: 42"
+        - "read: 42"
+
+  sample.posix.custom_option_group.custom:
+    extra_args: OVERLAY_CONFIG=custom.conf
+    harness_config:
+      type: one_line
+      ordered: true
+      regex:
+        - "write: 42"
+        - "this pipe is custom"
+        - "read: 42"
