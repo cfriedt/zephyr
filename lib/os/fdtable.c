@@ -374,6 +374,161 @@ int zvfs_close(int fd)
 	return res;
 }
 
+int zvfs_dup(int fd, int *newfd)
+{
+	int ret;
+
+	if (_check_fd(fd) < 0) {
+		return -1;
+	}
+
+	(void)k_mutex_lock(&fdtable_lock, K_FOREVER);
+
+	if (newfd == NULL) {
+		/* dup() - just find lowest-numbered fd */
+		ret = _find_fd_entry();
+	} else {
+		/* dup2() - check if newfd is valid */
+		if (_check_fd(*newfd) < 0) {
+			ret = -1;
+		} else {
+			if (fdtable[fd].vtable->close) {
+				(void)fdtable[fd].vtable->close(fdtable[fd].obj);
+			}
+			ret = *newfd;
+		}
+	}
+
+	if (ret >= 0) {
+		/* Mark entry as used and initialize fields */
+		if (newfd == NULL) {
+			(void)z_fd_ref(ret);
+		}
+		fdtable[ret] = fdtable[fd];
+		fdtable[ret].offset = 0;
+		k_mutex_init(&fdtable[fd].lock);
+		k_condvar_init(&fdtable[fd].cond);
+	}
+
+	k_mutex_unlock(&fdtable_lock);
+
+	return ret;
+}
+
+int zvfs_fclose(FILE *file)
+{
+	int ret;
+
+	ret = zvfs_fileno(file);
+	if (ret < 0) {
+		return EOF;
+	}
+
+	ret = zvfs_close(ret);
+	if (ret < 0) {
+		return EOF;
+	}
+
+	return 0;
+}
+
+static int zvfs_mode_flags(const char *mode_str, int *mode, int *flags)
+{
+	int off = 0;
+
+	if (mode_str == NULL) {
+		return -EINVAL;
+	}
+
+	if (mode_str[0] == 'r') {
+		++off;
+		if (mode_str[off] == 'b') {
+			++off;
+		}
+		if (mode_str[off] == '+') {
+			*mode = O_RDWR;
+			*flags = 0;
+			++off;
+		} else {
+			*mode = O_RDONLY;
+			*flags = 0;
+		}
+	} else if (mode_str[0] == 'w') {
+		++off;
+		if (mode_str[off] == 'b') {
+			++off;
+		}
+		if (mode_str[1] == '+') {
+			*mode = O_RDWR;
+			*flags = O_CREAT | O_TRUNC;
+			++off;
+		} else {
+			*mode = O_WRONLY;
+			*flags = O_CREAT | O_TRUNC;
+		}
+	} else if (mode_str[0] == 'a') {
+		++off;
+		if (mode_str[off] == 'b') {
+			++off;
+		}
+		if (mode_str[1] == '+') {
+			*mode = O_RDWR;
+			*flags = O_CREAT | O_APPEND;
+			++off;
+		} else {
+			*mode = O_WRONLY;
+			*flags = O_CREAT | O_APPEND;
+		}
+	} else {
+		return -EINVAL;
+	}
+
+	if (mode_str[off] != '\0') {
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+FILE *zvfs_fdopen(int fd, const char *mode)
+{
+	if (_check_fd(fd) < 0) {
+		return NULL;
+	}
+
+	return (FILE *)&fdtable[fd];
+}
+
+int zvfs_fileno(FILE *file)
+{
+	if (!IS_ARRAY_ELEMENT(fdtable, file)) {
+		errno = EBADF;
+		return -1;
+	}
+
+	return (struct fd_entry *)file - fdtable;
+}
+
+FILE *zvfs_fopen(const char *ZRESTRICT path, const char *ZRESTRICT mode)
+{
+	int fd;
+	int _mode;
+	int flags;
+
+	if ((path == NULL) || zvfs_mode_flags(mode, &_mode, &flags) < 0) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	fd = zvfs_open(path, flags, _mode);
+	if (fd < 0) {
+		/* errno should already be set */
+		return NULL;
+	}
+
+	return (FILE *)&fdtable[fd];
+}
+
 int zvfs_fstat(int fd, struct stat *buf)
 {
 	if (_check_fd(fd) < 0) {
