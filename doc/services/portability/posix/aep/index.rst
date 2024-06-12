@@ -142,7 +142,7 @@ The *Dedicated Realtime System Profile* (PSE53) includes all features from PSE52
 
     :ref:`POSIX_MULTI_PROCESS<posix_option_group_multi_process>`,, :kconfig:option:`CONFIG_POSIX_MULTI_PROCESS`:ref:`†<posix_undefined_behaviour>`
     :ref:`POSIX_NETWORKING <posix_option_group_networking>`, yes, :kconfig:option:`CONFIG_POSIX_NETWORKING`
-    :ref:`POSIX_PIPE <posix_option_group_pipe>`,,
+    :ref:`POSIX_PIPE <posix_option_group_pipe>`, yes, :kconfig:option:`CONFIG_POSIX_PIPE`
     :ref:`POSIX_SIGNAL_JUMP <posix_option_group_signal_jump>`,,
 
 .. csv-table:: PSE53 Option Requirements

@@ -461,7 +461,7 @@ POSIX_PIPE
    :header: API, Supported
    :widths: 50,10
 
-    pipe(),
+    pipe(), yes
 
 .. _posix_option_group_semaphores:
 
