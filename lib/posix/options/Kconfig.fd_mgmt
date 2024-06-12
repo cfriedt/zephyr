@@ -5,6 +5,7 @@
 menuconfig POSIX_FD_MGMT
 	bool "POSIX file descriptor management [EXPERIMENTAL]"
 	select EXPERIMENTAL
+	select FDTABLE
 	help
 	  Select 'y' here and Zephyr will provide implementations for the POSIX_FD_MGMT Option Group.
 	  This includes support for dup(), dup2(), fcntl(), fseeko(), ftello(), ftruncate(),
