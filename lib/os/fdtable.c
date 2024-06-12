@@ -305,9 +305,12 @@ ssize_t zvfs_read(int fd, void *buf, size_t sz)
 	}
 
 	(void)k_mutex_lock(&fdtable[fd].lock, K_FOREVER);
-
-	res = fdtable[fd].vtable->read(fdtable[fd].obj, buf, sz);
-
+	if (fdtable[fd].vtable->read == NULL) {
+		errno = ENOTSUP;
+		res = -1;
+	} else {
+		res = fdtable[fd].vtable->read(fdtable[fd].obj, buf, sz);
+	}
 	k_mutex_unlock(&fdtable[fd].lock);
 
 	return res;
@@ -322,9 +325,12 @@ ssize_t zvfs_write(int fd, const void *buf, size_t sz)
 	}
 
 	(void)k_mutex_lock(&fdtable[fd].lock, K_FOREVER);
-
-	res = fdtable[fd].vtable->write(fdtable[fd].obj, buf, sz);
-
+	if (fdtable[fd].vtable->write == NULL) {
+		errno = ENOTSUP;
+		res = -1;
+	} else {
+		res = fdtable[fd].vtable->write(fdtable[fd].obj, buf, sz);
+	}
 	k_mutex_unlock(&fdtable[fd].lock);
 
 	return res;
@@ -332,16 +338,17 @@ ssize_t zvfs_write(int fd, const void *buf, size_t sz)
 
 int zvfs_close(int fd)
 {
-	int res;
+	int res = 0;
 
 	if (_check_fd(fd) < 0) {
 		return -1;
 	}
 
 	(void)k_mutex_lock(&fdtable[fd].lock, K_FOREVER);
-
-	res = fdtable[fd].vtable->close(fdtable[fd].obj);
-
+	if (fdtable[fd].vtable->close != NULL) {
+		/* not an error if close() is unimplemented */
+		res = fdtable[fd].vtable->close(fdtable[fd].obj);
+	}
 	k_mutex_unlock(&fdtable[fd].lock);
 
 	z_free_fd(fd);
