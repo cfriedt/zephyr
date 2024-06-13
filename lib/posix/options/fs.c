@@ -320,24 +320,6 @@ struct dirent *readdir(DIR *dirp)
 }
 
 /**
- * @brief Rename a file.
- *
- * See IEEE 1003.1
- */
-int rename(const char *old, const char *new)
-{
-	int rc;
-
-	rc = fs_rename(old, new);
-	if (rc < 0) {
-		errno = -rc;
-		return -1;
-	}
-
-	return 0;
-}
-
-/**
  * @brief Remove a directory entry.
  *
  * See IEEE 1003.1

@@ -11,6 +11,11 @@ config COMMON_LIBC_GMTIME_R
 	help
 	  common implementation of gmtime_r().
 
+config COMMON_LIBC_RENAME
+	bool
+	help
+	  common implementation of rename().
+
 config COMMON_LIBC_TIME
 	bool
 	help
