@@ -19,6 +19,7 @@
  */
 ZTEST(posix_headers, test_sys_select_h)
 {
+#if defined(CONFIG_POSIX_DEVICE_IO)
 	fd_set fds = {0};
 
 	zassert_not_equal(-1, FD_SETSIZE);
@@ -27,8 +28,7 @@ ZTEST(posix_headers, test_sys_select_h)
 	FD_SET(0, &fds);
 	FD_ZERO(&fds);
 
-	if (IS_ENABLED(CONFIG_POSIX_DEVICE_IO)) {
-		/* zassert_not_null(pselect); */ /* not implemented */
-		zassert_not_null(select);
-	}
+	/* zassert_not_null(pselect); */ /* not implemented */
+	zassert_not_null(select);
+#endif
 }
