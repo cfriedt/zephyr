@@ -6151,6 +6151,89 @@ void k_sys_runtime_stats_enable(void);
  */
 void k_sys_runtime_stats_disable(void);
 
+/**
+ * @defgroup k_sig Kernel Signal APIs
+ * @ingroup kernel_apis
+ * @{
+ */
+
+/**
+ * @brief Process ID
+ *
+ * @note Process IDs are notional at this time, as processes are unsupported in Zephyr.
+ */
+typedef intptr_t k_pid_t;
+
+/** @brief Signal Values */
+union k_sig_val {
+	int sival_int;
+	void *sival_ptr;
+};
+
+/** @brief A bitset large enough to contain all signal bits. */
+struct k_sig_set {
+	unsigned long bits[DIV_ROUND_UP(CONFIG_KERNEL_SIGNAL_MAX, BITS_PER_LONG)];
+};
+
+/** @brief A signal info structure */
+struct k_sig_info {
+	k_pid_t si_pid;
+	void *si_addr;
+	union k_sig_val si_value;
+	long si_band;
+	int si_signo;
+	int si_code;
+	int si_errno;
+	int si_uid;
+	int si_status;
+};
+
+/**
+ * @brief Queue a signal for process ID @a pid.
+ *
+ * Queue the signal @a signo for process ID @a pid with value @a value.
+ *
+ * This function is safe to call in ISR context.
+ *
+ * @param pid the process ID for which to queue the signal.
+ * @param signo the signal number to queue.
+ * @param value the value associated with the signal.
+ *
+ * @retval 0 on success.
+ * @retval -EAGAIN if there were insufficient resources within the specified @a timeout.
+ * @retval -EINVAL if @a signo is invalid.
+ * @return -EPERM if the calling thread lacks permissions to signal the process with id @a pid.
+ * @return -ESRCH if a process with id @a pid does not exist.
+ */
+__syscall int k_sig_queue(k_pid_t pid, int signo, union k_sig_val value);
+
+/**
+ * @brief Wait for any signal in @a set for a maximum duration specified by @a timeout.
+ *
+ * Wait for any signal in @a set to be delivered to the calling thread.
+ *
+ * This call does not block if @ref K_NO_WAIT is specified in the @a timeout parameter.
+ * This call blocks indefinitely if @ref K_FOREVER is specified in the @a timeout parameter.
+ *
+ * @param set set of signals to wait for.
+ * @param[out] info pointer to a location in which to store signal-related information.
+ * @param timeout upper bound time to wait for a signal in @a set to be delivered.
+ *
+ * @retval 0 on success.
+ * @retval -EAGAIN if no signal in @a set was received within the specified @a timeout.
+ * @retval -EINTR if the operation was interrupted by a signal.
+ * @retval -ENOSYS if dynamic thread stack allocation is disabled
+ * @retval -EWOULDBLOCK if the operation would block and was called in ISR context.
+ *
+ * @see CONFIG_DYNAMIC_THREAD
+ */
+__syscall int k_sig_timedwait(const struct k_sig_set *ZRESTRICT set,
+			      struct k_sig_set *ZRESTRICT info, k_timeout_t timeout);
+
+/**
+ * @}
+ */
+
 #ifdef __cplusplus
 }
 #endif

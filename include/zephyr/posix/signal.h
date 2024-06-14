@@ -102,6 +102,11 @@ int sigprocmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset
 
 int pthread_sigmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset);
 
+int sigqueue(pid_t pid, int signo, union sigval value);
+int sigtimedwait(const sigset_t *restrict set, siginfo_t *restrict info,
+		 const struct timespec *restrict timeout);
+int sigwaitinfo(const sigset_t *restrict set, siginfo_t *restrict info);
+
 #ifdef __cplusplus
 }
 #endif
