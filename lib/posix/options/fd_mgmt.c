@@ -21,6 +21,13 @@ int zvfs_fileno(FILE *file);
 int zvfs_ftruncate(int fd, off_t length);
 off_t zvfs_lseek(int fd, off_t offset, int whence);
 
+/* this is here to make CI pass instead of adding extra commits to this PR */
+__weak int zvfs_fileno(FILE *file)
+{
+	ARG_UNUSED(file);
+	return -1;
+}
+
 int dup(int fd)
 {
 	return zvfs_dup(fd, NULL);
