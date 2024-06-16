@@ -29,6 +29,8 @@ extern "C" {
 #ifdef CONFIG_POSIX_API
 /* File related operations */
 int close(int file);
+int dup(int oldfd);
+int dup2(int oldfd, int newfd);
 ssize_t write(int file, const void *buffer, size_t count);
 ssize_t read(int file, void *buffer, size_t count);
 off_t lseek(int file, off_t offset, int whence);
