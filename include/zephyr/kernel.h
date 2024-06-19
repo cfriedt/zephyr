@@ -6153,6 +6153,262 @@ void k_sys_runtime_stats_enable(void);
  */
 void k_sys_runtime_stats_disable(void);
 
+/**
+ * @defgroup k_sig Kernel Signal APIs
+ * @ingroup kernel_apis
+ * @{
+ */
+
+/**
+ * @brief Process ID
+ *
+ * @note Process IDs are notional at this time, as processes are unsupported in Zephyr.
+ */
+typedef k_tid_t k_pid_t;
+
+/**
+ * @brief Signal value
+ *
+ * Signal values can be integer or pointers. Integer signal values should set the `sival_int`
+ * field. Pointer signal values should set the `sival_ptr` field.
+ */
+union k_sig_val {
+	int sival_int;
+	void *sival_ptr;
+};
+
+/**
+ * @brief Signal info
+ *
+ * This structure is used to retrieve information about a received signal.
+ *
+ * @see k_sig_timedwait
+ */
+struct k_sig_info {
+	int si_signo;
+	int si_code;
+	union k_sig_val si_value;
+};
+
+/** @brief A bitset large enough to contain all signal bits. */
+struct k_sig_set;
+
+/**
+ * @brief Minimum realtime signal number
+ *
+ * It is intentional that no corresponding `K_SIG_RTMAX` is specified in order to avoid
+ * common programming errors, iterating over the inclusive range `[K_SIG_RTMIN, K_SIG_RTMAX]`.
+ *
+ * For example, if one were to define `K_SIG_RTMAX` as `K_SIG_RTMIN + K_SIG_NUM_RT`, then
+ * the following code would have a bug when `K_SIG_RTMAX` is zero.
+ *
+ * ```
+ * #define K_SIG_RTMAX (K_SIG_RTMIN + K_SIG_NUM_RT)
+ *
+ * for (size_t i = K_SIG_RTMIN; i <= K_SIG_RTMAX; i++) {
+ *   // incorrect
+ *   int sig = i;
+ *   ...
+ * }
+ * ```
+ *
+ * The correct way to iterate over realtime signals is:
+ * ```
+ * for (size_t i = 0; i < K_SIG_NUM_RT; i++) {
+ *   // correct
+ *   int sig = K_SIG_RTMIN + i;
+ *   ...
+ * }
+ * ```
+ */
+#define K_SIG_RTMIN 32
+
+/**
+ * @brief Number of supported realtime signals
+ *
+ * If `CONFIG_SIGNAL_SET_SIZE` is less than `K_SIG_RTMIN`, then `K_SIG_NUM_RT` will be zero
+ * and realtime signals will not be supported.
+ */
+#define K_SIG_NUM_RT MAX(CONFIG_SIGNAL_SET_SIZE - K_SIG_RTMIN + 1, 0)
+
+/**
+ * @brief Add the signal @a sig to signal set @a set.
+ *
+ * Add the individual signal @a sig to the signal set pointed to by @a set.
+ *
+ * @param[inout] set the set to which @a sig should be added.
+ * @param sig the signal which should be added to @a set.
+ *
+ * @retval 0 on success.
+ * @retval -EINVAL if @a sig is invalid.
+ */
+int k_sig_addset(struct k_sig_set *set, int sig);
+
+/**
+ * @brief Remove the signal @a sig to signal set @a set.
+ *
+ * Remove the individual signal @a sig from the signal set pointed to by @a set.
+ *
+ * @param[inout] set the set from which @a sig should be removed.
+ * @param sig the signal which should be removed from @a set.
+ *
+ * @retval 0 on success.
+ * @retval -EINVAL if @a sig is invalid.
+ */
+int k_sig_delset(struct k_sig_set *set, int sig);
+
+/**
+ * @brief Check if signal @a sig is part of signal set @a set.
+ *
+ * Check if the individual signal @a sig is a member of the signal set pointed to by @a set.
+ *
+ * @param set the set to check.
+ * @param sig the signal which should be checked.
+ *
+ * @retval 0 if @a sig is not part of @a set.
+ * @retval 1 if @a sig is part of @a set.
+ * @retval -EINVAL if @a sig is invalid.
+ */
+int k_sig_ismember(const struct k_sig_set *set, int sig);
+
+/**
+ * @brief Initialize a signal set with the set of all signals.
+ *
+ * Initialize the signal set pointed to by @a set so that all supported signals are included in the
+ * set.
+ *
+ * @param[out] set signal set to initialize.
+ *
+ * @retval 0 on success.
+ * @retval -EINVAL if @a sig is invalid.
+ */
+int k_sig_fillset(struct k_sig_set *set);
+
+/**
+ * @brief Initialize a signal set to be empty.
+ *
+ * Initialize the signal set pointed to by @a set to be empty.
+ *
+ * @param[out] set signal set to initialize.
+ *
+ * @retval 0 on success.
+ * @retval -EINVAL if @a sig is invalid.
+ */
+int k_sig_emptyset(struct k_sig_set *set);
+
+/**
+ * @brief Block signals in the accompanying @ref k_sig_set
+ *
+ * Use this constant in the 'how' parameter of @ref k_sig_mask and the set of
+ * masked signals will be the union of the current set of masked signals and the
+ */
+#define K_SIG_BLOCK 0
+
+/**
+ * @brief Set signals in the accompanying @ref k_sig_set
+ *
+ * @see @ref k_sig_mask
+ */
+#define K_SIG_SETMASK 1
+
+/**
+ * @brief Unblock signals in the accompanying @ref k_sig_set
+ *
+ * @see @ref k_sig_mask
+ */
+#define K_SIG_UNBLOCK 2
+
+/**
+ * @brief Manipulate the signal mask of the calling thread.
+ *
+ * Use k_sig_mask() to block, unblock, and query the signal mask of the calling thread.
+ *
+ * When @a how is @ref K_SIG_BLOCK, the resulting signal mask is the union of the thread's current
+ * signal set and the signal set pointed to by @a set.
+ *
+ * When @a how is @ref K_SIG_UNBLOCK, the resulting signal mask is the intersection of the thread's
+ * current signal set and the complement of the signal set pointed to by @a set.
+ *
+ * When @a how is @ref K_SIG_SET, the resulting signal mask is the signal set pointed to by @a set.
+ *
+ * The k_sig_mask() function can also be used to query the current signal mask of the calling
+ * thread by passing a NULL pointer as the @a set parameter and ensuring that the @a oset
+ * parameter points to a valid area of memory to store a signal set.
+ *
+ * @param how how to manipulate the set.
+ * @param set the signal set to be used to manipulate the signal mask of the calling thread.
+ * @param[out] oset the previous value of the calling thread's signal mask.
+ *
+ * @retval 0 on success
+ * @retval -EINVAL for invalid values of @a how
+ */
+__syscall int k_sig_mask(int how, const struct k_sig_set *set, struct k_sig_set *oset);
+
+/**
+ * @brief Get set of pending signals for the calling thread.
+ *
+ * When a thread sends a signal to another thread (or itself), the signal is said to be pending
+ * for the target thread.
+ *
+ * The k_sig_pending() function can be used to query the set of pending signals for the calling
+ * thread.
+ *
+ * If there are no pending signals for the calling thread, the returned set will be empty.
+ *
+ * If signal `i` is pending for the calling thread, then the function `k_sig_ismember(set, i)`
+ * will return 1.
+ *
+ * @param[out] set the set of pending signals for the calling thread.
+ *
+ * @retval 0 on success
+ * @retval -EINVAL for invalid values of @a how
+ */
+__syscall int k_sig_pending(struct k_sig_set *set);
+
+/**
+ * @brief Queue a signal for process ID @a pid.
+ *
+ * Queue the signal @a signo for process ID @a pid with value @a value.
+ *
+ * This function is safe to call in ISR context.
+ *
+ * @param pid the process ID for which to queue the signal.
+ * @param signo the signal number to queue.
+ * @param value the value associated with the signal.
+ *
+ * @retval 0 on success.
+ * @retval -EAGAIN if there were insufficient resources within the specified @a timeout.
+ * @retval -EINVAL if @a signo is invalid.
+ * @return -EPERM if the calling thread lacks permissions to signal the process with id @a pid.
+ * @return -ESRCH if a process with id @a pid does not exist.
+ */
+__syscall int k_sig_queue(k_pid_t pid, int signo, union k_sig_val value);
+
+/**
+ * @brief Wait for any signal in @a set for a maximum duration specified by @a timeout.
+ *
+ * Wait for any signal in @a set to be delivered to the calling thread.
+ *
+ * This call does not block if @ref K_NO_WAIT is specified in the @a timeout parameter.
+ * This call blocks indefinitely if @ref K_FOREVER is specified in the @a timeout parameter.
+ *
+ * @param set set of signals to wait for.
+ * @param[out] info pointer to a location in which to store signal-related information.
+ * @param timeout upper bound time to wait for a signal in @a set to be delivered.
+ *
+ * @retval 0 on success.
+ * @retval -EAGAIN if no signal in @a set was received within the specified @a timeout.
+ * @retval -EINTR if the operation was interrupted by a signal.
+ * @retval -ENOSYS if dynamic thread stack allocation is disabled
+ * @retval -EWOULDBLOCK if the operation would block and was called in ISR context.
+ */
+__syscall int k_sig_timedwait(const struct k_sig_set *set, struct k_sig_info *info,
+			      k_timeout_t timeout);
+
+/**
+ * @}
+ */
+
 #ifdef __cplusplus
 }
 #endif

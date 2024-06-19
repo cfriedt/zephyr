@@ -306,6 +306,10 @@ struct _timeout {
 
 typedef void (*k_thread_timeslice_fn_t)(struct k_thread *thread, void *data);
 
+struct k_sig_set {
+	unsigned long sig[MAX(DIV_ROUND_UP(CONFIG_SIGNAL_SET_SIZE, BITS_PER_LONG), 1)];
+};
+
 #ifdef __cplusplus
 }
 #endif

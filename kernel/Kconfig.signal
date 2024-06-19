@@ -1,0 +1,58 @@
+# Copyright (c) 2024, Tenstorrent AI ULC
+# SPDX-License-Identifier: Apache-2.0
+
+menu "Signal support"
+
+config SIGNAL
+	bool "Signal support"
+	depends on POLL
+	depends on RING_BUFFER
+	help
+	  Select 'y' here to support signals.
+
+if SIGNAL
+
+config SIGNAL_QUEUE_SIZE
+	int "Signal queue size"
+	range 1 256
+	default 32 if SIGNAL_SUPPORT_POSIX || SIGNAL_SUPPORT_POSIX_RT
+	default 1
+	help
+	  Size of kernel signal queue.
+
+module := SIGNAL
+module-str = k_sig
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # SIGNAL
+
+config SIGNAL_SET_SIZE
+	int "Maximum number of signals"
+	default 40 if SIGNAL && SIGNAL_SUPPORT_POSIX_RT
+	default 31 if SIGNAL && SIGNAL_SUPPORT_POSIX && !SIGNAL_SUPPORT_POSIX_RT
+	default 6 if SIGNAL && SIGNAL_SUPPORT_ISO_C && !SIGNAL_SUPPORT_POSIX && !SIGNAL_SUPPORT_POSIX_RT
+	default 1 if SIGNAL
+    default 0 if !SIGNAL
+	help
+	  Maximum number of signals that can be represented in a struct k_sigset.
+
+endmenu
+
+if SIGNAL
+
+config SIGNAL_SUPPORT_ISO_C
+	bool
+	help
+	  Support for ISO C signals.
+
+config SIGNAL_SUPPORT_POSIX
+	bool
+	help
+	  Support for POSIX signals (25 on top of ISO C).
+
+config SIGNAL_SUPPORT_POSIX_RT
+	bool
+	help
+	  Support for POSIX Realtime signals (8 on top of POSIX).
+
+endif
