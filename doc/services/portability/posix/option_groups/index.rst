@@ -50,7 +50,7 @@ multiple processes.
     pthread_join(),yes
     pthread_key_create(),yes
     pthread_key_delete(),yes
-    pthread_kill(),
+    pthread_kill(),yes
     pthread_mutex_destroy(),yes
     pthread_mutex_init(),yes
     pthread_mutex_lock(),yes
