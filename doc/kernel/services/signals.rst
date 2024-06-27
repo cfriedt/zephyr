@@ -3,7 +3,8 @@
 Signal API
 ##########
 
-The signal API is used to transmit an integer signal, and optionally 
+The signal API is used to send a integer-valued signal, as well as an accompanying integer or
+pointer value, from one thread to itself or another thread.
 
 .. contents::
     :local:
@@ -11,6 +12,14 @@ The signal API is used to transmit an integer signal, and optionally
 
 Concepts
 ********
+
+Signals originate from UNIX
+
+Signals can be divided into two main categories; asynchronous signals, which can preempt execution
+of the target thread, and realtime signals, which are queued and delivered to the target thread on
+demand.
+
+Since asynchronous signals
 
 The polling API's main function is :c:func:`k_poll`, which is very similar
 in concept to the POSIX :c:func:`poll` function, except that it operates on
