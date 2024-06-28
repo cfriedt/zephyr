@@ -1,0 +1,69 @@
+#include <mem.h>
+
+/ {
+    chosen {
+        zephyr,code-partition = &slot0_partition;
+    };
+
+    aliases {
+		mcuboot-button0 = &user_button;
+		mcuboot-led0 = &green_led_1;
+	};
+};
+
+&spi1 {
+
+    /*
+     * pinctrl-0 is identical to the default, so this is just informative.
+     * The line below could be modified for different, non-default board settings.
+     *
+     * Using the w25q16 
+     * https://www.adafruit.com/product/5632
+     *
+     * and nucelo_g071rb
+     * https://www.st.com/en/evaluation-tools/nucleo-g071rb.html
+     *
+     * wire as follows:
+     *
+     * w25q16 | nucleo_g071rb | pin label | pinctrl name
+     * -------------------------------------------------
+     * G      | CN7 pin 20    | N/A       | N/A
+     * 3V     | CN7 pin 16    | N/A       | N/A
+     * CS     | CN10 pin 17   | PB0       | spi1_nss_pb0
+     * CLK    | CN10 pin 11   | PA5       | spi1_sck_pa5
+     * IO1    | CN10 pin 13   | PA6       | spi1_miso_pa6
+     * IO0    | CN10 pin 15   | PA7       | spi1_mosi_pa7
+     * IO2    | N/C           | N/A       | N/A
+     * IO3    | N/C           | N/A       | N/A
+     */
+    /* pinctrl-0 = <&spi1_nss_pb0 &spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>; */
+
+    /*
+     * This line is also redundant, because this particular chip does SPI CS in hardware.
+     * The gpiob 0 pin corresponds to the named pb0 pin above.
+     */
+    /* cs-gpios = <&gpiob 0 GPIO_ACTIVE_LOW>; */
+
+    flash1: flash@0 {
+        /* base properties */
+        compatible = "winbond,w25q16jv", "jedec,spi-nor";
+        status = "okay";
+
+        /* spi-device properties */
+        reg = <0>;
+        spi-max-frequency = <31999999>; /* spi_ll_stm32.c driver does not properly use MIN(spi-max-frequency, bus-frequency) */
+        spi-cpol;
+        spi-cpha;
+
+        /* jedec,spi-nor properties */
+        size = <DT_SIZE_M(16)>;
+
+        /* jedec,spi-nor-common properties */
+        has-dpd;
+        t-enter-dpd = <3000>;
+        t-exit-dpd = <3000>;
+
+        /* jedec,jesd216 properties */
+        jedec-id = [ef 40 15];
+    };
+};

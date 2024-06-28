@@ -167,11 +167,28 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 
+        boot_partition: partition@0 {
+            label = "mcuboot";
+            reg = <0x00000000 DT_SIZE_K(48)>;
+            read-only;
+        };
+
+        slot0_partition: partition@c000 {
+            label = "image-0";
+            reg = <0x0000c000 DT_SIZE_K(40)>;
+        };
+
+        slot1_partition: partition@16000 {
+            label = "image-1";
+            reg = <0x00016000 DT_SIZE_K(40)>;
+        };
+#if 0
 		/* Set 2KB of storage at the end of 128KB flash */
 		storage_partition: partition@1f800 {
 			label = "storage";
 			reg = <0x0001f800 DT_SIZE_K(2)>;
 		};
+#endif
 	};
 };
 
