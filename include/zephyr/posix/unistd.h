@@ -8,6 +8,8 @@
 
 #include "posix_types.h"
 
+#include <sys/features.h>
+
 #ifdef CONFIG_POSIX_API
 #include <zephyr/fs/fs.h>
 #endif
@@ -17,7 +19,6 @@
 #include <zephyr/net/hostname.h>
 #endif
 #include <zephyr/posix/sys/confstr.h>
-#include <zephyr/posix/sys/features.h>
 #include <zephyr/posix/sys/stat.h>
 #include <zephyr/posix/sys/sysconf.h>
 
@@ -26,6 +27,11 @@ extern "C" {
 #endif
 
 #ifdef CONFIG_POSIX_API
+
+/* Signal-related operations */
+unsigned int alarm(unsigned int seconds);
+int pause(void);
+
 /* File related operations */
 int close(int file);
 ssize_t write(int file, const void *buffer, size_t count);

@@ -5,8 +5,7 @@
  */
 
 /*
- * This header file is deprecated. Please include <zephyr/posix/sys/features.h> or
- * <sys/features.h> instead.
+ * This header file is deprecated. Please include <sys/features.h> instead.
  */
 
-#include <zephyr/posix/sys/features.h>
+#include <sys/features.h>

@@ -7,15 +7,12 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_TYPES_H_
 #define ZEPHYR_INCLUDE_POSIX_TYPES_H_
 
+/* exclude external libc sys/_pthreadtypes.h */
+#define _SYS__PTHREADTYPES_H_
+
 #if !(defined(CONFIG_ARCH_POSIX) && defined(CONFIG_EXTERNAL_LIBC))
 #include <sys/types.h>
 #endif
-
-#ifdef CONFIG_NEWLIB_LIBC
-#include <sys/_pthreadtypes.h>
-#endif
-
-#include <zephyr/kernel.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,16 +24,6 @@ typedef int pid_t;
 
 #ifndef __useconds_t_defined
 typedef unsigned long useconds_t;
-#endif
-
-/* time related attributes */
-#if !defined(CONFIG_NEWLIB_LIBC) && !defined(CONFIG_ARCMWDT_LIBC)
-#ifndef __clockid_t_defined
-typedef uint32_t clockid_t;
-#endif
-#endif /* !CONFIG_NEWLIB_LIBC && !CONFIG_ARCMWDT_LIBC */
-#ifndef __timer_t_defined
-typedef unsigned long timer_t;
 #endif
 
 /* Thread attributes */

@@ -1,14 +1,22 @@
 /*
- * Copyright (c) 2018 Intel Corporation
+ * Copyright (c) 2023, Meta
+ * Copyright (c) 2024, Tenstorrent AI ULC
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef ZEPHYR_INCLUDE_POSIX_SIGNAL_H_
-#define ZEPHYR_INCLUDE_POSIX_SIGNAL_H_
 
-#include "posix_types.h"
+#ifndef LIB_LIBC_COMMON_INCLUDE_SYS_SIGNAL_H_
+#define LIB_LIBC_COMMON_INCLUDE_SYS_SIGNAL_H_
 
-#include <zephyr/posix/sys/features.h>
+/* exclude external libc sys/signal.h */
+#define _SYS_SIGNAL_H_
+
+#ifdef _POSIX_C_SOURCE
+#include <sys/features.h>
+#include <zephyr/posix/sys/_pthreadtypes.h>
+#endif
+
+#include <sys/_sigset.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,47 +56,19 @@ extern "C" {
 
 #define SIGRTMIN 32
 #define SIGRTMAX (SIGRTMIN + RTSIG_MAX)
-#define _NSIG (SIGRTMAX + 1)
+#define _NSIG    (SIGRTMAX + 1)
 
-BUILD_ASSERT(RTSIG_MAX >= 0);
+#if defined(_POSIX_REALTIME_SIGNALS) || (_POSIX_C_SOURCE >= 199309L) || defined(__DOXYGEN__)
 
-typedef struct {
-	unsigned long sig[DIV_ROUND_UP(_NSIG, BITS_PER_LONG)];
-} sigset_t;
-
-#ifndef SIGEV_NONE
-#define SIGEV_NONE 1
-#endif
-
-#ifndef SIGEV_SIGNAL
+#define SIGEV_NONE   1
 #define SIGEV_SIGNAL 2
-#endif
-
-#ifndef SIGEV_THREAD
 #define SIGEV_THREAD 3
-#endif
 
-#ifndef SIG_BLOCK
-#define SIG_BLOCK 0
-#endif
-#ifndef SIG_SETMASK
-#define SIG_SETMASK 1
-#endif
-#ifndef SIG_UNBLOCK
-#define SIG_UNBLOCK 2
-#endif
-
-#define SIG_DFL ((void *)0)
-#define SIG_IGN ((void *)1)
-#define SIG_ERR ((void *)-1)
-
-#define SI_USER 1
-#define SI_QUEUE 2
-#define SI_TIMER 3
+#define SI_USER    1
+#define SI_QUEUE   2
+#define SI_TIMER   3
 #define SI_ASYNCIO 4
-#define SI_MESGQ 5
-
-typedef int	sig_atomic_t;		/* Atomic entity type (ANSI) */
+#define SI_MESGQ   5
 
 union sigval {
 	void *sival_ptr;
@@ -108,32 +88,40 @@ typedef struct {
 	int si_code;
 	union sigval si_value;
 } siginfo_t;
+#endif
 
 struct sigaction {
 	void (*sa_handler)(int signno);
+#if defined(_POSIX_REALTIME_SIGNALS) || (_POSIX_C_SOURCE >= 199309L) || defined(__DOXYGEN__)
+	void (*sa_sigaction)(int signo, siginfo_t *info, void *context);
+#endif
 	sigset_t sa_mask;
 	int sa_flags;
-	void (*sa_sigaction)(int signo, siginfo_t *info, void *context);
 };
 
-unsigned int alarm(unsigned int seconds);
+#if defined(_POSIX_C_SOURCE)
+
+#define SIG_BLOCK   0
+#define SIG_SETMASK 1
+#define SIG_UNBLOCK 2
+
 int kill(pid_t pid, int sig);
-int pause(void);
-int raise(int signo);
+#if (_POSIX_C_SOURCE >= 199506L) || defined(__DOXYGEN__)
+int pthread_sigmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset);
+#endif
 int sigaction(int sig, const struct sigaction *ZRESTRICT act, struct sigaction *ZRESTRICT oact);
-int sigpending(sigset_t *set);
-int sigsuspend(const sigset_t *sigmask);
-int sigwait(const sigset_t *ZRESTRICT set, int *ZRESTRICT signo);
 char *strsignal(int signum);
-int sigemptyset(sigset_t *set);
-int sigfillset(sigset_t *set);
 int sigaddset(sigset_t *set, int signo);
 int sigdelset(sigset_t *set, int signo);
+int sigemptyset(sigset_t *set);
+int sigfillset(sigset_t *set);
 int sigismember(const sigset_t *set, int signo);
-void (*signal(int signo, void (*)(int signo)))(int signo);
+int sigpending(sigset_t *set);
 int sigprocmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset);
+int sigsuspend(const sigset_t *sigmask);
+int sigwait(const sigset_t *ZRESTRICT set, int *ZRESTRICT signo);
 
-int pthread_sigmask(int how, const sigset_t *ZRESTRICT set, sigset_t *ZRESTRICT oset);
+#endif
 
 #ifdef __cplusplus
 }

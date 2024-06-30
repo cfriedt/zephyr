@@ -17,9 +17,9 @@ if (NOT CONFIG_TC_PROVIDES_POSIX_SIGNALS)
       COMMAND
       ${PYTHON_EXECUTABLE}
       ${ZEPHYR_BASE}/scripts/build/gen_strsignal_table.py
-      -i ${ZEPHYR_BASE}/include/zephyr/posix/signal.h
+      -i ${ZEPHYR_BASE}/lib/libc/common/include/signal.h
       -o ${STRSIGNAL_TABLE_H}
-      DEPENDS ${ZEPHYR_BASE}/include/zephyr/posix/signal.h
+      DEPENDS ${ZEPHYR_BASE}/lib/libc/common/include/signal.h
     )
   endif()
 endif()
@@ -50,7 +50,7 @@ if(
   OR CONFIG_POSIX_THREADS_EXT
   OR CONFIG_POSIX_TIMERS
   OR FALSE)
-  zephyr_compile_options(-imacros ${ZEPHYR_BASE}/include/zephyr/posix/sys/features.h)
+  zephyr_compile_options(-imacros ${ZEPHYR_BASE}/lib/libc/common/include/sys/features.h)
 endif()
 
 zephyr_library()
