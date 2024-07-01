@@ -14,6 +14,7 @@
 #ifdef _POSIX_C_SOURCE
 #include <sys/features.h>
 #include <zephyr/posix/sys/_pthreadtypes.h>
+#include <zephyr/posix/sys/types.h>
 #endif
 
 #include <sys/_sigset.h>

@@ -16,6 +16,9 @@ extern "C" {
 
 #define SEM_FAILED ((sem_t *) 0)
 
+/* Semaphore */
+typedef struct k_sem sem_t;
+
 int sem_destroy(sem_t *semaphore);
 int sem_getvalue(sem_t *ZRESTRICT semaphore, int *ZRESTRICT value);
 int sem_init(sem_t *semaphore, int pshared, unsigned int value);

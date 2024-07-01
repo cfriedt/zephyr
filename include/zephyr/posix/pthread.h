@@ -12,25 +12,14 @@
 #include <time.h>
 
 #include <zephyr/kernel.h>
-#include <zephyr/posix/unistd.h>
-#include <zephyr/posix/sched.h>
+#include <sys/features.h>
+#include <zephyr/posix/sys/_pthreadtypes.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*
- * Pthread detach/joinable
- * Undefine possibly predefined values by external toolchain headers
- */
-#undef PTHREAD_CREATE_DETACHED
-#define PTHREAD_CREATE_DETACHED 1
-#undef PTHREAD_CREATE_JOINABLE
-#define PTHREAD_CREATE_JOINABLE 0
-
-/* Pthread resource visibility */
-#define PTHREAD_PROCESS_PRIVATE 0
-#define PTHREAD_PROCESS_SHARED  1
+#if defined(_POSIX_THREADS) || defined(__DOXYGEN__)
 
 /* Pthread cancellation */
 #define PTHREAD_CANCELED       ((void *)-1)
@@ -39,30 +28,8 @@ extern "C" {
 #define PTHREAD_CANCEL_DEFERRED     0
 #define PTHREAD_CANCEL_ASYNCHRONOUS 1
 
-/* Pthread scope */
-#undef PTHREAD_SCOPE_PROCESS
-#define PTHREAD_SCOPE_PROCESS    1
-#undef PTHREAD_SCOPE_SYSTEM
-#define PTHREAD_SCOPE_SYSTEM     0
-
-/* Pthread inherit scheduler */
-#undef PTHREAD_INHERIT_SCHED
-#define PTHREAD_INHERIT_SCHED  0
-#undef PTHREAD_EXPLICIT_SCHED
-#define PTHREAD_EXPLICIT_SCHED 1
-
-/* Passed to pthread_once */
-#define PTHREAD_ONCE_INIT {0}
-
 /* The minimum allowable stack size */
 #define PTHREAD_STACK_MIN K_KERNEL_STACK_LEN(0)
-
-/**
- * @brief Declare a condition variable as initialized
- *
- * Initialize a condition variable with the default condition variable attributes.
- */
-#define PTHREAD_COND_INITIALIZER (-1)
 
 /**
  * @brief POSIX threading compatibility API
@@ -142,49 +109,6 @@ int pthread_condattr_getclock(const pthread_condattr_t *ZRESTRICT att,
 int pthread_condattr_setclock(pthread_condattr_t *att, clockid_t clock_id);
 
 /**
- * @brief Declare a mutex as initialized
- *
- * Initialize a mutex with the default mutex attributes.
- */
-#define PTHREAD_MUTEX_INITIALIZER (-1)
-
-/**
- * @brief Declare a rwlock as initialized
- *
- * Initialize a rwlock with the default rwlock attributes.
- */
-#define PTHREAD_RWLOCK_INITIALIZER (-1)
-
-/*
- *  Mutex attributes - type
- *
- *  PTHREAD_MUTEX_NORMAL: Owner of mutex cannot relock it. Attempting
- *      to relock will cause deadlock.
- *  PTHREAD_MUTEX_RECURSIVE: Owner can relock the mutex.
- *  PTHREAD_MUTEX_ERRORCHECK: If owner attempts to relock the mutex, an
- *      error is returned.
- *
- */
-#define PTHREAD_MUTEX_NORMAL        0
-#define PTHREAD_MUTEX_RECURSIVE     1
-#define PTHREAD_MUTEX_ERRORCHECK    2
-#define PTHREAD_MUTEX_DEFAULT       PTHREAD_MUTEX_NORMAL
-
-/*
- *  Mutex attributes - protocol
- *
- *  PTHREAD_PRIO_NONE: Ownership of mutex does not affect priority.
- *  PTHREAD_PRIO_INHERIT: Owner's priority is boosted to the priority of
- *      highest priority thread blocked on the mutex.
- *  PTHREAD_PRIO_PROTECT:  Mutex has a priority ceiling.  The owner's
- *      priority is boosted to the highest priority ceiling of all mutexes
- *      owned (regardless of whether or not other threads are blocked on
- *      any of these mutexes).
- *  FIXME: Only PRIO_NONE is supported. Implement other protocols.
- */
-#define PTHREAD_PRIO_NONE           0
-
-/**
  * @brief POSIX threading compatibility API
  *
  * See IEEE 1003.1
@@ -205,6 +129,7 @@ int pthread_mutex_lock(pthread_mutex_t *m);
  */
 int pthread_mutex_unlock(pthread_mutex_t *m);
 
+#if defined(_POSIX_TIMEOUTS) || defined(__DOXYGEN__)
 /**
  * @brief POSIX threading compatibility API
  *
@@ -213,6 +138,7 @@ int pthread_mutex_unlock(pthread_mutex_t *m);
 
 int pthread_mutex_timedlock(pthread_mutex_t *m,
 			    const struct timespec *abstime);
+#endif
 
 /**
  * @brief POSIX threading compatibility API
@@ -229,6 +155,16 @@ int pthread_mutex_trylock(pthread_mutex_t *m);
 int pthread_mutex_init(pthread_mutex_t *m,
 				     const pthread_mutexattr_t *att);
 
+#if defined(_POSIX_THREAD_PRIO_INHERIT) || defined(_POSIX_THREAD_PRIO_PROTECT) ||                  \
+	defined(__DOXYGEN__)
+
+/**
+ * @brief POSIX threading compatibility API
+ *
+ * See IEEE 1003.1
+ */
+int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol);
+
 /**
  * @brief POSIX threading compatibility API
  *
@@ -236,20 +172,16 @@ int pthread_mutex_init(pthread_mutex_t *m,
  */
 int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol);
 
-/**
- * @brief POSIX threading compatibility API
- *
- * See IEEE 1003.1
- */
-int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type);
+/* TODO: mutexattr_getprioceiling / mutexattr_setprioceiling */
+
+#endif
 
 /**
  * @brief POSIX threading compatibility API
  *
  * See IEEE 1003.1
  */
-int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr,
-				  int *protocol);
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type);
 
 /**
  * @brief POSIX threading compatibility API
@@ -276,13 +208,9 @@ int pthread_mutexattr_init(pthread_mutexattr_t *attr);
  */
 int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);
 
-#define PTHREAD_BARRIER_SERIAL_THREAD 1
+#if defined(_POSIX_BARRIERS) || defined(__DOXYGEN__)
 
-/*
- *  Barrier attributes - type
- */
-#define PTHREAD_PROCESS_PRIVATE		0
-#define PTHREAD_PROCESS_PUBLIC		1
+#define PTHREAD_BARRIER_SERIAL_THREAD 1
 
 /**
  * @brief POSIX threading compatibility API
@@ -334,31 +262,7 @@ int pthread_barrierattr_setpshared(pthread_barrierattr_t *attr, int pshared);
  */
 int pthread_barrierattr_getpshared(const pthread_barrierattr_t *ZRESTRICT attr,
 				   int *ZRESTRICT pshared);
-
-/* Predicates and setters for various pthread attribute values that we
- * don't support (or always support: the "process shared" attribute
- * can only be true given the way Zephyr implements these
- * objects). Leave these undefined for simplicity instead of defining
- * stubs to return an error that would have to be logged and
- * interpreted just to figure out that we didn't support it in the
- * first place. These APIs are very rarely used even in production
- * Unix code.  Leave the declarations here so they can be easily
- * uncommented and implemented as needed.
-
-int pthread_condattr_getpshared(const pthread_condattr_t * int *);
-int pthread_condattr_setpshared(pthread_condattr_t *, int);
-int pthread_mutex_consistent(pthread_mutex_t *);
-int pthread_mutex_getprioceiling(const pthread_mutex_t * int *);
-int pthread_mutex_setprioceiling(pthread_mutex_t *, int int *);
-int pthread_mutexattr_getprioceiling(const pthread_mutexattr_t *, int *);
-int pthread_mutexattr_getpshared(const pthread_mutexattr_t * int *);
-int pthread_mutexattr_getrobust(const pthread_mutexattr_t * int *);
-int pthread_mutexattr_setprioceiling(pthread_mutexattr_t *, int);
-int pthread_mutexattr_setpshared(pthread_mutexattr_t *, int);
-int pthread_mutexattr_setrobust(pthread_mutexattr_t *, int);
-*/
-
-/* Base Pthread related APIs */
+#endif
 
 /**
  * @brief Obtain ID of the calling thread.
@@ -376,6 +280,18 @@ pthread_t pthread_self(void);
  * See IEEE 1003.1
  */
 int pthread_equal(pthread_t pt1, pthread_t pt2);
+
+#if defined(_POSIX_READER_WRITER_LOCKS) || defined(__DOXYGEN__)
+
+int pthread_rwlock_destroy(pthread_rwlock_t *rwlock);
+int pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr);
+int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_timedrdlock(pthread_rwlock_t *rwlock, const struct timespec *abstime);
+int pthread_rwlock_timedwrlock(pthread_rwlock_t *rwlock, const struct timespec *abstime);
+int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_unlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock);
 
 /**
  * @brief Destroy the read-write lock attributes object.
@@ -395,31 +311,34 @@ int pthread_rwlockattr_getpshared(const pthread_rwlockattr_t *ZRESTRICT attr,
 				  int *ZRESTRICT pshared);
 int pthread_rwlockattr_setpshared(pthread_rwlockattr_t *attr, int pshared);
 
-int pthread_attr_getguardsize(const pthread_attr_t *ZRESTRICT attr, size_t *ZRESTRICT guardsize);
+#endif
+
+#if defined(_POSIX_THREAD_ATTR_STACKSIZE) || defied(__DOXYGEN__)
 int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize);
-int pthread_attr_setguardsize(pthread_attr_t *attr, size_t guardsize);
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
-int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
-int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy);
+#endif
+
+int pthread_attr_getguardsize(const pthread_attr_t *ZRESTRICT attr, size_t *ZRESTRICT guardsize);
+int pthread_attr_setguardsize(pthread_attr_t *attr, size_t guardsize);
 int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate);
 int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate);
 int pthread_attr_init(pthread_attr_t *attr);
 int pthread_attr_destroy(pthread_attr_t *attr);
-int pthread_attr_getschedparam(const pthread_attr_t *attr,
-			       struct sched_param *schedparam);
-int pthread_getschedparam(pthread_t pthread, int *policy,
-			  struct sched_param *param);
 int pthread_attr_getstack(const pthread_attr_t *attr,
 			  void **stackaddr, size_t *stacksize);
 int pthread_attr_setstack(pthread_attr_t *attr, void *stackaddr,
 			  size_t stacksize);
+
+#if defined(_POSIX_THREAD_PRIORITY_SCHEDULING) || defined(__DOXYGEN__)
 int pthread_attr_getscope(const pthread_attr_t *attr, int *contentionscope);
 int pthread_attr_setscope(pthread_attr_t *attr, int contentionscope);
 int pthread_attr_getinheritsched(const pthread_attr_t *attr, int *inheritsched);
 int pthread_attr_setinheritsched(pthread_attr_t *attr, int inheritsched);
-#ifdef CONFIG_POSIX_THREADS
-int pthread_once(pthread_once_t *once, void (*initFunc)(void));
+int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
+int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy);
 #endif
+
+int pthread_once(pthread_once_t *once, void (*initFunc)(void));
 FUNC_NORETURN void pthread_exit(void *retval);
 int pthread_join(pthread_t thread, void **status);
 int pthread_cancel(pthread_t pthread);
@@ -431,21 +350,15 @@ int pthread_setcanceltype(int type, int *oldtype);
 void pthread_testcancel(void);
 int pthread_attr_setschedparam(pthread_attr_t *attr,
 			       const struct sched_param *schedparam);
+int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *schedparam);
+
+#if defined(_POSIX_THREAD_PRIORITY_SCHEDULING) || defined(__DOXYGEN__)
+int pthread_getschedparam(pthread_t pthread, int *policy, struct sched_param *param);
 int pthread_setschedparam(pthread_t pthread, int policy,
 			  const struct sched_param *param);
 int pthread_setschedprio(pthread_t thread, int prio);
-int pthread_rwlock_destroy(pthread_rwlock_t *rwlock);
-int pthread_rwlock_init(pthread_rwlock_t *rwlock,
-			const pthread_rwlockattr_t *attr);
-int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock);
-int pthread_rwlock_timedrdlock(pthread_rwlock_t *rwlock,
-			       const struct timespec *abstime);
-int pthread_rwlock_timedwrlock(pthread_rwlock_t *rwlock,
-			       const struct timespec *abstime);
-int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock);
-int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock);
-int pthread_rwlock_unlock(pthread_rwlock_t *rwlock);
-int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock);
+#endif
+
 int pthread_key_create(pthread_key_t *key,
 		void (*destructor)(void *));
 int pthread_key_delete(pthread_key_t key);
@@ -502,8 +415,7 @@ int pthread_setname_np(pthread_t thread, const char *name);
  */
 int pthread_getname_np(pthread_t thread, char *name, size_t len);
 
-#ifdef CONFIG_POSIX_THREADS
-
+#if defined(_POSIX_SPIN_LOCKS) || defined(__DOXYGEN__)
 /**
  * @brief Destroy a pthread_spinlock_t.
  *
@@ -538,7 +450,6 @@ int pthread_spin_trylock(pthread_spinlock_t *lock);
  * See IEEE 1003.1
  */
 int pthread_spin_unlock(pthread_spinlock_t *lock);
-
 #endif
 
 #ifdef __cplusplus
