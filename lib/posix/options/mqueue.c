@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <string.h>
 #include <zephyr/sys/atomic.h>
+#include <zephyr/posix/fcntl.h>
 #include <zephyr/posix/mqueue.h>
 #include <zephyr/posix/pthread.h>
 
@@ -42,7 +43,9 @@ static int32_t receive_message(mqueue_desc *mqd, char *msg_ptr, size_t msg_len,
 			   k_timeout_t timeout);
 static void remove_notification(mqueue_object *msg_queue);
 static void remove_mq(mqueue_object *msg_queue);
+#ifndef CONFIG_PICOLIBC
 static void *mq_notify_thread(void *arg);
+#endif
 
 /**
  * @brief Open a message queue.
@@ -380,6 +383,8 @@ int mq_notify(mqd_t mqdes, const struct sigevent *notification)
 		errno = ENOSYS;
 		return -1;
 	}
+#if !defined(CONFIG_PICOLIBC)
+	/* temporary until picolibc/picolibc#754 is resolved */
 	if (notification->sigev_notify_attributes != NULL) {
 		int ret = pthread_attr_setdetachstate(notification->sigev_notify_attributes,
 						      PTHREAD_CREATE_DETACHED);
@@ -388,6 +393,7 @@ int mq_notify(mqd_t mqdes, const struct sigevent *notification)
 			return -1;
 		}
 	}
+#endif
 
 	k_sem_take(&mq_sem, K_FOREVER);
 	memcpy(&msg_queue->not, notification, sizeof(struct sigevent));
@@ -396,13 +402,16 @@ int mq_notify(mqd_t mqdes, const struct sigevent *notification)
 	return 0;
 }
 
+#ifndef CONFIG_PICOLIBC
 static void *mq_notify_thread(void *arg)
 {
 	mqueue_object *mqueue = (mqueue_object *)arg;
-	struct sigevent *sevp = &mqueue->not;
 
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
+	struct sigevent *sevp = &mqueue->not ;
+
+	/* temporary until picolibc/picolibc#754 is resolved */
 	if (sevp->sigev_notify_attributes == NULL) {
 		pthread_detach(pthread_self());
 	}
@@ -413,6 +422,7 @@ static void *mq_notify_thread(void *arg)
 
 	return NULL;
 }
+#endif
 
 /* Internal functions */
 static mqueue_object *find_in_list(const char *name)
@@ -461,6 +471,9 @@ static int32_t send_message(mqueue_desc *mqd, const char *msg_ptr, size_t msg_le
 	}
 
 	if (k_msgq_num_used_get(&mqd->mqueue->queue) - msgq_num > 0) {
+#ifndef CONFIG_PICOLIBC
+
+		/* temporary until picolibc/picolibc#754 is resolved */
 		struct sigevent *sevp = &mqd->mqueue->not;
 
 		if (sevp->sigev_notify == SIGEV_NONE) {
@@ -473,6 +486,7 @@ static int32_t send_message(mqueue_desc *mqd, const char *msg_ptr, size_t msg_le
 					     mq_notify_thread,
 					     mqd->mqueue);
 		}
+#endif
 	}
 
 	return 0;

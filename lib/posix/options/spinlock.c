@@ -76,11 +76,16 @@ int pthread_spin_init(pthread_spinlock_t *lock, int pshared)
 	int ret;
 	size_t bit;
 
-	if (lock == NULL ||
-	    !(pshared == PTHREAD_PROCESS_PRIVATE || pshared == PTHREAD_PROCESS_SHARED)) {
+	if (lock == NULL) {
+		return EINVAL;
+	}
+
+#if defined(_POSIX_THREAD_PROCESS_SHARED)
+	if (!(pshared == PTHREAD_PROCESS_PRIVATE || pshared == PTHREAD_PROCESS_SHARED)) {
 		/* not specified as part of POSIX but this is the Linux behavior */
 		return EINVAL;
 	}
+#endif
 
 	ret = sys_bitarray_alloc(&posix_spinlock_bitarray, 1, &bit);
 	if (ret < 0) {

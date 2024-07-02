@@ -172,7 +172,7 @@ int pthread_barrierattr_init(pthread_barrierattr_t *attr)
 
 int pthread_barrierattr_setpshared(pthread_barrierattr_t *attr, int pshared)
 {
-	if (pshared != PTHREAD_PROCESS_PRIVATE && pshared != PTHREAD_PROCESS_PUBLIC) {
+	if (pshared != PTHREAD_PROCESS_PRIVATE && pshared != PTHREAD_PROCESS_SHARED) {
 		return -EINVAL;
 	}
 

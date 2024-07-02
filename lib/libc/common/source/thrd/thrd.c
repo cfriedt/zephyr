@@ -48,6 +48,10 @@ thrd_t thrd_current(void)
 
 int thrd_sleep(const struct timespec *duration, struct timespec *remaining)
 {
+#ifdef CONFIG_PICOLIBC
+	extern int nanosleep(const struct timespec *rqtp, struct timespec *rmtp);
+#endif
+
 	return nanosleep(duration, remaining);
 }
 

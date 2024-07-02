@@ -47,6 +47,8 @@ static void zephyr_timer_wrapper(struct k_timer *ztimer)
 		return;
 	}
 
+#ifndef CONFIG_PICOLIBC
+	/* temporary until picolibc/picolibc#754 is resolved */
 	if (timer->evp.sigev_notify == SIGEV_NONE) {
 		LOG_DBG("SIGEV_NONE");
 		return;
@@ -59,8 +61,11 @@ static void zephyr_timer_wrapper(struct k_timer *ztimer)
 
 	LOG_DBG("calling sigev_notify_function %p", timer->evp.sigev_notify_function);
 	(timer->evp.sigev_notify_function)(timer->evp.sigev_value);
+#endif
 }
 
+#ifndef CONFIG_PICOLIBC
+/* temporary until picolibc/picolibc#754 is resolved */
 static void *zephyr_thread_wrapper(void *arg)
 {
 	int ret;
@@ -102,6 +107,7 @@ static void zephyr_timer_interrupt(struct k_timer *ztimer)
 	timer = (struct timer_obj *)ztimer;
 	k_sem_give(&timer->sem_cond);
 }
+#endif
 
 /**
  * @brief Create a per-process timer.
@@ -114,12 +120,17 @@ static void zephyr_timer_interrupt(struct k_timer *ztimer)
 int timer_create(clockid_t clockid, struct sigevent *evp, timer_t *timerid)
 {
 	int ret = 0;
-	int detachstate;
 	struct timer_obj *timer;
 	const k_timeout_t alloc_timeout = K_MSEC(CONFIG_TIMER_CREATE_WAIT);
 
 	if (evp == NULL || timerid == NULL) {
 		errno = EINVAL;
+		return -1;
+	}
+
+	if (IS_ENABLED(CONFIG_PICOLIBC)) {
+		/* temporary until picolibc/picolibc#754 is resolved */
+		errno = ENOTSUP;
 		return -1;
 	}
 
@@ -141,7 +152,11 @@ int timer_create(clockid_t clockid, struct sigevent *evp, timer_t *timerid)
 		k_timer_init(&timer->ztimer, zephyr_timer_wrapper, NULL);
 		break;
 	case SIGEV_THREAD:
+#ifndef CONFIG_PICOLIBC
+		/* temporary until picolibc/picolibc#754 is resolved */
 		if (evp->sigev_notify_attributes != NULL) {
+			int detachstate;
+
 			ret = pthread_attr_getdetachstate(evp->sigev_notify_attributes,
 							  &detachstate);
 			if (ret != 0) {
@@ -181,6 +196,7 @@ int timer_create(clockid_t clockid, struct sigevent *evp, timer_t *timerid)
 		}
 
 		k_timer_init(&timer->ztimer, zephyr_timer_interrupt, NULL);
+#endif
 		break;
 	default:
 		ret = -1;

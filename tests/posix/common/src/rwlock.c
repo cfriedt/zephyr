@@ -29,7 +29,7 @@ static void *thread_top(void *p1)
 	}
 
 	LOG_DBG("Thread %d got RD lock", id);
-	usleep(USEC_PER_MSEC);
+	k_usleep(USEC_PER_MSEC);
 	LOG_DBG("Thread %d releasing RD lock", id);
 	zassert_ok(pthread_rwlock_unlock(&rwlock), "Failed to unlock");
 
@@ -40,7 +40,7 @@ static void *thread_top(void *p1)
 	}
 
 	LOG_DBG("Thread %d acquired WR lock", id);
-	usleep(USEC_PER_MSEC);
+	k_usleep(USEC_PER_MSEC);
 	LOG_DBG("Thread %d releasing WR lock", id);
 	zassert_ok(pthread_rwlock_unlock(&rwlock), "Failed to unlock");
 
@@ -77,12 +77,12 @@ ZTEST(rwlock, test_rw_lock)
 	}
 
 	/* Delay to give change to child threads to run */
-	usleep(USEC_PER_MSEC);
+	k_usleep(USEC_PER_MSEC);
 	LOG_DBG("Parent thread releasing WR lock");
 	zassert_ok(pthread_rwlock_unlock(&rwlock), "Failed to unlock");
 
 	/* Let child threads acquire RD Lock */
-	usleep(USEC_PER_MSEC);
+	k_usleep(USEC_PER_MSEC);
 	LOG_DBG("Parent thread acquiring WR lock again");
 
 	time.tv_sec = 2;
@@ -93,7 +93,7 @@ ZTEST(rwlock, test_rw_lock)
 	}
 
 	LOG_DBG("Parent thread acquired WR lock again");
-	usleep(USEC_PER_MSEC);
+	k_usleep(USEC_PER_MSEC);
 	LOG_DBG("Parent thread releasing WR lock again");
 	zassert_ok(pthread_rwlock_unlock(&rwlock), "Failed to unlock");
 
@@ -106,7 +106,7 @@ ZTEST(rwlock, test_rw_lock)
 	}
 
 	LOG_DBG("Main thread acquired RD lock");
-	usleep(USEC_PER_MSEC);
+	k_usleep(USEC_PER_MSEC);
 	LOG_DBG("Main thread releasing RD lock");
 	zassert_ok(pthread_rwlock_unlock(&rwlock), "Failed to unlock");
 

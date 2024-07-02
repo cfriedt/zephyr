@@ -37,9 +37,14 @@ void test_timer(clockid_t clock_id, int sigev_notify)
 	struct timespec ts, te;
 	int64_t nsecs_elapsed, secs_elapsed;
 
+	if (IS_ENABLED(CONFIG_PICOLIBC)) {
+		/* temporary until picolibc/picolibc#754 is resolved */
+		ztest_test_skip();
+	}
+
 	exp_count = 0;
 	sig.sigev_notify = sigev_notify;
-	sig.sigev_notify_function = handler;
+	COND_CODE_1(CONFIG_PICOLIBC, (), (sig.sigev_notify_function = handler;))
 	sig.sigev_value.sival_int = TEST_SIGNAL_VAL;
 
 	/*TESTPOINT: Check if timer is created successfully*/
@@ -108,6 +113,11 @@ ZTEST(timer, test_timer_overrun)
 	struct itimerspec value;
 
 	sig.sigev_notify = SIGEV_NONE;
+
+	if (IS_ENABLED(CONFIG_PICOLIBC)) {
+		/* temporary until picolibc/picolibc#754 is resolved */
+		ztest_test_skip();
+	}
 
 	zassert_ok(timer_create(CLOCK_MONOTONIC, &sig, &timerid));
 

@@ -121,15 +121,18 @@ ZTEST(mqueue, test_mqueue_notify_basic)
 		.mq_msgsize = MESSAGE_SIZE,
 		.mq_maxmsg = MESG_COUNT_PERMQ,
 	};
-	struct sigevent not = {
-		.sigev_notify = SIGEV_NONE,
-		.sigev_value.sival_ptr = (void *)&notification_executed,
-#if defined(_POSIX_REALTIME_SIGNALS)
-		.sigev_notify_function = notify_function_basic,
-#endif
-	};
+	struct sigevent not = {.sigev_notify = SIGEV_NONE,
+			       .sigev_value.sival_ptr = (void *)&notification_executed,
+			       /* temporary until picolibc/picolibc#754 is resolved */
+			       COND_CODE_1(CONFIG_PICOLIBC, (),
+					   (.sigev_notify_function = notify_function_basic, ))};
 	int32_t mode = 0777;
 	int flags = O_RDWR | O_CREAT;
+
+	if (IS_ENABLED(CONFIG_PICOLIBC)) {
+		/* temporary until picolibc/picolibc#754 is resolved */
+		ztest_test_skip();
+	}
 
 	notification_executed = false;
 	memset(rec_data, 0, MESSAGE_SIZE);

@@ -82,7 +82,7 @@ typedef struct {
 
 /* Mutex */
 typedef uint32_t pthread_mutex_t;
-typedef struct {
+typedef struct pthread_mutexattr {
 	unsigned char type: 2;
 	bool initialized: 1;
 } pthread_mutexattr_t;
@@ -94,6 +94,8 @@ typedef uint32_t pthread_cond_t;
 typedef struct {
 	clockid_t clock;
 } pthread_condattr_t;
+
+#define _PTHREAD_COND_INITIALIZER (-1)
 
 /* Thread-specific storage */
 typedef uint32_t pthread_key_t;

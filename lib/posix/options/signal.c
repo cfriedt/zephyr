@@ -19,7 +19,8 @@
 #undef SIGRTMAX
 
 #define SIGRTMIN 32
-#define SIGRTMAX COND_CODE_1(CONFIG_POSIX_REALTIME_SIGNALS, (CONFIG_POSIX_RTSIG_MAX), (0))
+#define SIGRTMAX                                                                                   \
+	(SIGRTMIN + COND_CODE_1(CONFIG_POSIX_REALTIME_SIGNALS, (CONFIG_POSIX_RTSIG_MAX), (0)))
 #define _NSIG    (SIGRTMAX + 1)
 
 BUILD_ASSERT(CONFIG_POSIX_RTSIG_MAX >= 0);
@@ -48,8 +49,10 @@ int sigemptyset(sigset_t *set)
 #undef sigfillset
 int sigfillset(sigset_t *set)
 {
-	for (int i = 0; i < ARRAY_SIZE(set->sig); i++) {
-		set->sig[i] = -1;
+	unsigned long *const arr = (unsigned long *)set;
+
+	for (size_t i = 0; i < sizeof(*set) / sizeof(*arr); ++i) {
+		arr[i] = -1;
 	}
 
 	return 0;
@@ -58,12 +61,14 @@ int sigfillset(sigset_t *set)
 #undef sigaddset
 int sigaddset(sigset_t *set, int signo)
 {
+	unsigned long *const arr = (unsigned long *)set;
+
 	if (!signo_valid(signo)) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	WRITE_BIT(set->sig[SIGNO_WORD_IDX(signo)], SIGNO_WORD_BIT(signo), 1);
+	WRITE_BIT(arr[SIGNO_WORD_IDX(signo)], SIGNO_WORD_BIT(signo), 1);
 
 	return 0;
 }
@@ -71,12 +76,14 @@ int sigaddset(sigset_t *set, int signo)
 #undef sigdelset
 int sigdelset(sigset_t *set, int signo)
 {
+	unsigned long *const arr = (unsigned long *)set;
+
 	if (!signo_valid(signo)) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	WRITE_BIT(set->sig[SIGNO_WORD_IDX(signo)], SIGNO_WORD_BIT(signo), 0);
+	WRITE_BIT(arr[SIGNO_WORD_IDX(signo)], SIGNO_WORD_BIT(signo), 0);
 
 	return 0;
 }
@@ -84,12 +91,14 @@ int sigdelset(sigset_t *set, int signo)
 #undef sigismember
 int sigismember(const sigset_t *set, int signo)
 {
+	unsigned long *const arr = (unsigned long *)set;
+
 	if (!signo_valid(signo)) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	return 1 & (set->sig[SIGNO_WORD_IDX(signo)] >> SIGNO_WORD_BIT(signo));
+	return 1 & (arr[SIGNO_WORD_IDX(signo)] >> SIGNO_WORD_BIT(signo));
 }
 
 char *strsignal(int signum)

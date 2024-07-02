@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "../../lib/libc/common/include/sys/_sigset.h"
 #include "posix_internal.h"
 #include "pthread_sched.h"
 

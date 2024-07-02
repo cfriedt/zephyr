@@ -5,7 +5,9 @@
  */
 
 #include <pthread.h>
+#include <sched.h>
 #include <semaphore.h>
+#include <unistd.h>
 
 #include <zephyr/sys/util.h>
 #include <zephyr/ztest.h>
@@ -90,7 +92,7 @@ static void *thread_top_exec(void *p1)
 			zassert_equal(0, pthread_cond_wait(&cvar0, &lock), "");
 		} else {
 			pthread_mutex_unlock(&lock);
-			usleep(USEC_PER_MSEC * 500U);
+			k_msleep(500);
 			pthread_mutex_lock(&lock);
 		}
 
