@@ -1967,7 +1967,7 @@ int bt_sdp_discover(struct bt_conn *conn,
 }
 
 /* Helper getting length of data determined by DTD for integers */
-static inline ssize_t sdp_get_int_len(const uint8_t *data, size_t len)
+static inline k_ssize_t sdp_get_int_len(const uint8_t *data, size_t len)
 {
 	BT_ASSERT(data);
 
@@ -2015,7 +2015,7 @@ static inline ssize_t sdp_get_int_len(const uint8_t *data, size_t len)
 }
 
 /* Helper getting length of data determined by DTD for UUID */
-static inline ssize_t sdp_get_uuid_len(const uint8_t *data, size_t len)
+static inline k_ssize_t sdp_get_uuid_len(const uint8_t *data, size_t len)
 {
 	BT_ASSERT(data);
 
@@ -2043,7 +2043,7 @@ static inline ssize_t sdp_get_uuid_len(const uint8_t *data, size_t len)
 }
 
 /* Helper getting length of data determined by DTD for strings */
-static inline ssize_t sdp_get_str_len(const uint8_t *data, size_t len)
+static inline k_ssize_t sdp_get_str_len(const uint8_t *data, size_t len)
 {
 	const uint8_t *pnext;
 
@@ -2088,7 +2088,7 @@ err:
 }
 
 /* Helper getting length of data determined by DTD for sequences */
-static inline ssize_t sdp_get_seq_len(const uint8_t *data, size_t len)
+static inline k_ssize_t sdp_get_seq_len(const uint8_t *data, size_t len)
 {
 	const uint8_t *pnext;
 
@@ -2133,7 +2133,7 @@ err:
 }
 
 /* Helper getting length of attribute value data */
-static ssize_t sdp_get_attr_value_len(const uint8_t *data, size_t len)
+static k_ssize_t sdp_get_attr_value_len(const uint8_t *data, size_t len)
 {
 	BT_ASSERT(data);
 
@@ -2217,7 +2217,7 @@ static int bt_sdp_get_attr(const struct net_buf *buf,
 
 	data = buf->data;
 	while (data - buf->data < buf->len) {
-		ssize_t dlen;
+		k_ssize_t dlen;
 
 		/* data need to point to attribute id descriptor field (DTD)*/
 		if (data[0] != BT_SDP_UINT16) {
@@ -2259,7 +2259,7 @@ static int bt_sdp_get_attr(const struct net_buf *buf,
 }
 
 /* reads SEQ item length, moves input buffer data reader forward */
-static ssize_t sdp_get_seq_len_item(uint8_t **data, size_t len)
+static k_ssize_t sdp_get_seq_len_item(uint8_t **data, size_t len)
 {
 	const uint8_t *pnext;
 
@@ -2316,8 +2316,8 @@ err:
 
 static int sdp_loop_seqs(uint8_t **data, size_t len)
 {
-	ssize_t slen;
-	ssize_t pre_slen;
+	k_ssize_t slen;
+	k_ssize_t pre_slen;
 	uint8_t *end;
 
 	if (len <= 0) {
@@ -2352,7 +2352,7 @@ static int sdp_get_uuid_data(const struct bt_sdp_attr_item *attr,
 {
 	/* get start address of attribute value */
 	uint8_t *p = attr->val;
-	ssize_t slen;
+	k_ssize_t slen;
 
 	BT_ASSERT(p);
 

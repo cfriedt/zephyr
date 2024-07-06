@@ -8,12 +8,14 @@
 #ifndef ZEPHYR_LLEXT_H
 #define ZEPHYR_LLEXT_H
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include <zephyr/sys/slist.h>
 #include <zephyr/llext/elf.h>
 #include <zephyr/llext/symbol.h>
 #include <zephyr/kernel.h>
-#include <sys/types.h>
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -225,7 +227,7 @@ int arch_elf_relocate(elf_rela_t *rel, uintptr_t loc,
  * @param search_name Section name to search for
  * @retval Section offset or a negative error code
  */
-ssize_t llext_find_section(struct llext_loader *loader, const char *search_name);
+k_ssize_t llext_find_section(struct llext_loader *loader, const char *search_name);
 
 /**
  * @brief Architecture specific function for updating addresses via relocation table
