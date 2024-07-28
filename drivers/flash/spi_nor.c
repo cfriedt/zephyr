@@ -159,6 +159,7 @@ struct spi_nor_config {
 	bool requires_ulbpr_exist:1;
 	bool wp_gpios_exist:1;
 	bool hold_gpios_exist:1;
+	bool mutable: 1;
 };
 
 /**
@@ -245,6 +246,21 @@ dev_erase_types(const struct device *dev)
 #endif /* CONFIG_SPI_NOR_SFDP_MINIMAL */
 }
 
+static const struct device *spi_nor_devices[DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT)];
+
+static bool spi_nor_device_is_valid(const struct device *dev)
+{
+	const size_t N = ARRAY_SIZE(spi_nor_devices);
+
+	for (size_t i = 0; i < N; ++i) {
+		if (dev == spi_nor_devices[i]) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /* Get the size of the flash device.  Data for runtime, constant for
  * minimal and devicetree.
  */
@@ -254,7 +270,7 @@ static inline uint32_t dev_flash_size(const struct device *dev)
 	const struct spi_nor_data *data = dev->data;
 
 	return data->flash_size;
-#else /* CONFIG_SPI_NOR_SFDP_RUNTIME */
+#else  /* CONFIG_SPI_NOR_SFDP_RUNTIME */
 	const struct spi_nor_config *cfg = dev->config;
 
 	return cfg->flash_size;
@@ -268,7 +284,7 @@ static inline uint16_t dev_page_size(const struct device *dev)
 {
 #ifdef CONFIG_SPI_NOR_SFDP_MINIMAL
 	return DT_INST_PROP_OR(0, page_size, 256);
-#else /* CONFIG_SPI_NOR_SFDP_MINIMAL */
+#else  /* CONFIG_SPI_NOR_SFDP_MINIMAL */
 	const struct spi_nor_data *data = dev->data;
 
 	return data->page_size;
@@ -366,11 +382,10 @@ static inline void delay_until_exit_dpd_ok(const struct device *const dev)
  * @param length The size of the buffer
  * @return 0 on success, negative errno code otherwise
  */
-static int spi_nor_access(const struct device *const dev,
-			  uint8_t opcode, unsigned int access,
+static int spi_nor_access(const struct device *const dev, uint8_t opcode, unsigned int access,
 			  off_t addr, void *data, size_t length)
 {
-	const struct spi_nor_config *const driver_cfg = dev->config;
+	struct spi_nor_config *const driver_cfg = (struct spi_nor_config *)dev->config;
 	struct spi_nor_data *const driver_data = dev->data;
 	bool is_addressed = (access & NOR_ACCESS_ADDRESSED) != 0U;
 	bool is_write = (access & NOR_ACCESS_WRITE) != 0U;
@@ -1301,6 +1316,10 @@ static int spi_nor_configure(const struct device *dev)
 		return -ENODEV;
 	}
 
+	if (cfg->spi.config.frequency == 0) {
+		return 0;
+	}
+
 #if ANY_INST_HAS_RESET_GPIOS
 
 	if (cfg->reset_gpios_exist) {
@@ -1547,6 +1566,42 @@ flash_nor_get_parameters(const struct device *dev)
 	return &flash_nor_parameters;
 }
 
+int z_impl_spi_nor_set_jedec_dt_spec(const struct device *dev, const struct jedec_dt_spec *jedec_dt)
+{
+	struct spi_nor_config *config = (struct spi_nor_config *)dev->config;
+
+	if (!spi_nor_device_is_valid(dev)) {
+		return -ENODEV;
+	}
+
+	if (!config->mutable) {
+		return -ENOTSUP;
+	}
+
+	/* size is in bits (like spi-nor DT) so divide by (2^3) */
+	config->flash_size = jedec_dt->size >> 3;
+	memcpy(config->jedec_id, jedec_dt->id, MIN(sizeof(jedec_dt->id), sizeof(config->jedec_id)));
+
+	return 0;
+}
+
+int z_impl_spi_nor_set_spi_dt_spec(const struct device *dev, const struct spi_dt_spec *spi_dt)
+{
+	struct spi_nor_config *config = (struct spi_nor_config *)dev->config;
+
+	if (!spi_nor_device_is_valid(dev)) {
+		return -ENODEV;
+	}
+
+	if (!config->mutable) {
+		return -ENOTSUP;
+	}
+
+	config->spi = *spi_dt;
+
+	return 0;
+}
+
 static const struct flash_driver_api spi_nor_api = {
 	.read = spi_nor_read,
 	.write = spi_nor_write,
@@ -1662,33 +1717,37 @@ static const struct flash_driver_api spi_nor_api = {
 		(.reset = GPIO_DT_SPEC_INST_GET(idx, reset_gpios)), \
 		(.reset = {0}))
 
-#define INST_CONFIG_STRUCT_GEN(idx)								\
-	DEFINE_PAGE_LAYOUT(idx)									\
-	.flash_size = DT_INST_PROP(idx, size) / 8,						\
-	.jedec_id = DT_INST_PROP(idx, jedec_id),						\
-	.dpd_exist = DT_INST_PROP(idx, has_dpd),						\
-	.dpd_wakeup_sequence_exist = DT_INST_NODE_HAS_PROP(idx, dpd_wakeup_sequence),		\
-	.mxicy_mx25r_power_mode_exist = DT_INST_NODE_HAS_PROP(idx, mxicy_mx25r_power_mode),	\
-	.reset_gpios_exist = DT_INST_NODE_HAS_PROP(idx, reset_gpios),				\
-	.requires_ulbpr_exist = DT_INST_PROP(idx, requires_ulbpr),				\
-	.wp_gpios_exist = DT_INST_NODE_HAS_PROP(idx, wp_gpios),					\
-	.hold_gpios_exist = DT_INST_NODE_HAS_PROP(idx, hold_gpios),				\
-	IF_ENABLED(INST_HAS_LOCK(idx), (.has_lock = DT_INST_PROP(idx, has_lock),))		\
-	IF_ENABLED(CONFIG_SPI_NOR_SFDP_MINIMAL, (CONFIGURE_4BYTE_ADDR(idx)))			\
-	IF_ENABLED(CONFIG_SPI_NOR_SFDP_DEVICETREE,						\
-		(.bfp_len = sizeof(bfp_##idx##_data) / 4,					\
-		 .bfp = (const struct jesd216_bfp *)bfp_##idx##_data,))				\
-	IF_ENABLED(ANY_INST_HAS_DPD, (INIT_T_ENTER_DPD(idx),))					\
-	IF_ENABLED(UTIL_AND(ANY_INST_HAS_DPD, ANY_INST_HAS_T_EXIT_DPD), (INIT_T_EXIT_DPD(idx),))\
-	IF_ENABLED(ANY_INST_HAS_DPD_WAKEUP_SEQUENCE, (INIT_WAKEUP_SEQ_PARAMS(idx),))		\
-	IF_ENABLED(ANY_INST_HAS_MXICY_MX25R_POWER_MODE, (INIT_MXICY_MX25R_POWER_MODE(idx),))	\
-	IF_ENABLED(ANY_INST_HAS_RESET_GPIOS, (INIT_RESET_GPIOS(idx),))				\
-	IF_ENABLED(ANY_INST_HAS_WP_GPIOS, (INIT_WP_GPIOS(idx),))				\
-	IF_ENABLED(ANY_INST_HAS_HOLD_GPIOS, (INIT_HOLD_GPIOS(idx),))
+#define INST_CONFIG_STRUCT_GEN(idx)                                                                \
+	DEFINE_PAGE_LAYOUT(idx).flash_size = DT_INST_PROP(idx, size) / 8,                          \
+	.jedec_id = DT_INST_PROP(idx, jedec_id), .dpd_exist = DT_INST_PROP(idx, has_dpd),          \
+	.dpd_wakeup_sequence_exist = DT_INST_NODE_HAS_PROP(idx, dpd_wakeup_sequence),              \
+	.mxicy_mx25r_power_mode_exist = DT_INST_NODE_HAS_PROP(idx, mxicy_mx25r_power_mode),        \
+	.reset_gpios_exist = DT_INST_NODE_HAS_PROP(idx, reset_gpios),                              \
+	.requires_ulbpr_exist = DT_INST_PROP(idx, requires_ulbpr),                                 \
+	.wp_gpios_exist = DT_INST_NODE_HAS_PROP(idx, wp_gpios),                                    \
+	.hold_gpios_exist = DT_INST_NODE_HAS_PROP(idx, hold_gpios),                                \
+	.mutable = DT_INST_NODE_HAS_PROP(idx, zephyr_mutable),                                     \
+	IF_ENABLED(INST_HAS_LOCK(idx), (.has_lock = DT_INST_PROP(idx, has_lock), )) IF_ENABLED(    \
+		CONFIG_SPI_NOR_SFDP_MINIMAL,                                                       \
+		(CONFIGURE_4BYTE_ADDR(                                                             \
+			idx))) IF_ENABLED(CONFIG_SPI_NOR_SFDP_DEVICETREE,                          \
+					  (.bfp_len = sizeof(bfp_##idx##_data) / 4,                \
+					   .bfp = (const struct jesd216_bfp *)bfp_##idx##_data, )) \
+		IF_ENABLED(ANY_INST_HAS_DPD, (INIT_T_ENTER_DPD(idx), )) IF_ENABLED(                \
+			UTIL_AND(ANY_INST_HAS_DPD, ANY_INST_HAS_T_EXIT_DPD),                       \
+			(INIT_T_EXIT_DPD(idx), )) IF_ENABLED(ANY_INST_HAS_DPD_WAKEUP_SEQUENCE,     \
+							     (INIT_WAKEUP_SEQ_PARAMS(idx), ))      \
+			IF_ENABLED(ANY_INST_HAS_MXICY_MX25R_POWER_MODE,                            \
+				   (INIT_MXICY_MX25R_POWER_MODE(idx), ))                           \
+				IF_ENABLED(ANY_INST_HAS_RESET_GPIOS, (INIT_RESET_GPIOS(idx), ))    \
+					IF_ENABLED(ANY_INST_HAS_WP_GPIOS, (INIT_WP_GPIOS(idx), ))  \
+						IF_ENABLED(ANY_INST_HAS_HOLD_GPIOS,                \
+							   (INIT_HOLD_GPIOS(idx), ))
 
-#define GENERATE_CONFIG_STRUCT(idx)								\
-	static const struct spi_nor_config spi_nor_##idx##_config = {				\
-		.spi = SPI_DT_SPEC_INST_GET(idx, SPI_WORD_SET(8), CONFIG_SPI_NOR_CS_WAIT_DELAY),\
+#define GENERATE_CONFIG_STRUCT(idx)                                                                \
+	static COND_CODE_1(DT_INST_NODE_HAS_PROP(idx, zephyr_mutable), (),                         \
+			   (const)) struct spi_nor_config spi_nor_##idx##_config = {               \
+		.spi = SPI_DT_SPEC_INST_GET(idx, SPI_WORD_SET(8), CONFIG_SPI_NOR_CS_WAIT_DELAY),   \
 		COND_CODE_1(CONFIG_SPI_NOR_SFDP_RUNTIME, EMPTY(), (INST_CONFIG_STRUCT_GEN(idx)))};
 
 #define ASSIGN_PM(idx)							\
@@ -1705,3 +1764,6 @@ static const struct flash_driver_api spi_nor_api = {
 			POST_KERNEL, CONFIG_SPI_NOR_INIT_PRIORITY, &spi_nor_api);
 
 DT_INST_FOREACH_STATUS_OKAY(SPI_NOR_INST)
+
+#define SPI_NOR_DEVICE_GET(_n) DEVICE_DT_INST_GET(_n),
+static const struct device *spi_nor_devices[] = {DT_INST_FOREACH_STATUS_OKAY(SPI_NOR_DEVICE_GET)};

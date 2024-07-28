@@ -1,0 +1,28 @@
+source "Kconfig.zephyr"
+
+menu "SPI Flash Programmer Configuration"
+
+config SPI_FLASH_PROGRAMMER
+    bool "SPI Flash Programmer"
+    default y
+    select DEVICE_MUTABLE
+    select DT_HAS_JEDEC_SPI_NOR_ENABLED
+    select FLASH
+    select FLASH_JESD216
+    select FLASH_JESD216_API
+    select SPI
+    select SPI_NOR
+    help
+      This option enables the SPI Flash Programmer sample application.
+
+config SFP_IDENTIFY_REPS
+    int "Number of repetitions to identify Flash"
+    range 1 10
+    default 3
+    help
+      For a given SPI clock frequency, sfp_identify() can be configured to require several
+      successful reads of serial flash discoverable parameters (SFDP) in oder to deem a
+      a particular SPI clock frequency as stable. This parameter makes the number of
+      repetitions easily configurable.
+
+endmenu

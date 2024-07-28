@@ -1,0 +1,12 @@
+sample:
+  name: SPI Flash Programmer
+common:
+  tags:
+    - spi
+    - flash
+tests:
+  sample.spi_flash_programmer:
+    platform_allow:
+      - nucleo_g071rb
+#    filter: dt_compat_enabled("jedec,spi-nor")
+    depends_on: spi

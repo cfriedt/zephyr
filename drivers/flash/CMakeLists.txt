@@ -13,6 +13,9 @@ zephyr_syscall_header_ifdef(
 )
 
 zephyr_syscall_header(${ZEPHYR_BASE}/include/zephyr/drivers/flash.h)
+zephyr_syscall_header_ifdef(CONFIG_SPI_NOR
+  ${ZEPHYR_BASE}/drivers/flash/spi_nor.h
+)
 
 zephyr_library()
 

@@ -1,0 +1,40 @@
+description: A SPI flash programmer device
+
+compatible: "zephyr,spi-flash-programmer"
+
+include: base.yaml
+
+properties:
+  spi-flash-programmer:
+    type: boolean
+    required: true
+    description: |
+      Indicates that the device is a SPI flash programmer.
+  vio-1p8-volts:
+    type: boolean
+    description: |
+      Indicates that the SPI flash programmer supports 1.8V I/O voltage.
+  vio-3p3-volts:
+    type: boolean
+    description: |
+      Indicates that the SPI flash programmer supports 3.3V I/O voltage.
+  min-transceiver-sck-frequency:
+    type: int
+    required: true
+    description: |
+      Minimum SPI transceiver serial-clock (SCK) frequency, in Hz.
+  max-transceiver-sck-frequency:
+    type: int
+    required: true
+    description: |
+      Maximum SPI transceiver serial-clock (SCK) frequency, in Hz.
+  spi-dev:
+    type: phandle
+    required: true
+    description: |
+      Phandle to the SPI device node that the SPI flash programmer is connected to.
+  spi-nor-dev:
+    type: phandle
+    required: true
+    description: |
+      Phandle to the SPI NOR device node.

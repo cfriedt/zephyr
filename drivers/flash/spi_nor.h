@@ -7,7 +7,13 @@
 #ifndef __SPI_NOR_H__
 #define __SPI_NOR_H__
 
+#include <zephyr/device.h>
+#include <zephyr/drivers/spi.h>
 #include <zephyr/sys/util.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define SPI_NOR_MAX_ID_LEN	3
 
@@ -114,5 +120,67 @@
 #define SPI_NOR_IS_64K_ALIGNED(_ofs) SPI_NOR_IS_ALIGNED(_ofs, 16)
 
 #define CMD_RDCR 0x15 /* Read the configuration register. */
+
+#ifndef _ASMLANGUAGE
+
+struct jedec_dt_spec {
+	uint32_t size;
+	uint8_t id[3];
+};
+
+/**
+ * @brief Set SPI NOR flash parameters.
+ *
+ * This function is used to dynamically set device parameters of SPI NOR flash devices
+ * at runtime, so that they may be used via the usual flash API.
+ *
+ * Platforms wishing to support dynamically probing SPI NOR flash devices should declare
+ * an invalid device instance as shown below, with the `mutable` property set.
+ *
+ * ```
+ * &spi0 {
+ *     flash1: flash@0 {
+ *       // base bindings
+ *       compatible = "jedec,spi-nor";
+ *       status = "okay";
+ *       reg = <0>;
+ *
+ *       // spi-device bindings
+ *       spi-max-frequency = <0>;
+ *
+ *       // jedec,jesd216 bindings
+ *       size = <0>;
+ *       jedec-id = [00 00 00];
+ *
+ *       // mutable bindings
+ *       zephyr,mutable;
+ *    };
+ * };
+ * ```
+ *
+ * @param max_freq Maximum SPI clock (SCK) frequency supported by the device, in Hz.
+ * @param size Flash size in bits.
+ * @param jedec_id 3-byte JEDEC ID (manufacturer ID in the LSB, memory type := 1, and capacity :=
+ * 2).
+ * @retval 0 on success.
+ * @retval -EINVAL if a parameter is invalid.
+ * @retval -ENODEV if the specified device is not a jedec,spi-nor compatible device.
+ * @retval -ENOTSUP if the specified jedec,spi-nor device is not mutable.
+ */
+__syscall int spi_nor_set_jedec_dt_spec(const struct device *dev,
+					const struct jedec_dt_spec *jedec_dt);
+int z_impl_spi_nor_set_jedec_dt_spec(const struct device *dev,
+				     const struct jedec_dt_spec *jedec_dt);
+
+__syscall int spi_nor_set_spi_dt_spec(const struct device *dev, const struct spi_dt_spec *spi_dt);
+int z_impl_spi_nor_set_spi_dt_spec(const struct device *dev, const struct spi_dt_spec *spi_dt);
+
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#include <zephyr/syscalls/spi_nor.h>
 
 #endif /*__SPI_NOR_H__*/
