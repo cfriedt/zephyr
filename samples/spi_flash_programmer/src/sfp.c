@@ -30,7 +30,8 @@ const char *const sfp_setting_s[] = {
     [SFP_SETTING_FREQ] = "freq",
     [SFP_SETTING_MAX_FREQ] = "max_freq",
     [SFP_SETTING_MIN_FREQ] = "min_freq",
-    [SFP_SETTING_SFDP] = "sfdp",
+    [SFP_SETTING_SIZE] = "size",
+	[SFP_SETTING_SECT_SIZE] = "sector_size",
     [SFP_SETTING_VIO] = "vio",
 };
 /* clang-format on */

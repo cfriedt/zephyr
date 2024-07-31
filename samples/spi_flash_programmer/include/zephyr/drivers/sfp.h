@@ -36,13 +36,13 @@ enum sfp_setting_e {
 	SFP_SETTING_FREQ,     /**< SPI clock (SCK) frequency, in Hz */
 	SFP_SETTING_MAX_FREQ, /**< Minimum SCK frequency supported by the flash device, in Hz */
 	SFP_SETTING_MIN_FREQ, /**< Maximum SCK frequency supported by the flash device, in Hz */
-	SFP_SETTING_SFDP,     /**< JESD216 Serial Flash Discoverable Parameters */
-	SFP_SETTING_SIZE,     /**< Size of the flash device, in bytes */
+	SFP_SETTING_SIZE,     /**< Size of the flash device, in bits */
+	SFP_SETTING_SECT_SIZE, /**< Erase sector size of the flash device, in bytes */
 	SFP_SETTING_VIO,      /**< I/O voltage supported by the programmer (see @ref sfp_vio_e) */
 	_SFP_SETTING_NUM,
 };
 
-#define SFP_SETTING_TYPE "sbbbuuudu"
+#define SFP_SETTING_TYPE "sbbbuuuuuu"
 
 /* clang-format off */
 /** @brief Bitmap of ready-only settings for the SPI flash programmer. */
@@ -54,8 +54,8 @@ enum sfp_setting_e {
     | (false * BIT(SFP_SETTING_FREQ)) \
     | (false * BIT(SFP_SETTING_MAX_FREQ)) \
     | (false * BIT(SFP_SETTING_MIN_FREQ)) \
-	| (true * BIT(SFP_SETTING_SFDP)) \
     | (true * BIT(SFP_SETTING_SIZE)) \
+    | (true * BIT(SFP_SETTING_SECT_SIZE)) \
     | (false * BIT(SFP_SETTING_VIO)) \
     | 0)
 /* clang-format on */

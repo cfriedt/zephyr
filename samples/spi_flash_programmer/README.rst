@@ -7,13 +7,15 @@
 Overview
 ********
 
-This sample demonstrates how to use the various APIs in Zephyr to probe and program SPI NOR flash
-devices.
-
-Note: Only single-mode SPI is supported at this time.
+This sample demonstrates how to use SPI, Flash, and JESD216 APIs in Zephyr to manage SPI NOR flash
+devices with a cache of images ready. Only single-mode SPI is supported at this time.
 
 Building and Running
 ********************
+
+.. note::
+    This sample is best to run with hardware that supports "hats", "shields", "clicks", and
+    other swappable component boards. Alternatively, hook-up wire works fine as well.
 
 .. zephyr-app-commands::
     :zephyr-app: samples/spi_flash_programmer
@@ -37,7 +39,7 @@ Sample Output
     sfp> get vio
     1.8
     sfp> get freq
-    250000
+    0
     sfp> identify
     Found [ef, 40, 15], 16 Mbit, vio: 3.3 V, cpol:1, cpha:1, cspol:1, sck: 32 MHz
     sfp> get freq
@@ -103,7 +105,7 @@ Shell Commands
 
 The shell command-set is listed below
 
-.. csv-table:: SPI Programmer Shell Commands
+.. csv-table:: SPI Flash Programmer Shell Commands
     :header: Command, Help
     :widths: 25 75
     :header-rows: 1
@@ -116,8 +118,8 @@ The shell command-set is listed below
     reset, Reset the board. Default settings and state are applied. I/O lines are in HiZ.
     set, Set a parameter (e.g. ``set vio 1.8``)
 
-.. csv-table:: SPI Programmer Parameters
-    :header: Command, Help
+.. csv-table:: SPI Flash Programmer Parameters
+    :header: Setting, Description
     :widths: 25 75
     :header-rows: 1
 

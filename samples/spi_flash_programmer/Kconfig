@@ -15,6 +15,12 @@ config SPI_FLASH_PROGRAMMER
     help
       This option enables the SPI Flash Programmer sample application.
 
+config SFP_SHELL
+    bool "SPI flash programmer shell"
+    select SHELL
+    help
+      Select 'y' here to enable the SPI flash programmer shell.
+
 config SFP_IDENTIFY_REPS
     int "Number of repetitions to identify Flash"
     range 1 10
