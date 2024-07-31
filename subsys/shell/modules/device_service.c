@@ -47,20 +47,9 @@ static int cmd_device_list_visitor(const struct device *dev,
 }
 #endif /* CONFIG_DEVICE_DEPS */
 
-static int cmd_device_list(const struct shell *sh,
-			   size_t argc, char **argv)
+static void cmd_device_print_devlist(const struct shell *sh, const struct device *dev, size_t n)
 {
-	const struct device *devlist;
-	size_t devcnt = z_device_get_all_static(&devlist);
-	const struct device *devlist_end = devlist + devcnt;
-	const struct device *dev;
-
-	ARG_UNUSED(argc);
-	ARG_UNUSED(argv);
-
-	shell_fprintf(sh, SHELL_NORMAL, "devices:\n");
-
-	for (dev = devlist; dev < devlist_end; dev++) {
+	for (const struct device *end = dev + n; dev < end; ++dev) {
 		char buf[20];
 		const char *name = get_device_name(dev, buf, sizeof(buf));
 		const char *state = "READY";
@@ -113,6 +102,23 @@ static int cmd_device_list(const struct shell *sh,
 		}
 #endif /* CONFIG_DEVICE_DT_METADATAa */
 	}
+}
+
+static int cmd_device_list(const struct shell *sh, size_t argc, char **argv)
+{
+	size_t n;
+	const struct device *dev;
+
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+
+	shell_fprintf(sh, SHELL_NORMAL, "devices:\n");
+
+	n = z_device_get_all_ro(&dev);
+	cmd_device_print_devlist(sh, dev, n);
+
+	n = z_device_get_all_rw(&dev);
+	cmd_device_print_devlist(sh, dev, n);
 
 	return 0;
 }

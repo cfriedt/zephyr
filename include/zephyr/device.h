@@ -737,6 +737,26 @@ __syscall const struct device *device_get_binding(const char *name);
 size_t z_device_get_all_static(const struct device **devices);
 
 /**
+ * @brief Get access to the static array of read-only devices.
+ *
+ * @param devices where to store the pointer to the array of statically
+ * allocated devices. The array must not be mutated through this pointer.
+ *
+ * @return the number of statically allocated, read-only devices.
+ */
+size_t z_device_get_all_ro(const struct device **devices);
+
+/**
+ * @brief Get access to the static array of mutable devices.
+ *
+ * @param devices where to store the pointer to the array of statically
+ * allocated devices. The array must not be mutated through this pointer.
+ *
+ * @return the number of statically allocated, mutable devices.
+ */
+size_t z_device_get_all_rw(const struct device **devices);
+
+/**
  * @brief Verify that a device is ready for use.
  *
  * Indicates whether the provided device pointer is for a device known to be

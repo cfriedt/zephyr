@@ -311,7 +311,6 @@ found_device:
 
 static int sfp_impl_get(const struct device *dev, struct sfp_setting *setting, size_t n)
 {
-	const struct sfp_impl_config *const config = dev->config;
 	struct sfp_impl_data *const data = dev->data;
 
 	for (size_t i = 0; i < n; ++i) {

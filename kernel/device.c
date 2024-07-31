@@ -129,7 +129,7 @@ static inline const struct device *z_vrfy_device_get_by_dt_nodelabel(const char 
 #endif /* CONFIG_USERSPACE */
 #endif /* CONFIG_DEVICE_DT_METADATA */
 
-size_t z_device_get_all_static(struct device const **devices)
+size_t z_device_get_all_ro(struct device const **devices)
 {
 	size_t cnt;
 
@@ -137,6 +137,21 @@ size_t z_device_get_all_static(struct device const **devices)
 	STRUCT_SECTION_COUNT(device, &cnt);
 
 	return cnt;
+}
+
+size_t z_device_get_all_rw(struct device const **devices)
+{
+	size_t cnt;
+
+	STRUCT_SECTION_GET_ALTERNATE(device_mutable, device, 0, devices);
+	STRUCT_SECTION_COUNT_ALTERNATE(device_mutable, device, &cnt);
+
+	return cnt;
+}
+
+size_t z_device_get_all_static(struct device const **devices)
+{
+	return z_device_get_all_ro(devices);
 }
 
 bool z_impl_device_is_ready(const struct device *dev)

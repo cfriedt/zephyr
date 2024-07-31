@@ -1,7 +1,7 @@
 #include <mem.h>
 
 / {
-    sfp0: spi_flash_programmer {
+    sfp0: spi_flash_programmer0 {
         compatible = "zephyr,spi-flash-programmer";
         status = "okay";
 

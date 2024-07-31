@@ -283,6 +283,19 @@ extern "C" {
 	TYPE_SECTION_GET(struct struct_type, struct_type, i, dst)
 
 /**
+ * @brief Get element from section.
+ *
+ * @note There is no protection against reading beyond the section.
+ *
+ * @param[in]  secname Section name
+ * @param[in]  struct_type Struct type.
+ * @param[in]  i Index.
+ * @param[out] dst Pointer to location where pointer to element is written.
+ */
+#define STRUCT_SECTION_GET_ALTERNATE(secname, struct_type, i, dst)                                 \
+	TYPE_SECTION_GET(struct struct_type, secname, i, dst)
+
+/**
  * @brief Count elements in a section.
  *
  * @param[in]  struct_type Struct type
@@ -290,6 +303,16 @@ extern "C" {
  */
 #define STRUCT_SECTION_COUNT(struct_type, dst) \
 	TYPE_SECTION_COUNT(struct struct_type, struct_type, dst);
+
+/**
+ * @brief Count elements in a section (alternate).
+ *
+ * @param[in]  secname Section name
+ * @param[in]  struct_type Struct type
+ * @param[out] dst Pointer to location where result is written.
+ */
+#define STRUCT_SECTION_COUNT_ALTERNATE(secname, struct_type, dst)                                  \
+	TYPE_SECTION_COUNT(struct struct_type, secname, dst);
 
 /**
  * @}
