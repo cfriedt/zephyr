@@ -1107,8 +1107,9 @@ device_get_dt_nodelabels(const struct device *dev)
 	static const Z_DECL_ALIGN(struct init_entry) __used __noasan Z_INIT_ENTRY_SECTION(         \
 		level, prio, Z_DEVICE_INIT_SUB_PRIO(node_id))                                      \
 		Z_INIT_ENTRY_NAME(DEVICE_NAME_GET(dev_id)) = {                                     \
-			.init_fn = {COND_CODE_1(Z_DEVICE_IS_MUTABLE(node_id), (.dev_rw), (.dev)) = \
-					    (init_fn_)},                                           \
+			.init_fn COND_CODE_1(Z_DEVICE_IS_MUTABLE(node_id), (.dev_rw), (.dev)) =    \
+				COND_CODE_1(Z_DEVICE_IS_MUTABLE(node_id),                          \
+					    ((int (*)(struct device *))(init_fn_)), (init_fn_)),   \
 			Z_DEVICE_INIT_ENTRY_DEV(node_id, dev_id),                                  \
 	}
 
@@ -1116,8 +1117,9 @@ device_get_dt_nodelabels(const struct device *dev)
 	static const Z_DECL_ALIGN(struct init_entry) __used __noasan                               \
 		__attribute__((__section__(".z_deferred_init")))                                   \
 		Z_INIT_ENTRY_NAME(DEVICE_NAME_GET(dev_id)) = {                                     \
-			.init_fn = {COND_CODE_1(Z_DEVICE_IS_MUTABLE(node_id), (.dev_rw), (.dev)) = \
-					    (init_fn_)},                                           \
+			.init_fn COND_CODE_1(Z_DEVICE_IS_MUTABLE(node_id), (.dev_rw), (.dev)) =    \
+				COND_CODE_1(Z_DEVICE_IS_MUTABLE(node_id),                          \
+					    ((int (*)(struct device *))(init_fn_)), (init_fn_)),   \
 			Z_DEVICE_INIT_ENTRY_DEV(node_id, dev_id),                                  \
 	}
 
