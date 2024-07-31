@@ -38,12 +38,8 @@ Sample Output
     1.8
     sfp> get freq
     250000
-    sfp> get jesd216
-    Error: could not read SFDP
     sfp> identify
-    Found [ef, 40, 15], 16 Mbit, spi: cpol:1, cpha:1, cspol:1
-    sfp> get jesd216
-    ...
+    Found [ef, 40, 15], 16 Mbit, vio: 3.3 V, cpol:1, cpha:1, cspol:1, sck: 32 MHz
     sfp> get freq
     31999999
     sfp> cache add --as image42 --from uart0:1152008n1:zmodem --progress bar

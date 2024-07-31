@@ -265,8 +265,8 @@ found_device:
 	printk("Found [%02x, %02x, %02x], %u %sbit, vio: %s, cpol:%u, cpha:%u, cspol:%u, sck: "
 	       "%u %sHz\n",
 	       jedec_dt.id[0], jedec_dt.id[1], jedec_dt.id[2],
-	       DIV_ROUND_UP(sfp_impl_get_u32(dev, SFP_SETTING_SIZE),
-			    1 << si_base2_shift(sfp_impl_get_u32(dev, SFP_SETTING_SIZE))),
+	       DIV_ROUND_UP(sfp_impl_get_u32(dev, SFP_SETTING_SIZE) << 3,
+			    1 << si_base2_shift(sfp_impl_get_u32(dev, SFP_SETTING_SIZE) << 3)),
 	       /* looks weird printing Mibit instead of Mbit here */
 	       si_prefix(sfp_impl_get_u32(dev, SFP_SETTING_SIZE)),
 	       sfp_vio_s[sfp_impl_get_u32(dev, SFP_SETTING_VIO)],
