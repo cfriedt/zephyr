@@ -105,7 +105,7 @@ Shell Commands
 
 The shell command-set is listed below
 
-.. csv-table:: SPI Flash Programmer Shell Commands
+.. csv-table:: ``sfp`` Sub-Commands
     :header: Command, Help
     :widths: 25 75
     :header-rows: 1
@@ -118,7 +118,7 @@ The shell command-set is listed below
     reset, Reset the board. Default settings and state are applied. I/O lines are in HiZ.
     set, Set a parameter (e.g. ``set vio 1.8``)
 
-.. csv-table:: SPI Flash Programmer Parameters
+.. csv-table:: ``sfp`` Settings
     :header: Setting, Description
     :widths: 25 75
     :header-rows: 1
@@ -130,5 +130,6 @@ The shell command-set is listed below
     freq, Get or set the current SPI clock frequency.
     max-freq, Get or set the maximum SPI clock frequency supported by the device.
     min-freq, Get or set the minimum SPI clock frequency supported by the device.
-    sfdp, Get the JESD216 serial flash discoverable parameters (Get only)
+    sector_size, Get the minimum sector size (erase size, in bytes) supported by the device.
+    size, Get the SPI flash device size (in bytes).
     vio, Get or set the I/O voltage.

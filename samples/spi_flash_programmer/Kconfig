@@ -12,12 +12,16 @@ config SPI_FLASH_PROGRAMMER
     select FLASH_JESD216_API
     select SPI
     select SPI_NOR
+    select REBOOT
     help
       This option enables the SPI Flash Programmer sample application.
 
 config SFP_SHELL
     bool "SPI flash programmer shell"
     select SHELL
+    select CRC
+    select CRC_SHELL
+    select FLASH_SHELL
     help
       Select 'y' here to enable the SPI flash programmer shell.
 

@@ -30,9 +30,24 @@ const char *const sfp_setting_s[] = {
     [SFP_SETTING_FREQ] = "freq",
     [SFP_SETTING_MAX_FREQ] = "max_freq",
     [SFP_SETTING_MIN_FREQ] = "min_freq",
-    [SFP_SETTING_SIZE] = "size",
 	[SFP_SETTING_SECT_SIZE] = "sector_size",
+    [SFP_SETTING_SIZE] = "size",
     [SFP_SETTING_VIO] = "vio",
+};
+/* clang-format on */
+
+/* clang-format off */
+const char *const sfp_setting_desc[] = {
+    [SFP_SETTING_CACHE] = "Get or set the cached image name. This sets the default for the 'burn' command.",
+    [SFP_SETTING_CPHA] = "Get or set the current SPI clock phase; 0 := sample data on the first clock edge, 1 := sample data on the second clock edge.",
+    [SFP_SETTING_CPOL] = "Get or set the SPI clock idle state (polarity); 0 := logic low. 1 := logic high.",
+    [SFP_SETTING_CSPOL] = "Get or set the SPI chip-select idle state (polarity); 0 := logic low. 1 := logic high.",
+    [SFP_SETTING_FREQ] = "Get or set the current SPI clock frequency.",
+    [SFP_SETTING_MAX_FREQ] = "Get or set the maximum SPI clock frequency supported by the device.",
+    [SFP_SETTING_MIN_FREQ] = "Get or set the minimum SPI clock frequency supported by the device.",
+	[SFP_SETTING_SECT_SIZE] = "Get the minimum sector size (erase size, in bytes) supported by the device.",
+    [SFP_SETTING_SIZE] = "Get the SPI flash device size (in bytes).",
+    [SFP_SETTING_VIO] = "Get or set the I/O voltage.",
 };
 /* clang-format on */
 
@@ -43,7 +58,6 @@ const char *const sfp_cmd_s[] = {
 	[SFP_CMD_GET] = "get",
 	[SFP_CMD_HELP] = "help",
 	[SFP_CMD_IDENTIFY] = "identify",
-	[SFP_CMD_RESET] = "reset",
 	[SFP_CMD_SET] = "set",
 };
 /* clang-format on */
@@ -61,11 +75,23 @@ struct sfp_impl_data {
 	struct sfp_setting settings[_SFP_SETTING_NUM];
 };
 
+int sfp_str_to_setting(const char *s)
+{
+	ARRAY_FOR_EACH(sfp_setting_s, i) {
+		if (strcmp(sfp_setting_s[i], s) == 0) {
+			return i;
+		}
+	}
+
+	return -EINVAL;
+}
+
 static inline void sfp_impl_set_bool(const struct device *dev, enum sfp_setting_e setting, bool val)
 {
 	struct sfp_impl_data *data = dev->data;
 
 	data->settings[setting].value.v_bool = val;
+	data->settings[setting].type = setting;
 	data->settings[setting].is_set = true;
 }
 
@@ -75,6 +101,7 @@ static inline void sfp_impl_set_u32(const struct device *dev, enum sfp_setting_e
 	struct sfp_impl_data *data = dev->data;
 
 	data->settings[setting].value.v_u32 = val;
+	data->settings[setting].type = setting;
 	data->settings[setting].is_set = true;
 }
 
@@ -85,6 +112,7 @@ static inline void sfp_impl_set_str(const struct device *dev, enum sfp_setting_e
 
 	strncpy(data->settings[setting].value.v_str, val,
 		sizeof(data->settings[setting].value.v_str));
+	data->settings[setting].type = setting;
 	data->settings[setting].is_set = true;
 }
 
@@ -263,6 +291,7 @@ found_device:
 		}
 	}
 
+	/* TODO: write to output parameters and move printing to the shell */
 	printk("Found [%02x, %02x, %02x], %u %sbit, vio: %s, cpol:%u, cpha:%u, cspol:%u, sck: "
 	       "%u %sHz\n",
 	       jedec_dt.id[0], jedec_dt.id[1], jedec_dt.id[2],
@@ -280,8 +309,20 @@ found_device:
 	return 0;
 }
 
+static int sfp_impl_get(const struct device *dev, struct sfp_setting *setting, size_t n)
+{
+	const struct sfp_impl_config *const config = dev->config;
+	struct sfp_impl_data *const data = dev->data;
+
+	for (size_t i = 0; i < n; ++i) {
+		setting[i] = data->settings[setting[i].type];
+	}
+
+	return 0;
+}
+
 static const struct sfp_driver_api sfp_impl_driver = {
-	// .get = sfp_impl_get,
+	.get = sfp_impl_get,
 	// .set = sfp_impl_set,
 	// .unset = sfp_impl_unset,
 	.identify = sfp_impl_identify,

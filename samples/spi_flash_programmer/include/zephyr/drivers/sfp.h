@@ -36,8 +36,8 @@ enum sfp_setting_e {
 	SFP_SETTING_FREQ,     /**< SPI clock (SCK) frequency, in Hz */
 	SFP_SETTING_MAX_FREQ, /**< Minimum SCK frequency supported by the flash device, in Hz */
 	SFP_SETTING_MIN_FREQ, /**< Maximum SCK frequency supported by the flash device, in Hz */
-	SFP_SETTING_SIZE,     /**< Size of the flash device, in bits */
 	SFP_SETTING_SECT_SIZE, /**< Erase sector size of the flash device, in bytes */
+	SFP_SETTING_SIZE,      /**< Size of the flash device, in bits */
 	SFP_SETTING_VIO,      /**< I/O voltage supported by the programmer (see @ref sfp_vio_e) */
 	_SFP_SETTING_NUM,
 };
@@ -54,8 +54,8 @@ enum sfp_setting_e {
     | (false * BIT(SFP_SETTING_FREQ)) \
     | (false * BIT(SFP_SETTING_MAX_FREQ)) \
     | (false * BIT(SFP_SETTING_MIN_FREQ)) \
-    | (true * BIT(SFP_SETTING_SIZE)) \
     | (true * BIT(SFP_SETTING_SECT_SIZE)) \
+    | (true * BIT(SFP_SETTING_SIZE)) \
     | (false * BIT(SFP_SETTING_VIO)) \
     | 0)
 /* clang-format on */
@@ -76,6 +76,10 @@ enum sfp_cmd_e {
 extern const char *const sfp_cmd_s[_SFP_CMD_NUM];
 /** @brief SPI flash programmer setting strings */
 extern const char *const sfp_setting_s[_SFP_SETTING_NUM];
+/** @brief SPI flash programmer setting descriptions */
+extern const char *const sfp_setting_desc[_SFP_SETTING_NUM];
+/** @brief SPI flash programmer I/O voltage strings */
+extern const char *const sfp_vio_s[_SFP_VIO_NUM];
 
 /**
  * @brief Determin if a SPI flash programmer setting is read-only.
@@ -152,6 +156,10 @@ static inline int sfp_get(const struct device *dev, struct sfp_setting *setting,
 {
 	const struct sfp_driver_api *api = dev->api;
 
+	if (api->get == NULL) {
+		return -ENOTSUP;
+	}
+
 	return api->get(dev, setting, n);
 }
 
@@ -205,6 +213,8 @@ static inline int sfp_identify(const struct device *dev)
 
 	return api->identify(dev);
 }
+
+int sfp_str_to_setting(const char *s);
 
 /**
  * @}
