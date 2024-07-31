@@ -35,7 +35,7 @@ const struct device *z_impl_device_get_binding(const char *name)
 		return NULL;
 	}
 
-	/* Split the search into two loops: in the common scenario, where
+	/* Split the search into two phases: in the common scenario, where
 	 * device names are stored in ROM (and are referenced by the user
 	 * with CONFIG_* macros), only cheap pointer comparisons will be
 	 * performed. Reserve string comparisons for a fallback.
@@ -46,7 +46,21 @@ const struct device *z_impl_device_get_binding(const char *name)
 		}
 	}
 
+	STRUCT_SECTION_FOREACH_ALTERNATE(device_mutable, device, dev)
+	{
+		if (z_impl_device_is_ready(dev) && (dev->name == name)) {
+			return dev;
+		}
+	}
+
 	STRUCT_SECTION_FOREACH(device, dev) {
+		if (z_impl_device_is_ready(dev) && (strcmp(name, dev->name) == 0)) {
+			return dev;
+		}
+	}
+
+	STRUCT_SECTION_FOREACH_ALTERNATE(device_mutable, device, dev)
+	{
 		if (z_impl_device_is_ready(dev) && (strcmp(name, dev->name) == 0)) {
 			return dev;
 		}
