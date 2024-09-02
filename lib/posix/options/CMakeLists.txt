@@ -48,8 +48,7 @@ if (NOT CONFIG_TC_PROVIDES_POSIX_C_LIB_EXT)
   zephyr_library_sources_ifdef(CONFIG_POSIX_C_LIB_EXT
     fnmatch.c
     getentropy.c
-    getopt/getopt.c
-    getopt/getopt_common.c
+    getopt.c
   )
 endif()
 
@@ -156,9 +155,6 @@ if (NOT CONFIG_TC_PROVIDES_XSI_SYSTEM_LOGGING)
   zephyr_library_sources_ifdef(CONFIG_XSI_SYSTEM_LOGGING syslog.c)
 endif()
 
-zephyr_library_sources_ifdef(CONFIG_GETOPT_LONG
-  getopt/getopt_long.c
-)
 zephyr_include_directories_ifdef(CONFIG_POSIX_C_LIB_EXT
   getopt/
 )

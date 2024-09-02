@@ -26,4 +26,9 @@ config GETOPT_LONG
 	  for other threads by extending function getopt_state_get in
 	  getopt_common.c file.
 
+config GETOPT_PRINT_ERROR
+	bool "Print getopt errors"
+	help
+	  Print error descriptions in getopt().
+
 endif # POSIX_C_LIB_EXT

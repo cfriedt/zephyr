@@ -1,4 +1,4 @@
-/*	$OpenBSD: getopt_long.c,v 1.22 2006/10/04 21:29:04 jmc Exp $	*/
+/*	$OpenBSD: getopt_long.c,v 1.26 2013/06/08 22:47:56 millert Exp $	*/
 /*	$NetBSD: getopt_long.c,v 1.15 2002/01/31 22:43:40 tv Exp $	*/
 
 /*
@@ -20,7 +20,7 @@
  * Agency (DARPA) and Air Force Research Laboratory, Air Force
  * Materiel Command, USAF, under agreement number F39502-99-1-0512.
  */
-/*
+/*-
  * Copyright (c) 2000 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
@@ -49,66 +49,95 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
+
+#include <errno.h>
+#include <getopt.h>
+#include <stdlib.h>
 #include <string.h>
-#include "getopt.h"
-#include "getopt_common.h"
 
-#include <zephyr/logging/log.h>
-LOG_MODULE_DECLARE(getopt);
+#define GNU_COMPATIBLE 0 /* Be more compatible, configure's use us! */
 
-#define GNU_COMPATIBLE		/* Be more compatible, configure's use us! */
+#define REPLACE_GETOPT /* use this getopt as the system getopt(3) */
 
-#define PRINT_ERROR	((state->opterr) && (*options != ':'))
-
-#define FLAG_PERMUTE	0x01	/* permute non-options to the end of argv */
-#define FLAG_ALLARGS	0x02	/* treat non-options as args to option "-1" */
-#define FLAG_LONGONLY	0x04	/* operate as getopt_long_only */
-
-/* return values */
-#define	BADCH		(int)'?'
-#define	BADARG		((*options == ':') ? (int)':' : (int)'?')
-#define	INORDER	1
-
-#define	EMSG		""
-
-#ifdef GNU_COMPATIBLE
-#define NO_PREFIX	(-1)
-#define D_PREFIX	0
-#define DD_PREFIX	1
-#define W_PREFIX	2
+#ifdef REPLACE_GETOPT
+int opterr = 1;   /* if error message should be printed */
+int optind = 1;   /* index into parent argv vector */
+int optopt = '?'; /* character checked for validity */
+int optreset;     /* reset getopt */
+char *optarg;     /* argument associated with option */
 #endif
 
-static int getopt_internal(struct getopt_state *, int, char * const *,
-			   const char *, const struct option *, int *, int);
-static int parse_long_options(struct getopt_state *, char * const *,
-			      const char *, const struct option *, int *, int,
-			      int);
+#ifdef CONFIG_GETOPT_PRINT_ERROR
+#define PRINT_ERROR ((opterr) && (*options != ':'))
+#define warnx(...)  printf(__VA_ARGS__)
+#else
+#define PRINT_ERROR 0
+#define warnx(...)
+#endif
+
+#define FLAG_PERMUTE  0x01 /* permute non-options to the end of argv */
+#define FLAG_ALLARGS  0x02 /* treat non-options as args to option "-1" */
+#define FLAG_LONGONLY 0x04 /* operate as getopt_long_only */
+
+/* return values */
+#define BADCH   (int)'?'
+#define BADARG  ((*options == ':') ? (int)':' : (int)'?')
+#define INORDER 1
+
+static const char *EMSG = "";
+
+#ifdef GNU_COMPATIBLE
+#define NO_PREFIX (-1)
+#define D_PREFIX  0
+#define DD_PREFIX 1
+#define W_PREFIX  2
+#endif
+
+static int getopt_internal(int, char *const *, const char *, const struct option *, int *, int);
+static int parse_long_options(char *const *, const char *, const struct option *, int *, int, int);
 static int gcd(int, int);
 static void permute_args(int, int, int, char *const *);
 
+static char *place = EMSG; /* option letter processing */
+
+/* XXX: set optreset to 1 rather than these two */
+static int nonopt_start = -1; /* first non option argument (for permute) */
+static int nonopt_end = -1;   /* first option after non options (for permute) */
+
 /* Error messages */
-#define RECARGCHAR "option requires an argument -- %c"
-#define ILLOPTCHAR "illegal option -- %c" /* From P1003.2 */
+__maybe_unused
+static const char recargchar[] = "option requires an argument -- %c";
+__maybe_unused
+static const char illoptchar[] = "illegal option -- %c"; /* From P1003.2 */
 #ifdef GNU_COMPATIBLE
 static int dash_prefix = NO_PREFIX;
-#define GNUOPTCHAR "invalid option -- %c"
+__maybe_unused
+static const char gnuoptchar[] = "invalid option -- %c";
 
-#define RECARGSTRING "option `%s%s' requires an argument"
-#define AMBIG "option `%s%.*s' is ambiguous"
-#define NOARG "option `%s%.*s' doesn't allow an argument"
-#define ILLOPTSTRING "unrecognized option `%s%s'"
+__maybe_unused
+static const char recargstring[] = "option `%s%s' requires an argument";
+__maybe_unused
+static const char ambig[] = "option `%s%.*s' is ambiguous";
+__maybe_unused
+static const char noarg[] = "option `%s%.*s' doesn't allow an argument";
+__maybe_unused
+static const char illoptstring[] = "unrecognized option `%s%s'";
 #else
-#define RECARGSTRING "option requires an argument -- %s"
-#define AMBIG "ambiguous option -- %.*s"
-#define NOARG "option doesn't take an argument -- %.*s"
-#define ILLOPTSTRING "unknown option -- %s"
+__maybe_unused
+static const char recargstring[] = "option requires an argument -- %s";
+__maybe_unused
+static const char ambig[] = "ambiguous option -- %.*s";
+__maybe_unused
+static const char noarg[] = "option doesn't take an argument -- %.*s";
+__maybe_unused
+static const char illoptstring[] = "unknown option -- %s";
 #endif
 
 /*
  * Compute the greatest common divisor of a and b.
  */
-static int
-gcd(int a, int b)
+static int gcd(int a, int b)
 {
 	int c;
 
@@ -119,7 +148,7 @@ gcd(int a, int b)
 		c = a % b;
 	}
 
-	return b;
+	return (b);
 }
 
 /*
@@ -127,9 +156,7 @@ gcd(int a, int b)
  * from nonopt_end to opt_end (keeping the same order of arguments
  * in each block).
  */
-static void
-permute_args(int panonopt_start, int panonopt_end, int opt_end,
-	char * const *nargv)
+static void permute_args(int panonopt_start, int panonopt_end, int opt_end, char *const *nargv)
 {
 	int cstart, cyclelen, i, j, ncycle, nnonopts, nopts, pos;
 	char *swap;
@@ -143,7 +170,7 @@ permute_args(int panonopt_start, int panonopt_end, int opt_end,
 	cyclelen = (opt_end - panonopt_start) / ncycle;
 
 	for (i = 0; i < ncycle; i++) {
-		cstart = panonopt_end+i;
+		cstart = panonopt_end + i;
 		pos = cstart;
 		for (j = 0; j < cyclelen; j++) {
 			if (pos >= panonopt_end) {
@@ -153,7 +180,7 @@ permute_args(int panonopt_start, int panonopt_end, int opt_end,
 			}
 			swap = nargv[pos];
 			/* LINTED const cast */
-			((char **) nargv)[pos] = nargv[cstart];
+			((char **)nargv)[pos] = nargv[cstart];
 			/* LINTED const cast */
 			((char **)nargv)[cstart] = swap;
 		}
@@ -165,41 +192,38 @@ permute_args(int panonopt_start, int panonopt_end, int opt_end,
  *	Parse long options in argc/argv argument vector.
  * Returns -1 if short_too is set and the option does not match long_options.
  */
-static int
-parse_long_options(struct getopt_state *state, char * const *nargv,
-		   const char *options,	const struct option *long_options,
-		   int *idx, int short_too, int flags)
+static int parse_long_options(char *const *nargv, const char *options,
+			      const struct option *long_options, int *idx, int short_too, int flags)
 {
 	char *current_argv, *has_equal;
 #ifdef GNU_COMPATIBLE
-	char *current_dash = "";
+	const char *current_dash;
 #endif
 	size_t current_argv_len;
 	int i, match, exact_match, second_partial_match;
 
-	current_argv = state->place;
+	current_argv = place;
 #ifdef GNU_COMPATIBLE
-	if (PRINT_ERROR) {
-		switch (dash_prefix) {
-		case D_PREFIX:
-			current_dash = "-";
-			break;
-		case DD_PREFIX:
-			current_dash = "--";
-			break;
-		case W_PREFIX:
-			current_dash = "-W ";
-			break;
-		default:
-			break;
-		}
+	switch (dash_prefix) {
+	case D_PREFIX:
+		current_dash = "-";
+		break;
+	case DD_PREFIX:
+		current_dash = "--";
+		break;
+	case W_PREFIX:
+		current_dash = "-W ";
+		break;
+	default:
+		current_dash = "";
+		break;
 	}
 #endif
 	match = -1;
 	exact_match = 0;
 	second_partial_match = 0;
 
-	state->optind++;
+	optind++;
 
 	has_equal = strchr(current_argv, '=');
 	if (has_equal != NULL) {
@@ -242,89 +266,85 @@ parse_long_options(struct getopt_state *state, char * const *nargv,
 	if (!exact_match && second_partial_match) {
 		/* ambiguous abbreviation */
 		if (PRINT_ERROR) {
-			LOG_WRN(AMBIG,
+			warnx(ambig,
 #ifdef GNU_COMPATIBLE
-			     current_dash,
+			      current_dash,
 #endif
-			     (int)current_argv_len,
-			     current_argv);
+			      (int)current_argv_len, current_argv);
 		}
-		state->optopt = 0;
+		optopt = 0;
 		return BADCH;
 	}
-	if (match != -1) {		/* option found */
-		if (long_options[match].has_arg == no_argument
-		    && has_equal) {
+	if (match != -1) { /* option found */
+		if (long_options[match].has_arg == no_argument && has_equal) {
 			if (PRINT_ERROR) {
-				LOG_WRN(NOARG,
+				warnx(noarg,
 #ifdef GNU_COMPATIBLE
-				     current_dash,
+				      current_dash,
 #endif
-				     (int)current_argv_len,
-				     current_argv);
+				      (int)current_argv_len, current_argv);
 			}
 			/*
 			 * XXX: GNU sets optopt to val regardless of flag
 			 */
 			if (long_options[match].flag == NULL) {
-				state->optopt = long_options[match].val;
+				optopt = long_options[match].val;
 			} else {
-				state->optopt = 0;
+				optopt = 0;
 			}
 #ifdef GNU_COMPATIBLE
 			return BADCH;
 #else
-			return BADARG;
+			return (BADARG);
 #endif
 		}
 		if (long_options[match].has_arg == required_argument ||
 		    long_options[match].has_arg == optional_argument) {
 			if (has_equal) {
-				state->optarg = has_equal;
+				optarg = has_equal;
 			} else if (long_options[match].has_arg == required_argument) {
 				/*
 				 * optional argument doesn't use next nargv
 				 */
-				state->optarg = nargv[state->optind++];
+				optarg = nargv[optind++];
 			}
 		}
-		if ((long_options[match].has_arg == required_argument)
-		    && (state->optarg == NULL)) {
+		if ((long_options[match].has_arg == required_argument) && (optarg == NULL)) {
 			/*
 			 * Missing argument; leading ':' indicates no error
 			 * should be generated.
 			 */
 			if (PRINT_ERROR) {
-				LOG_WRN(RECARGSTRING,
+				warnx(recargstring,
 #ifdef GNU_COMPATIBLE
-				    current_dash,
+				      current_dash,
 #endif
-				    current_argv);
+				      current_argv);
 			}
 			/*
 			 * XXX: GNU sets optopt to val regardless of flag
 			 */
 			if (long_options[match].flag == NULL) {
-				state->optopt = long_options[match].val;
+				optopt = long_options[match].val;
 			} else {
-				state->optopt = 0;
+				optopt = 0;
 			}
-			--state->optind;
+			--optind;
 			return BADARG;
 		}
-	} else {			/* unknown option */
+	} else { /* unknown option */
 		if (short_too) {
-			--state->optind;
-			return -1;
+			--optind;
+			return (-1);
 		}
 		if (PRINT_ERROR) {
-			LOG_WRN(ILLOPTSTRING,
+			warnx(illoptstring,
 #ifdef GNU_COMPATIBLE
 			      current_dash,
 #endif
 			      current_argv);
 		}
-		state->optopt = 0;
+		optopt = 0;
 		return BADCH;
 	}
 	if (idx) {
@@ -332,7 +352,7 @@ parse_long_options(struct getopt_state *state, char * const *nargv,
 	}
 	if (long_options[match].flag) {
 		*long_options[match].flag = long_options[match].val;
-		return 0;
+		return (0);
 	} else {
 		return long_options[match].val;
 	}
@@ -342,85 +362,79 @@ parse_long_options(struct getopt_state *state, char * const *nargv,
  * getopt_internal --
  *	Parse argc/argv argument vector.  Called by user level routines.
  */
-static int
-getopt_internal(struct getopt_state *state, int nargc, char * const *nargv,
-		const char *options, const struct option *long_options,
-		int *idx, int flags)
+static int getopt_internal(int nargc, char *const *nargv, const char *options,
+			   const struct option *long_options, int *idx, int flags)
 {
-	char *oli;				/* option letter list index */
+	char *oli; /* option letter list index */
 	int optchar, short_too;
+	static int posixly_correct = -1;
 
 	if (options == NULL) {
-		return -1;
-	}
-
-	/*
-	 * Disable GNU extensions if options string begins with a '+'.
-	 */
-#ifdef GNU_COMPATIBLE
-	if (*options == '-') {
-		flags |= FLAG_ALLARGS;
-	} else if (*options == '+') {
-		flags &= ~FLAG_PERMUTE;
-	}
-#else
-	if (*options == '+')
-		flags &= ~FLAG_PERMUTE;
-	else if (*options == '-')
-		flags |= FLAG_ALLARGS;
-#endif
-	if (*options == '+' || *options == '-') {
-		options++;
+		return (-1);
 	}
 
 	/*
 	 * XXX Some GNU programs (like cvs) set optind to 0 instead of
 	 * XXX using optreset.  Work around this braindamage.
 	 */
-	if (state->optind == 0) {
-		state->optind = state->optreset = 1;
+	if (optind == 0) {
+		optind = optreset = 1;
 	}
 
-	state->optarg = NULL;
-	if (state->optreset) {
-		state->nonopt_start = state->nonopt_end = -1;
+	/*
+	 * Disable GNU extensions if POSIXLY_CORRECT is set or options
+	 * string begins with a '+'.
+	 */
+	if (posixly_correct == -1 || optreset) {
+		posixly_correct = (getenv("POSIXLY_CORRECT") != NULL);
+	}
+	if (*options == '-') {
+		flags |= FLAG_ALLARGS;
+	} else if (posixly_correct || *options == '+') {
+		flags &= ~FLAG_PERMUTE;
+	}
+	if (*options == '+' || *options == '-') {
+		options++;
+	}
+
+	optarg = NULL;
+	if (optreset) {
+		nonopt_start = nonopt_end = -1;
 	}
 start:
-	if (state->optreset || !*(state->place)) {/* update scanning pointer */
-		state->optreset = 0;
-		if (state->optind >= nargc) {          /* end of argument vector */
-			state->place = EMSG;
-			if (state->nonopt_end != -1) {
+	if (optreset || !*place) { /* update scanning pointer */
+		optreset = 0;
+		if (optind >= nargc) { /* end of argument vector */
+			place = EMSG;
+			if (nonopt_end != -1) {
 				/* do permutation, if we have to */
-				permute_args(state->nonopt_start,
-					     state->nonopt_end,
-					     state->optind, nargv);
-				state->optind -= state->nonopt_end -
-						state->nonopt_start;
-			} else if (state->nonopt_start != -1) {
+				permute_args(nonopt_start, nonopt_end, optind, nargv);
+				optind -= nonopt_end - nonopt_start;
+			} else if (nonopt_start != -1) {
 				/*
 				 * If we skipped non-options, set optind
 				 * to the first of them.
 				 */
-				state->optind = state->nonopt_start;
+				optind = nonopt_start;
 			}
-			state->nonopt_start = state->nonopt_end = -1;
+			nonopt_start = nonopt_end = -1;
 			return -1;
 		}
-		state->place = nargv[state->optind];
-		if (*(state->place) != '-' ||
+
+		place = nargv[optind];
+		if (*place != '-' ||
 #ifdef GNU_COMPATIBLE
-		    state->place[1] == '\0') {
+		    place[1] == '\0') {
 #else
-		    (state->place[1] == '\0' && strchr(options, '-') == NULL)) {
+		    (place[1] == '\0' && strchr(options, '-') == NULL)) {
 #endif
-			state->place = EMSG;		/* found non-option */
+			place = EMSG; /* found non-option */
 			if (flags & FLAG_ALLARGS) {
 				/*
 				 * GNU extension:
 				 * return non-option as argument to option 1
 				 */
-				state->optarg = nargv[state->optind++];
+				optarg = nargv[optind++];
 				return INORDER;
 			}
 			if (!(flags & FLAG_PERMUTE)) {
@@ -428,48 +442,39 @@ start:
 				 * If no permutation wanted, stop parsing
 				 * at first non-option.
 				 */
-				return -1;
+				return (-1);
 			}
 			/* do permutation */
-			if (state->nonopt_start == -1) {
-				state->nonopt_start = state->optind;
-			} else if (state->nonopt_end != -1) {
-				permute_args(state->nonopt_start,
-					     state->nonopt_end,
-					     state->optind,
-					     nargv);
-				state->nonopt_start = state->optind -
-				    (state->nonopt_end - state->nonopt_start);
-				state->nonopt_end = -1;
+			if (nonopt_start == -1) {
+				nonopt_start = optind;
+			} else if (nonopt_end != -1) {
+				permute_args(nonopt_start, nonopt_end, optind, nargv);
+				nonopt_start = optind - (nonopt_end - nonopt_start);
+				nonopt_end = -1;
 			}
-			state->optind++;
+			optind++;
 			/* process next argument */
 			goto start;
 		}
-		if (state->nonopt_start != -1 && state->nonopt_end == -1) {
-			state->nonopt_end = state->optind;
+		if (nonopt_start != -1 && nonopt_end == -1) {
+			nonopt_end = optind;
 		}
 
 		/*
 		 * If we have "-" do nothing, if "--" we are done.
 		 */
-		if (state->place[1] != '\0' && *++(state->place) == '-' &&
-		    state->place[1] == '\0') {
-			state->optind++;
-			state->place = EMSG;
+		if (place[1] != '\0' && *++place == '-' && place[1] == '\0') {
+			optind++;
+			place = EMSG;
 			/*
 			 * We found an option (--), so if we skipped
 			 * non-options, we have to permute.
 			 */
-			if (state->nonopt_end != -1) {
-				permute_args(state->nonopt_start,
-					     state->nonopt_end,
-					     state->optind,
-					     nargv);
-				state->optind -= state->nonopt_end -
-						 state->nonopt_start;
+			if (nonopt_end != -1) {
+				permute_args(nonopt_start, nonopt_end, optind, nargv);
+				optind -= nonopt_end - nonopt_start;
 			}
-			state->nonopt_start = state->nonopt_end = -1;
+			nonopt_start = nonopt_end = -1;
 			return -1;
 		}
 	}
@@ -480,147 +485,145 @@ start:
 	 *  2) the arg is not just "-"
 	 *  3) either the arg starts with -- we are getopt_long_only()
 	 */
-	if (long_options != NULL && state->place != nargv[state->optind] &&
-	    (*(state->place) == '-' || (flags & FLAG_LONGONLY))) {
+	if (long_options != NULL && place != nargv[optind] &&
+	    (*place == '-' || (flags & FLAG_LONGONLY))) {
 		short_too = 0;
 #ifdef GNU_COMPATIBLE
 		dash_prefix = D_PREFIX;
 #endif
-		if (*(state->place) == '-') {
-			state->place++;		/* --foo long option */
+		if (*place == '-') {
+			place++; /* --foo long option */
+			if (*place == '\0') {
+				return BADARG; /* malformed option */
+			}
 #ifdef GNU_COMPATIBLE
 			dash_prefix = DD_PREFIX;
 #endif
-		} else if (*(state->place) != ':' && strchr(options, *(state->place)) != NULL) {
-			short_too = 1;		/* could be short option too */
+		} else if (*place != ':' && strchr(options, *place) != NULL) {
+			short_too = 1; /* could be short option too */
 		}
 
-		optchar = parse_long_options(state, nargv, options,
-					     long_options, idx, short_too,
-					     flags);
+		optchar = parse_long_options(nargv, options, long_options, idx, short_too, flags);
 		if (optchar != -1) {
-			state->place = EMSG;
+			place = EMSG;
 			return optchar;
 		}
 	}
-	optchar = (int)*(state->place)++;
-	oli = strchr(options, optchar);
-	if (optchar == (int)':' ||
-	    (optchar == (int)'-' && *(state->place) != '\0') ||
-	    oli == NULL) {
+
+	if ((optchar = (int)*place++) == (int)':' || (optchar == (int)'-' && *place != '\0') ||
+	    (oli = strchr(options, optchar)) == NULL) {
 		/*
 		 * If the user specified "-" and  '-' isn't listed in
 		 * options, return -1 (non-option) as per POSIX.
 		 * Otherwise, it is an unknown option character (or ':').
 		 */
-		if (optchar == (int)'-' && *(state->place) == '\0') {
+		if (optchar == (int)'-' && *place == '\0') {
 			return -1;
 		}
-		if (!*(state->place)) {
-			++state->optind;
+		if (!*place) {
+			++optind;
 		}
 #ifdef GNU_COMPATIBLE
 		if (PRINT_ERROR) {
-			LOG_WRN(GNUOPTCHAR, optchar);
+			warnx(posixly_correct ? illoptchar : gnuoptchar, optchar);
 		}
 #else
 		if (PRINT_ERROR) {
-			LOG_WRN(ILLOPTCHAR, optchar);
+			warnx(illoptchar, optchar);
 		}
 #endif
-		state->optopt = optchar;
+		optopt = optchar;
 		return BADCH;
 	}
 	if (long_options != NULL && optchar == 'W' && oli[1] == ';') {
 		/* -W long-option */
-		if (*(state->place)) {		/* no space */
-			; /* NOTHING */
-		} else if (++(state->optind) >= nargc) {	/* no arg */
-			state->place = EMSG;
+		if (*place) {
+			/* NOTHING */;
+		} else if (++optind >= nargc) { /* no arg */
+			place = EMSG;
 			if (PRINT_ERROR) {
-				LOG_WRN(RECARGCHAR, optchar);
+				warnx(recargchar, optchar);
 			}
-			state->optopt = optchar;
+			optopt = optchar;
 			return BADARG;
-		} else if ((state->optind) < nargc) {
-			state->place = nargv[state->optind];
 		}
+
+		place = nargv[optind];
 #ifdef GNU_COMPATIBLE
 		dash_prefix = W_PREFIX;
 #endif
-		optchar = parse_long_options(state, nargv, options,
-					     long_options, idx, 0, flags);
-		state->place = EMSG;
+		optchar = parse_long_options(nargv, options, long_options, idx, 0, flags);
+		place = EMSG;
 		return optchar;
 	}
-	if (*++oli != ':') {			/* doesn't take argument */
-		if (!*(state->place)) {
-			++state->optind;
+	if (*++oli != ':') { /* doesn't take argument */
+		if (!*place) {
+			++optind;
 		}
-	} else {				/* takes (optional) argument */
-		state->optarg = NULL;
-		if (*(state->place)) {			/* no white space */
-			state->optarg = state->place;
-		} else if (oli[1] != ':') {	/* arg not optional */
-			if (++state->optind >= nargc) {	/* no arg */
-				state->place = EMSG;
+	} else { /* takes (optional) argument */
+		optarg = NULL;
+		if (*place) { /* no white space */
+			optarg = place;
+		} else if (oli[1] != ':') {      /* arg not optional */
+			if (++optind >= nargc) { /* no arg */
+				place = EMSG;
 				if (PRINT_ERROR) {
-					LOG_WRN(RECARGCHAR, optchar);
+					warnx(recargchar, optchar);
 				}
-				state->optopt = optchar;
+				optopt = optchar;
 				return BADARG;
+			} else {
+				optarg = nargv[optind];
 			}
-			state->optarg = nargv[state->optind];
 		}
-		state->place = EMSG;
-		++state->optind;
+		place = EMSG;
+		++optind;
 	}
 	/* dump back option letter */
 	return optchar;
 }
 
+#ifdef REPLACE_GETOPT
+/*
+ * getopt --
+ *	Parse argc/argv argument vector.
+ *
+ * [eventually this will replace the BSD getopt]
+ */
+int getopt(int nargc, char *const *nargv, const char *options)
+{
+
+	/*
+	 * We don't pass FLAG_PERMUTE to getopt_internal() since
+	 * the BSD getopt(3) (unlike GNU) has never done this.
+	 *
+	 * Furthermore, since many privileged programs call getopt()
+	 * before dropping privileges it makes sense to keep things
+	 * as simple (and bug-free) as possible.
+	 */
+	return getopt_internal(nargc, nargv, options, NULL, NULL, 0);
+}
+#endif /* REPLACE_GETOPT */
+
 /*
  * getopt_long --
  *	Parse argc/argv argument vector.
  */
-int
-getopt_long(int nargc, char *const *nargv,
-	    const char *options, const struct option *long_options,
-	    int *idx)
+int getopt_long(int nargc, char *const *nargv, const char *options,
+		const struct option *long_options, int *idx)
 {
-	struct getopt_state *state;
-	int ret;
 
-	/* Get state of the current thread */
-	state = getopt_state_get();
-
-	ret = getopt_internal(state, nargc, nargv, options, long_options, idx,
-			      FLAG_PERMUTE);
-
-	z_getopt_global_state_update(state);
-
-	return ret;
+	return getopt_internal(nargc, nargv, options, long_options, idx, FLAG_PERMUTE);
 }
 
 /*
  * getopt_long_only --
  *	Parse argc/argv argument vector.
  */
-int
-getopt_long_only(int nargc, char *const *nargv,
-		 const char *options, const struct option *long_options,
-		 int *idx)
+int getopt_long_only(int nargc, char *const *nargv, const char *options,
+		     const struct option *long_options, int *idx)
 {
-	struct getopt_state *state;
-	int ret;
 
-	/* Get state of the current thread */
-	state = getopt_state_get();
-
-	ret = getopt_internal(state, nargc, nargv, options, long_options, idx,
-			      FLAG_PERMUTE|FLAG_LONGONLY);
-
-	z_getopt_global_state_update(state);
-
-	return ret;
+	return getopt_internal(nargc, nargv, options, long_options, idx,
+				FLAG_PERMUTE | FLAG_LONGONLY);
 }
