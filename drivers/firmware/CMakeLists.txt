@@ -1,3 +1,4 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_subdirectory_ifdef(CONFIG_ARM_SCMI scmi)
+add_subdirectory_ifdef(CONFIG_RISCV_RPMI rpmi)

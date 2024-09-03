@@ -3,6 +3,7 @@
 
 menu "Firmware drivers"
 
+source "drivers/firmware/rpmi/Kconfig"
 source "drivers/firmware/scmi/Kconfig"
 
 endmenu
