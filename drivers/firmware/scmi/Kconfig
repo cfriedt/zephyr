@@ -1,6 +1,13 @@
 # Copyright 2024 NXP
 # SPDX-License-Identifier: Apache-2.0
 
+config ARM_SCMI
+	bool "Support for ARM's SCMI"
+	depends on ARM || ARM64
+	help
+	  Enable support for ARM's System Configuration and Management
+	  Interface (SCMI).
+
 if ARM_SCMI
 
 config ARM_SCMI_CLK_HELPERS
