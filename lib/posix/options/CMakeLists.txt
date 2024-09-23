@@ -169,3 +169,4 @@ zephyr_library_include_directories(
 )
 
 zephyr_library_property(ALLOW_EMPTY TRUE)
+zephyr_posix_library_compile_options()

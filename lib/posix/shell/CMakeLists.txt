@@ -3,7 +3,7 @@
 
 zephyr_library()
 # For setenv() and unsetenv()
-zephyr_library_compile_options(-U_POSIX_C_SOURCE -D_POSIX_C_SOURCE=200809L)
+zephyr_posix_library_compile_options()
 # For getenv_r() visibility
 zephyr_library_compile_definitions(_BSD_SOURCE)
 
