@@ -1,0 +1,55 @@
+# Copyright (c) 2024 Tenstorrent AI ULC
+# SPDX-License-Identifier: Apache-2.0
+
+menuconfig COMMON_LIBC_MALLINFO2
+	bool "Common C library mallinfo2()"
+	depends on COMMON_LIBC_MALLOC
+	help
+	  Enable the common C library implementation of mallinfo2() to support
+	  simplified application-level queries of memory usage and statistics.
+
+	  Note: mallinfo2() is a non-standard GNU extension present in some C libraries.
+
+if COMMON_LIBC_MALLINFO2
+
+config COMMON_LIBC_MALLINFO2_HIGH_WATERMARK
+	bool "Maintain a high-watermark of memory usage"
+	help
+	  This option enables the 'usmblks' field in the mallinfo2 structure in order to track the
+	  high-watermark of heap memory usage.
+
+config COMMON_LIBC_MALLINFO2_KEEPCOST
+	bool "Maintain a metric of block statistics in mallinfo2()"
+	help
+	   Track small block ('fastbin') allocations.
+
+	   Note: Zephyr's heap allocator does not perform fastbin allocations. This option exists
+	   mainly for compatibility purposes.
+
+config COMMON_LIBC_MALLINFO2_MMAP
+	bool "Track allocations made via anonymous, mapped pages"
+	help
+	  This option enables the 'hblks' and 'hblkhd' fields in the mallinfo2 structure in order
+	  to track the allocations made via anonymous, mapped pages.
+
+	  Note: this option is not yet implemented and exists mainly for compatibility purposes.
+
+config COMMON_LIBC_MALLINFO2_ORDBLKS
+	bool "Maintain a counter for ordinary free blocks"
+	help
+	  This option enables the 'ordblks' field in the mallinfo2 structure in order
+	  to approximate the number of ordinary, non-fastbin free blocks. This option may be useful
+	  for some users who
+
+config COMMON_LIBC_MALLINFO2_SMBLKS
+	bool "Track small block allocations"
+	help
+	   Track small block ('fastbin') allocations.
+
+	   Note: Zephyr's heap allocator does not perform fastbin allocations. This option exists
+	   mainly for compatibility purposes.
+
+config COMMON_LIBC_MALLINFO2_UORDBLKS
+	bool ""
+
+endif

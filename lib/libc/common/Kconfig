@@ -99,6 +99,8 @@ config COMMON_LIBC_REALLOCARRAY
 	  Enable the common C library trivial implementation of
 	  reallocarray, which forwards to realloc.
 
+rsource "Kconfig.mallinfo"
+
 config COMMON_LIBC_STRNLEN
 	bool
 	help
