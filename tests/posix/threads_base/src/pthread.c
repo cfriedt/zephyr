@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "_main.h"
+
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -220,7 +222,7 @@ static void *thread_top_term(void *p1)
 /* Test the internal priority conversion functions */
 int zephyr_to_posix_priority(int z_prio, int *policy);
 int posix_to_zephyr_priority(int priority, int policy);
-ZTEST(pthread, test_pthread_priority_conversion)
+ZTEST(posix_threads_base, test_pthread_priority_conversion)
 {
 	/*
 	 *    ZEPHYR [-CONFIG_NUM_COOP_PRIORITIES, -1]
@@ -377,7 +379,7 @@ static void *create_thread1(void *p1)
 	return NULL;
 }
 
-ZTEST(pthread, test_pthread_descriptor_leak)
+ZTEST(posix_threads_base, test_pthread_descriptor_leak)
 {
 	pthread_t pthread1;
 
@@ -389,7 +391,7 @@ ZTEST(pthread, test_pthread_descriptor_leak)
 	}
 }
 
-ZTEST(pthread, test_sched_getparam)
+ZTEST(posix_threads_base, test_sched_getparam)
 {
 	struct sched_param param;
 	int rc = sched_getparam(0, &param);
@@ -398,14 +400,14 @@ ZTEST(pthread, test_sched_getparam)
 	zassert_true((rc == -1 && err == ENOSYS));
 }
 
-ZTEST(pthread, test_sched_getscheduler)
+ZTEST(posix_threads_base, test_sched_getscheduler)
 {
 	int rc = sched_getscheduler(0);
 	int err = errno;
 
 	zassert_true((rc == -1 && err == ENOSYS));
 }
-ZTEST(pthread, test_sched_setparam)
+ZTEST(posix_threads_base, test_sched_setparam)
 {
 	struct sched_param param = {
 		.sched_priority = 2,
@@ -416,7 +418,7 @@ ZTEST(pthread, test_sched_setparam)
 	zassert_true((rc == -1 && err == ENOSYS));
 }
 
-ZTEST(pthread, test_sched_setscheduler)
+ZTEST(posix_threads_base, test_sched_setscheduler)
 {
 	struct sched_param param = {
 		.sched_priority = 2,
@@ -428,7 +430,7 @@ ZTEST(pthread, test_sched_setscheduler)
 	zassert_true((rc == -1 && err == ENOSYS));
 }
 
-ZTEST(pthread, test_sched_rr_get_interval)
+ZTEST(posix_threads_base, test_sched_rr_get_interval)
 {
 	struct timespec interval = {
 		.tv_sec = 0,
@@ -440,13 +442,13 @@ ZTEST(pthread, test_sched_rr_get_interval)
 	zassert_true((rc == -1 && err == ENOSYS));
 }
 
-ZTEST(pthread, test_pthread_equal)
+ZTEST(posix_threads_base, test_pthread_equal)
 {
 	zassert_true(pthread_equal(pthread_self(), pthread_self()));
 	zassert_false(pthread_equal(pthread_self(), (pthread_t)4242));
 }
 
-ZTEST(pthread, test_pthread_set_get_concurrency)
+ZTEST(posix_threads_base, test_pthread_set_get_concurrency)
 {
 	/* EINVAL if the value specified by new_level is negative */
 	zassert_equal(EINVAL, pthread_setconcurrency(-42));
@@ -491,7 +493,7 @@ static void *test_pthread_cleanup_entry(void *arg)
 	return NULL;
 }
 
-ZTEST(pthread, test_pthread_cleanup)
+ZTEST(posix_threads_base, test_pthread_cleanup)
 {
 	pthread_t th;
 
@@ -529,7 +531,7 @@ static void *test_pthread_cancel_fn(void *arg)
 	return NULL;
 }
 
-ZTEST(pthread, test_pthread_testcancel)
+ZTEST(posix_threads_base, test_pthread_testcancel)
 {
 	pthread_t th;
 
@@ -557,22 +559,10 @@ static void *test_pthread_setschedprio_fn(void *arg)
 	return NULL;
 }
 
-ZTEST(pthread, test_pthread_setschedprio)
+ZTEST(posix_threads_base, test_pthread_setschedprio)
 {
 	pthread_t th;
 
 	zassert_ok(pthread_create(&th, NULL, test_pthread_setschedprio_fn, NULL));
 	zassert_ok(pthread_join(th, NULL));
 }
-
-static void before(void *arg)
-{
-	ARG_UNUSED(arg);
-
-	if (!IS_ENABLED(CONFIG_DYNAMIC_THREAD)) {
-		/* skip redundant testing if there is no thread pool / heap allocation */
-		ztest_test_skip();
-	}
-}
-
-ZTEST_SUITE(pthread, NULL, NULL, before, NULL, NULL);

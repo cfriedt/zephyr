@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "_main.h"
+
 #include <pthread.h>
 
 #include <zephyr/sys/util.h>
@@ -13,14 +15,13 @@
 #define SCHED_INVALID       4242
 #define INVALID_DETACHSTATE 7373
 
-static bool attr_valid;
-static pthread_attr_t attr;
+bool attr_valid;
+pthread_attr_t attr;
 static const pthread_attr_t uninit_attr;
 static bool detached_thread_has_finished;
 
 /* TODO: this should be optional */
-#define STATIC_THREAD_STACK_SIZE (MAX(1024, PTHREAD_STACK_MIN + CONFIG_TEST_EXTRA_STACK_SIZE))
-static K_THREAD_STACK_DEFINE(static_thread_stack, STATIC_THREAD_STACK_SIZE);
+K_THREAD_STACK_DEFINE(static_thread_stack, STATIC_THREAD_STACK_SIZE);
 
 static void *thread_entry(void *arg)
 {
@@ -83,7 +84,7 @@ static inline void cannot_create_thread(const pthread_attr_t *attrp)
 	create_thread_common(attrp, false, true);
 }
 
-ZTEST(pthread_attr, test_null_attr)
+ZTEST(posix_threads_base, test_null_attr)
 {
 	/*
 	 * This test can only succeed when it is possible to call pthread_create() with a NULL
@@ -92,7 +93,7 @@ ZTEST(pthread_attr, test_null_attr)
 	create_thread_common(NULL, IS_ENABLED(CONFIG_DYNAMIC_THREAD) ? true : false, true);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_static_corner_cases)
+ZTEST(posix_threads_base, test_pthread_attr_static_corner_cases)
 {
 	pthread_attr_t attr1;
 
@@ -111,7 +112,7 @@ ZTEST(pthread_attr, test_pthread_attr_static_corner_cases)
 	cannot_create_thread(&attr1);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_init_destroy)
+ZTEST(posix_threads_base, test_pthread_attr_init_destroy)
 {
 	/* attr has already been initialized in before() */
 
@@ -147,7 +148,7 @@ ZTEST(pthread_attr, test_pthread_attr_init_destroy)
 	/* note: attr is still valid and is destroyed in after() */
 }
 
-ZTEST(pthread_attr, test_pthread_attr_getguardsize)
+ZTEST(posix_threads_base, test_pthread_attr_getguardsize)
 {
 	size_t guardsize;
 
@@ -167,7 +168,7 @@ ZTEST(pthread_attr, test_pthread_attr_getguardsize)
 	zassert_not_equal(guardsize, BIOS_FOOD);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_setguardsize)
+ZTEST(posix_threads_base, test_pthread_attr_setguardsize)
 {
 	size_t guardsize = CONFIG_POSIX_PTHREAD_ATTR_GUARDSIZE_DEFAULT;
 	size_t sizes[] = {0, BIT_MASK(CONFIG_POSIX_PTHREAD_ATTR_GUARDSIZE_BITS / 2),
@@ -197,7 +198,7 @@ ZTEST(pthread_attr, test_pthread_attr_setguardsize)
 	}
 }
 
-ZTEST(pthread_attr, test_pthread_attr_getschedparam)
+ZTEST(posix_threads_base, test_pthread_attr_getschedparam)
 {
 	struct sched_param param = {
 		.sched_priority = BIOS_FOOD,
@@ -219,7 +220,7 @@ ZTEST(pthread_attr, test_pthread_attr_getschedparam)
 	zassert_not_equal(BIOS_FOOD, param.sched_priority);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_setschedparam)
+ZTEST(posix_threads_base, test_pthread_attr_setschedparam)
 {
 	struct sched_param param = {0};
 
@@ -241,7 +242,7 @@ ZTEST(pthread_attr, test_pthread_attr_setschedparam)
 	can_create_thread(&attr);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_getschedpolicy)
+ZTEST(posix_threads_base, test_pthread_attr_getschedpolicy)
 {
 	int policy = BIOS_FOOD;
 
@@ -261,7 +262,7 @@ ZTEST(pthread_attr, test_pthread_attr_getschedpolicy)
 	zassert_not_equal(BIOS_FOOD, policy);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_setschedpolicy)
+ZTEST(posix_threads_base, test_pthread_attr_setschedpolicy)
 {
 	int policy = SCHED_OTHER;
 
@@ -287,7 +288,7 @@ ZTEST(pthread_attr, test_pthread_attr_setschedpolicy)
 	can_create_thread(&attr);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_getstack)
+ZTEST(posix_threads_base, test_pthread_attr_getstack)
 {
 	void *stackaddr = (void *)BIOS_FOOD;
 	size_t stacksize = BIOS_FOOD;
@@ -313,7 +314,7 @@ ZTEST(pthread_attr, test_pthread_attr_getstack)
 	zassert_not_equal(stacksize, BIOS_FOOD);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_setstack)
+ZTEST(posix_threads_base, test_pthread_attr_setstack)
 {
 	void *stackaddr;
 	size_t stacksize;
@@ -378,7 +379,7 @@ ZTEST(pthread_attr, test_pthread_attr_setstack)
 	}
 }
 
-ZTEST(pthread_attr, test_pthread_attr_getstacksize)
+ZTEST(posix_threads_base, test_pthread_attr_getstacksize)
 {
 	size_t stacksize = BIOS_FOOD;
 
@@ -397,7 +398,7 @@ ZTEST(pthread_attr, test_pthread_attr_getstacksize)
 	zassert_not_equal(stacksize, BIOS_FOOD);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_setstacksize)
+ZTEST(posix_threads_base, test_pthread_attr_setstacksize)
 {
 	size_t stacksize;
 	size_t new_stacksize;
@@ -446,7 +447,7 @@ ZTEST(pthread_attr, test_pthread_attr_setstacksize)
 	}
 }
 
-ZTEST(pthread_attr, test_pthread_attr_getscope)
+ZTEST(posix_threads_base, test_pthread_attr_getscope)
 {
 	int contentionscope = BIOS_FOOD;
 
@@ -466,7 +467,7 @@ ZTEST(pthread_attr, test_pthread_attr_getscope)
 	zassert_equal(contentionscope, PTHREAD_SCOPE_SYSTEM);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_setscope)
+ZTEST(posix_threads_base, test_pthread_attr_setscope)
 {
 	int contentionscope = BIOS_FOOD;
 
@@ -489,7 +490,7 @@ ZTEST(pthread_attr, test_pthread_attr_setscope)
 	zassert_equal(contentionscope, PTHREAD_SCOPE_SYSTEM);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_getinheritsched)
+ZTEST(posix_threads_base, test_pthread_attr_getinheritsched)
 {
 	int inheritsched = BIOS_FOOD;
 
@@ -581,7 +582,7 @@ static void test_pthread_attr_setinheritsched_common(bool inheritsched)
 				   UINT_TO_POINTER(k_thread_priority_get(k_current_get())));
 }
 
-ZTEST(pthread_attr, test_pthread_attr_setinheritsched)
+ZTEST(posix_threads_base, test_pthread_attr_setinheritsched)
 {
 	/* degenerate cases */
 	{
@@ -603,7 +604,7 @@ ZTEST(pthread_attr, test_pthread_attr_setinheritsched)
 	test_pthread_attr_setinheritsched_common(PTHREAD_EXPLICIT_SCHED);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_large_stacksize)
+ZTEST(posix_threads_base, test_pthread_attr_large_stacksize)
 {
 	size_t actual_size;
 	const size_t expect_size = BIT(CONFIG_POSIX_PTHREAD_ATTR_STACKSIZE_BITS);
@@ -618,7 +619,7 @@ ZTEST(pthread_attr, test_pthread_attr_large_stacksize)
 	zassert_equal(actual_size, expect_size);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_getdetachstate)
+ZTEST(posix_threads_base, test_pthread_attr_getdetachstate)
 {
 	int detachstate;
 
@@ -640,7 +641,7 @@ ZTEST(pthread_attr, test_pthread_attr_getdetachstate)
 	can_create_thread(&attr);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_setdetachstate)
+ZTEST(posix_threads_base, test_pthread_attr_setdetachstate)
 {
 	int detachstate = PTHREAD_CREATE_JOINABLE;
 
@@ -665,7 +666,7 @@ ZTEST(pthread_attr, test_pthread_attr_setdetachstate)
 	create_thread_common(&attr, true, false);
 }
 
-ZTEST(pthread_attr, test_pthread_attr_policy_and_priority_limits)
+ZTEST(posix_threads_base, test_pthread_attr_policy_and_priority_limits)
 {
 	int pmin = -1;
 	int pmax = -1;
@@ -781,25 +782,3 @@ ZTEST(pthread_attr, test_pthread_attr_policy_and_priority_limits)
 		}
 	}
 }
-
-static void before(void *arg)
-{
-	ARG_UNUSED(arg);
-
-	zassert_ok(pthread_attr_init(&attr));
-	/* TODO: pthread_attr_init() should be sufficient to initialize a thread by itself */
-	zassert_ok(pthread_attr_setstack(&attr, &static_thread_stack, STATIC_THREAD_STACK_SIZE));
-	attr_valid = true;
-}
-
-static void after(void *arg)
-{
-	ARG_UNUSED(arg);
-
-	if (attr_valid) {
-		(void)pthread_attr_destroy(&attr);
-		attr_valid = false;
-	}
-}
-
-ZTEST_SUITE(pthread_attr, NULL, NULL, before, after, NULL);

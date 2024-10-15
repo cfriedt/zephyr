@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "_main.h"
+
 #include <pthread.h>
 
 #include <zephyr/sys/util.h>
@@ -74,7 +76,7 @@ static void make_keys(void)
  * multiple keys.
  */
 
-ZTEST(key, test_key_1toN_thread)
+ZTEST(posix_threads_base, test_key_1toN_thread)
 {
 	void *retval;
 	pthread_t newthread[N_THR];
@@ -95,7 +97,7 @@ ZTEST(key, test_key_1toN_thread)
 	zassert_ok(pthread_key_delete(key), "attempt to delete key failed");
 }
 
-ZTEST(key, test_key_Nto1_thread)
+ZTEST(posix_threads_base, test_key_Nto1_thread)
 {
 	pthread_t newthread;
 
@@ -113,7 +115,7 @@ ZTEST(key, test_key_Nto1_thread)
 	}
 }
 
-ZTEST(key, test_key_resource_leak)
+ZTEST(posix_threads_base, test_key_resource_leak)
 {
 	pthread_key_t key;
 
@@ -123,7 +125,7 @@ ZTEST(key, test_key_resource_leak)
 	}
 }
 
-ZTEST(key, test_correct_key_is_deleted)
+ZTEST(posix_threads_base, test_correct_key_is_deleted)
 {
 	pthread_key_t key;
 	size_t j = CONFIG_POSIX_THREAD_KEYS_MAX - 1;
@@ -143,15 +145,3 @@ ZTEST(key, test_correct_key_is_deleted)
 		zassert_ok(pthread_key_delete(keys[i]), "failed to delete key %zu", i);
 	}
 }
-
-static void before(void *arg)
-{
-	ARG_UNUSED(arg);
-
-	if (!IS_ENABLED(CONFIG_DYNAMIC_THREAD)) {
-		/* skip redundant testing if there is no thread pool / heap allocation */
-		ztest_test_skip();
-	}
-}
-
-ZTEST_SUITE(key, NULL, NULL, before, NULL, NULL);
