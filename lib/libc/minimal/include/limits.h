@@ -80,7 +80,12 @@ extern "C" {
 #error "unexpected __SIZEOF_LONG_LONG__ value"
 #endif
 
-#define PATH_MAX    256
+#if defined(_POSIX_C_SOURCE)
+/* Zephyr controls posix-related limits related to system resources, etc */
+#include <zephyr/posix/sys/limits.h>
+#else
+#define PATH_MAX 256
+#endif /* _POSIX_C_SOURCE */
 
 #ifdef __cplusplus
 }
