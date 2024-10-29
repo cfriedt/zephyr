@@ -1,0 +1,42 @@
+
+# Copyright 2024 Tenstorrent AI ULC
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+        RISC-V Platform Management Interface transport description.
+
+compatible: "riscv,rpmi"
+
+include: [base.yaml]
+
+properties:
+  # doorbell: optional, and implemented via base.yaml properties
+  # applicable to "fast-channel", "shmem", and possibly other transports.
+  #
+  # interrupts = <1 2 3 4>;
+  # interrupt-names = "a2p-doorbell", "p2a-doorbell";
+
+  rpmi-transport-type:
+    type: string
+    required: true
+    enum: ["fast-channel", "shmem"]
+    description: |
+      TODO: Add description
+
+  # shmem queues: optional, and implemented via base.yaml properties
+  # reg-names = "a2p-req", "a2p-ack", "p2a-req", "p2a-ack";
+  # reg = <0x1000 0x1000>, <0x2000 0x1000>, <0x3000 0x1000>, <0x4000 0x1000>;
+
+  shmem-slot-size:
+    type: integer
+    description: |
+      Queue slot size in bytes.
+
+      Required if rpmi-transport-type is "shmem".
+
+  fast-channel:
+    type: string
+    description: |
+      TODO: Add description.
+
+      Required if rpmi-transport-type is "fast-channel".
