@@ -13,13 +13,14 @@ properties:
   # doorbell: optional, and implemented via base.yaml properties
   # applicable to "fast-channel", "shmem", and possibly other transports.
   #
-  # interrupts = <1 2 3 4>;
+  # interrupts = <1 2>;
   # interrupt-names = "a2p-doorbell", "p2a-doorbell";
+  # interrupt-parent = <&plic>;
 
   rpmi-transport-type:
     type: string
     required: true
-    enum: ["fast-channel", "shmem"]
+    enum: ["fast-channel", "shmem", "socket"]
     description: |
       TODO: Add description
 
@@ -33,10 +34,3 @@ properties:
       Queue slot size in bytes.
 
       Required if rpmi-transport-type is "shmem".
-
-  fast-channel:
-    type: string
-    description: |
-      TODO: Add description.
-
-      Required if rpmi-transport-type is "fast-channel".

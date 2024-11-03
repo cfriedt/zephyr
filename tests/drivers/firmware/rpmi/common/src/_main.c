@@ -6,7 +6,7 @@
 
 #include <zephyr/ztest.h>
 
-#include <zephyr/rpmi/librpmi.h>
+#include <zephyr/rpmi/rpmi.h>
 
 ZTEST(rpmi_common, test_nada)
 {
