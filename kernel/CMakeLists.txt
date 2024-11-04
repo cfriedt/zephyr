@@ -198,6 +198,9 @@ target_sources_ifdef(
   userspace.c
   )
 
+if(CONFIG_ARCH_DYNAMIC_OBJECTS)
+endif()
+
 if(${CONFIG_DYNAMIC_THREAD})
   target_sources(kernel PRIVATE dynamic.c)
 else()
