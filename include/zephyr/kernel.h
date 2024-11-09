@@ -3039,6 +3039,29 @@ struct k_mutex {
 		Z_MUTEX_INITIALIZER(name)
 
 /**
+ * @cond INTERNAL_HIDDEN
+ */
+
+#define Z_MUTEX_LISTIFY(i, name) Z_MUTEX_INITIALIZER(&(name)[(i)])
+
+/**
+ * INTERNAL_HIDDEN @endcond
+ */
+
+/**
+ * @brief Statically define and initialize an array of mutexes.
+ *
+ * The mutex array can be accessed outside the module where it is defined using:
+ *
+ * @code extern struct k_mutex <name>[<count>]; @endcode
+ *
+ * @param name Name of the mutex array.
+ * @param count Number of mutexes in the array.
+ */
+#define K_MUTEX_ARRAY_DEFINE(name, count)                                                          \
+	STRUCT_SECTION_ITERABLE_ARRAY(k_mutex, name) = LISTIFY(count, Z_MUTEX_LISTIFY, (,), name)
+
+/**
  * @brief Initialize a mutex.
  *
  * This routine initializes a mutex object, prior to its first use.
@@ -3180,6 +3203,30 @@ __syscall int k_condvar_wait(struct k_condvar *condvar, struct k_mutex *mutex,
 #define K_CONDVAR_DEFINE(name)                                                 \
 	STRUCT_SECTION_ITERABLE(k_condvar, name) =                             \
 		Z_CONDVAR_INITIALIZER(name)
+
+/**
+ * @cond INTERNAL_HIDDEN
+ */
+
+#define Z_CONDVAR_LISTIFY(i, name) Z_CONDVAR_INITIALIZER(&(name)[(i)])
+
+/**
+ * INTERNAL_HIDDEN @endcond
+ */
+
+/**
+ * @brief Statically define and initialize an array of condition variables.
+ *
+ * The condition variable array can be accessed outside the module where it is defined using:
+ *
+ * @code extern struct k_condvar <name>[<count>]; @endcode
+ *
+ * @param name Name of the condition variable array.
+ * @param count Number of condition variables in the array.
+ */
+#define K_CONDVAR_ARRAY_DEFINE(name, count)                                                        \
+	STRUCT_SECTION_ITERABLE_ARRAY(k_condvar, name) = LISTIFY(count, Z_CONDVAR_LISTIFY, (,), name)
+
 /**
  * @}
  */
