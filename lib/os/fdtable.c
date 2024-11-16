@@ -374,12 +374,12 @@ unlock:
 
 ssize_t zvfs_read(int fd, void *buf, size_t sz, const size_t *from_offset)
 {
-	return zvfs_rw(fd, buf, sz, false, from_offset);
+	return zvfs_rw(fd, buf, sz, false, from_offset, false);
 }
 
 ssize_t zvfs_write(int fd, const void *buf, size_t sz, const size_t *from_offset)
 {
-	return zvfs_rw(fd, (void *)buf, sz, true, from_offset);
+	return zvfs_rw(fd, (void *)buf, sz, true, from_offset, false);
 }
 
 int zvfs_close(int fd)
