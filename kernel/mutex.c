@@ -292,6 +292,29 @@ static inline int z_vrfy_k_mutex_unlock(struct k_mutex *mutex)
 #include <zephyr/syscalls/k_mutex_unlock_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
+bool z_impl_k_mutex_held(struct k_mutex *mutex)
+{
+	bool held = false;
+
+	__ASSERT(!arch_is_in_isr(), "mutexes cannot be used inside ISRs");
+
+	K_SPINLOCK(&lock) {
+		held = (mutex->lock_count > 0) && (mutex->owner == _current);
+	}
+
+	return held;
+}
+
+#ifdef CONFIG_USERSPACE
+static inline bool z_vrfy_k_mutex_held(struct k_mutex *mutex)
+{
+	K_OOPS(K_SYSCALL_OBJ(mutex, K_OBJ_MUTEX));
+	return z_impl_k_mutex_held(mutex);
+}
+#include <zephyr/syscalls/k_mutex_held_mrsh.c>
+#endif /* CONFIG_USERSPACE */
+
+
 #ifdef CONFIG_OBJ_CORE_MUTEX
 static int init_mutex_obj_core_list(void)
 {

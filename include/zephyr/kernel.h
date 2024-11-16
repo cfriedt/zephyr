@@ -3099,6 +3099,18 @@ __syscall int k_mutex_lock(struct k_mutex *mutex, k_timeout_t timeout);
 __syscall int k_mutex_unlock(struct k_mutex *mutex);
 
 /**
+ * @brief Check if the current thread holds the lock on a mutex.
+ *
+ * This routine checks if the current thread holds the lock on @a mutex.
+ *
+ * @param mutex Address of the mutex.
+ *
+ * @return true if the mutex is locked by the current thread, otherwise false.
+ */
+__syscall bool k_mutex_held(struct k_mutex *mutex);
+
+
+/**
  * @}
  */
 
