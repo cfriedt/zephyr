@@ -313,7 +313,7 @@ static bool supports_pread_pwrite(uint32_t mode)
 	}
 }
 
-static ssize_t zvfs_rw(int fd, void *buf, size_t sz, bool is_write, const size_t *from_offset)
+static ssize_t zvfs_rw(int fd, void *buf, size_t sz, bool is_write, const size_t *from_offset, bool locked)
 {
 	bool prw;
 	ssize_t res;
@@ -323,7 +323,9 @@ static ssize_t zvfs_rw(int fd, void *buf, size_t sz, bool is_write, const size_t
 		return -1;
 	}
 
-	(void)k_mutex_lock(&fdtable[fd].lock, K_FOREVER);
+	if (!locked) {
+		(void)k_mutex_lock(&fdtable[fd].lock, K_FOREVER);
+	}
 
 	prw = supports_pread_pwrite(fdtable[fd].mode);
 	if (from_offset != NULL && !prw) {
@@ -363,7 +365,9 @@ static ssize_t zvfs_rw(int fd, void *buf, size_t sz, bool is_write, const size_t
 	}
 
 unlock:
-	k_mutex_unlock(&fdtable[fd].lock);
+	if (!locked) {
+		k_mutex_unlock(&fdtable[fd].lock);
+	}
 
 	return res;
 }
@@ -529,6 +533,74 @@ int zvfs_ioctl(int fd, unsigned long request, va_list args)
 	return fdtable[fd].vtable->ioctl(fdtable[fd].obj, request, args);
 }
 
+void zvfs_flockfile(FILE *file)
+{
+	struct fd_entry *const ent = (struct fd_entry *)file;
+
+	if(!IS_ARRAY_ELEMENT(fdtable, ent)) {
+		return;
+	}
+
+	(void)k_mutex_lock(&ent->lock, K_FOREVER);
+}
+
+int zvfs_ftrylockfile(FILE *file)
+{
+	struct fd_entry *const ent = (struct fd_entry *)file;
+
+	if(!IS_ARRAY_ELEMENT(fdtable, ent)) {
+		return -EINVAL;
+	}
+
+	return k_mutex_trylock(&ent->lock, K_NO_WAIT) != 0;
+}
+
+void zvfs_funlockfile(FILE *file)
+{
+	struct fd_entry *const ent = (struct fd_entry *)file;
+
+	if (!IS_ARRAY_ELEMENT(fdtable, ent)) {
+		return;
+	}
+
+	(void)k_mutex_unlock(&ent->lock);
+}
+
+int zvfs_getc_unlocked(FILE *stream)
+{
+	int ret;
+	char buf;
+	struct fd_entry *const ent = (struct fd_entry *)stream;
+
+	if (!IS_ARRAY_ELEMENT(fdtable, ent)) {
+		return EOF;
+	}
+
+	__ASSERT(k_mutex_held(&ent->lock), "lock is not held");
+
+	ret = zvfs_rw(ARRAY_INDEX(fdtable, ent), &buf, 1, false, NULL, true);
+	if (ret <= 0) {
+		return EOF;
+	}
+}
+
+int zvfs_putc_unlocked(int c, FILE *stream)
+{
+	int ret;
+	char buf = (char)c;
+	struct fd_entry *const ent = (struct fd_entry *)stream;
+
+	if (!IS_ARRAY_ELEMENT(fdtable, ent)) {
+		return EOF;
+	}
+
+	__ASSERT(k_mutex_held(&ent->lock), "lock is not held");
+
+	ret = zvfs_rw(ARRAY_INDEX(fdtable, ent), &buf, 1, true, NULL, true);
+	if (ret <= 0) {
+		return EOF;
+	}
+}
 
 #if defined(CONFIG_POSIX_DEVICE_IO)
 /*
