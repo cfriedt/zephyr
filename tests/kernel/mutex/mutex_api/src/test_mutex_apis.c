@@ -46,6 +46,9 @@ static void tThread_entry_lock_no_wait(void *p1, void *p2, void *p3)
 {
 	zassert_true(k_mutex_lock((struct k_mutex *)p1, K_NO_WAIT) != 0);
 	TC_PRINT("bypass locked resource from spawn thread\n");
+
+	zassert_false(k_mutex_held((struct k_mutex *)p1),
+		"failed to lock mutex but mutex reports being held by this thread");
 }
 
 static void tThread_entry_lock_timeout_fail(void *p1, void *p2, void *p3)
@@ -53,6 +56,9 @@ static void tThread_entry_lock_timeout_fail(void *p1, void *p2, void *p3)
 	zassert_true(k_mutex_lock((struct k_mutex *)p1,
 				  K_MSEC(TIMEOUT - 100)) != 0, NULL);
 	TC_PRINT("bypass locked resource from spawn thread\n");
+
+	zassert_false(k_mutex_held((struct k_mutex *)p1),
+		"failed to lock mutex but mutex reports being held by this thread");
 }
 
 static void tThread_entry_lock_timeout_pass(void *p1, void *p2, void *p3)
@@ -60,7 +66,14 @@ static void tThread_entry_lock_timeout_pass(void *p1, void *p2, void *p3)
 	zassert_true(k_mutex_lock((struct k_mutex *)p1,
 				  K_MSEC(TIMEOUT + 100)) == 0, NULL);
 	TC_PRINT("access resource from spawn thread\n");
+
+	zassert_true(k_mutex_held((struct k_mutex *)p1),
+		"locked mutex but mutex reports not being held by this thread");
+
 	k_mutex_unlock((struct k_mutex *)p1);
+
+	zassert_false(k_mutex_held((struct k_mutex *)p1),
+		"unlocked mutex but mutex still reports being held by this thread");
 }
 
 static void tmutex_test_lock(struct k_mutex *pmutex,
@@ -73,6 +86,9 @@ static void tmutex_test_lock(struct k_mutex *pmutex,
 			K_USER | K_INHERIT_PERMS, K_NO_WAIT);
 	zassert_true(k_mutex_lock(pmutex, K_FOREVER) == 0);
 	TC_PRINT("access resource from main thread\n");
+
+	zassert_true(k_mutex_held((struct k_mutex *)p1),
+		"locked mutex but mutex reports not being held by this thread");
 
 	/* wait for spawn thread to take action */
 	k_msleep(TIMEOUT);
@@ -89,6 +105,9 @@ static void tmutex_test_lock_timeout(struct k_mutex *pmutex,
 			K_USER | K_INHERIT_PERMS, K_NO_WAIT);
 	zassert_true(k_mutex_lock(pmutex, K_FOREVER) == 0);
 	TC_PRINT("access resource from main thread\n");
+
+	zassert_true(k_mutex_held((struct k_mutex *)p1),
+		"locked mutex but mutex reports not being held by this thread");
 
 	/* wait for spawn thread to take action */
 	k_msleep(TIMEOUT);
@@ -278,6 +297,10 @@ ZTEST_USER(mutex_api, test_mutex_recursive)
 	zassert_true(k_mutex_lock(&tmutex, K_NO_WAIT) == 0,
 		"Failed to recursively lock mutex");
 
+	/**TESTPOINT: verify that the lock is held by this thread */
+	zassert_true(k_mutex_held(&tmutex),
+		"Failed to verify that mutex lock is held by current thread");
+
 	thread_ret = TC_FAIL;
 	/* Spawn a waiter thread */
 	k_thread_create(&tdata3, tstack3, STACK_SIZE,
@@ -295,6 +318,10 @@ ZTEST_USER(mutex_api, test_mutex_recursive)
 		"waiter thread should still block on the locked mutex");
 
 	zassert_true(k_mutex_unlock(&tmutex) == 0, "fail to unlock");
+
+	/**TESTPOINT: verify that the lock is not held by this thread */
+	zassert_false(k_mutex_held(&tmutex),
+		"Failed to verify that mutex lock is not held by current thread");
 
 	/* Give thread_waiter a chance to get the mutex */
 	k_sleep(K_MSEC(1));
