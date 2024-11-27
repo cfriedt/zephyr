@@ -13,6 +13,7 @@ tests:
   bootloader.mcuboot:
     tags: mcuboot
     platform_allow:
+      - nucleo_l496zg
       - frdm_k22f
       - frdm_k64f
       - frdm_k82f
