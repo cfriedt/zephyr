@@ -6,14 +6,17 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_SEMAPHORE_H_
 #define ZEPHYR_INCLUDE_POSIX_SEMAPHORE_H_
 
-#include <zephyr/posix/time.h>
-#include <zephyr/posix/posix_types.h>
+#include <time.h>
+
+#include <zephyr/kernel.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define SEM_FAILED ((sem_t *) 0)
+
+typedef struct k_sem sem_t;
 
 int sem_destroy(sem_t *semaphore);
 int sem_getvalue(sem_t *ZRESTRICT semaphore, int *ZRESTRICT value);

@@ -6,7 +6,7 @@
 #ifndef ZEPHYR_INCLUDE_POSIX_UNISTD_H_
 #define ZEPHYR_INCLUDE_POSIX_UNISTD_H_
 
-#include <zephyr/posix/posix_types.h>
+#include <zephyr/posix/sys/types.h>
 
 #ifdef CONFIG_POSIX_API
 #include <zephyr/fs/fs.h>
@@ -19,8 +19,6 @@
 #include <zephyr/posix/sys/confstr.h>
 #include <zephyr/posix/sys/stat.h>
 #include <zephyr/posix/sys/sysconf.h>
-
-#include "posix_features.h"
 
 #ifdef __cplusplus
 extern "C" {

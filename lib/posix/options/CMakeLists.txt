@@ -8,6 +8,10 @@ if(CONFIG_POSIX_API)
   zephyr_include_directories(${ZEPHYR_BASE}/include/zephyr/posix)
 endif()
 
+if (CONFIG_POSIX_BASE_DEFINITIONS)
+zephyr_compile_options(-include ${ZEPHYR_BASE}/include/zephyr/posix/sys/features.h)
+endif()
+
 if (NOT CONFIG_TC_PROVIDES_POSIX_SIGNALS)
   if(CONFIG_POSIX_SIGNALS)
     set(STRSIGNAL_TABLE_H ${GEN_DIR}/posix/strsignal_table.h)
@@ -24,16 +28,9 @@ if (NOT CONFIG_TC_PROVIDES_POSIX_SIGNALS)
   endif()
 endif()
 
-if(CONFIG_POSIX_API OR CONFIG_POSIX_THREADS OR CONFIG_POSIX_TIMERS OR
-  CONFIG_POSIX_MESSAGE_PASSING OR CONFIG_POSIX_FILE_SYSTEM OR CONFIG_EVENTFD OR
-  CONFIG_POSIX_C_LIB_EXT OR CONFIG_POSIX_SINGLE_PROCESS)
-  # This is a temporary workaround so that Newlib declares the appropriate
-  # types for us. POSIX features to be formalized as part of #51211
-  zephyr_compile_options($<$<COMPILE_LANGUAGE:C>:-D_POSIX_THREADS>)
-  zephyr_compile_options($<$<COMPILE_LANGUAGE:CXX>:-D_POSIX_THREADS>)
-endif()
-
 zephyr_library()
+zephyr_library_compile_options(-U_POSIX_C_SOURCE -D_POSIX_C_SOURCE=200809L)
+
 zephyr_library_sources_ifdef(CONFIG_EVENTFD eventfd.c)
 
 if (NOT CONFIG_TC_PROVIDES_POSIX_ASYNCHRONOUS_IO)
@@ -101,7 +98,7 @@ if (NOT CONFIG_TC_PROVIDES_POSIX_SHARED_MEMORY_OBJECTS)
 endif()
 
 if (NOT CONFIG_TC_PROVIDES_POSIX_SIGNALS)
-  zephyr_library_sources_ifdef(CONFIG_POSIX_SIGNALS signal.c ${STRSIGNAL_TABLE_H})
+  zephyr_library_sources_ifdef(CONFIG_POSIX_SIGNALS signal.c)
 endif()
 
 if (NOT CONFIG_TC_PROVIDES_POSIX_SINGLE_PROCESS)

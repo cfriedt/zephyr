@@ -8,7 +8,7 @@
 
 #include <limits.h>
 
-#include <zephyr/posix/posix_types.h>
+#include <zephyr/posix/sys/types.h>
 
 #ifdef CONFIG_POSIX_FILE_SYSTEM
 #include <zephyr/fs/fs.h>

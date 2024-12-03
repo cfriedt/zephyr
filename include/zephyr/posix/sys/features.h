@@ -5,12 +5,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef INCLUDE_ZEPHYR_POSIX_POSIX_FEATURES_H_
-#define INCLUDE_ZEPHYR_POSIX_POSIX_FEATURES_H_
+#ifndef _SYS_FEATURES_H
+#define _SYS_FEATURES_H
 
 #include <zephyr/autoconf.h>       /* CONFIG_* */
 #include <zephyr/sys/util_macro.h> /* COND_CODE_1() */
 
+/* Macro to test version of GCC.  Returns 0 for non-GCC or too old GCC. */
+#ifndef __GNUC_PREREQ
+#if defined __GNUC__ && defined __GNUC_MINOR__
+#define __GNUC_PREREQ(maj, min) ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#else
+#define __GNUC_PREREQ(maj, min) 0
+#endif
+#endif /* __GNUC_PREREQ */
+/* Version with trailing underscores for BSD compatibility. */
+#define __GNUC_PREREQ__(ma, mi) __GNUC_PREREQ(ma, mi)
+
+#if defined(_POSIX_C_SOURCE)
 /*
  * POSIX Application Environment Profiles (AEP - IEEE Std 1003.13-2003)
  */
@@ -32,6 +44,8 @@
  */
 
 #define _POSIX_VERSION 200809L
+
+#define __POSIX_VISIBLE 200809
 
 #define _POSIX_CHOWN_RESTRICTED (0)
 #define _POSIX_NO_TRUNC         (0)
@@ -242,16 +256,13 @@
 #define _POSIX_AIO_MAX                      (1)
 #define _POSIX_ARG_MAX                      (4096)
 #define _POSIX_CHILD_MAX                    (25)
-#define _POSIX_DELAYTIMER_MAX \
-	COND_CODE_1(CONFIG_POSIX_TIMERS, (CONFIG_POSIX_DELAYTIMER_MAX), (0))
-#define _POSIX_HOST_NAME_MAX \
-	COND_CODE_1(CONFIG_POSIX_NETWORKING, (CONFIG_POSIX_HOST_NAME_MAX), (0))
+#define _POSIX_DELAYTIMER_MAX               COND_CODE_1(CONFIG_POSIX_TIMERS, (CONFIG_POSIX_DELAYTIMER_MAX), (0))
+#define _POSIX_HOST_NAME_MAX                COND_CODE_1(CONFIG_POSIX_NETWORKING, (CONFIG_POSIX_HOST_NAME_MAX), (0))
 #define _POSIX_LINK_MAX                     (8)
 #define _POSIX_LOGIN_NAME_MAX               (9)
 #define _POSIX_MAX_CANON                    (255)
 #define _POSIX_MAX_INPUT                    (255)
-#define _POSIX_MQ_OPEN_MAX \
-	COND_CODE_1(CONFIG_POSIX_MESSAGE_PASSING, (CONFIG_POSIX_MQ_OPEN_MAX), (0))
+#define _POSIX_MQ_OPEN_MAX                  COND_CODE_1(CONFIG_POSIX_MESSAGE_PASSING, (CONFIG_POSIX_MQ_OPEN_MAX), (0))
 #define _POSIX_MQ_PRIO_MAX                  (32)
 #define _POSIX_NAME_MAX                     (14)
 #define _POSIX_NGROUPS_MAX                  (8)
@@ -259,12 +270,9 @@
 #define _POSIX_PATH_MAX                     (256)
 #define _POSIX_PIPE_BUF                     (512)
 #define _POSIX_RE_DUP_MAX                   (255)
-#define _POSIX_RTSIG_MAX \
-	COND_CODE_1(CONFIG_POSIX_REALTIME_SIGNALS, (CONFIG_POSIX_RTSIG_MAX), (0))
-#define _POSIX_SEM_NSEMS_MAX \
-	COND_CODE_1(CONFIG_POSIX_SEMAPHORES, (CONFIG_POSIX_SEM_NSEMS_MAX), (0))
-#define _POSIX_SEM_VALUE_MAX \
-	COND_CODE_1(CONFIG_POSIX_SEMAPHORES, (CONFIG_POSIX_SEM_VALUE_MAX), (0))
+#define _POSIX_RTSIG_MAX                    COND_CODE_1(CONFIG_POSIX_REALTIME_SIGNALS, (CONFIG_POSIX_RTSIG_MAX), (0))
+#define _POSIX_SEM_NSEMS_MAX                COND_CODE_1(CONFIG_POSIX_SEMAPHORES, (CONFIG_POSIX_SEM_NSEMS_MAX), (0))
+#define _POSIX_SEM_VALUE_MAX                COND_CODE_1(CONFIG_POSIX_SEMAPHORES, (CONFIG_POSIX_SEM_VALUE_MAX), (0))
 #define _POSIX_SIGQUEUE_MAX                 (32)
 #define _POSIX_SSIZE_MAX                    (32767)
 #define _POSIX_SS_REPL_MAX                  (4)
@@ -272,29 +280,27 @@
 #define _POSIX_SYMLINK_MAX                  (255)
 #define _POSIX_SYMLOOP_MAX                  (8)
 #define _POSIX_THREAD_DESTRUCTOR_ITERATIONS (4)
-#define _POSIX_THREAD_KEYS_MAX \
-	COND_CODE_1(CONFIG_POSIX_THREADS, (CONFIG_POSIX_THREAD_KEYS_MAX), (0))
-#define _POSIX_THREAD_THREADS_MAX \
+#define _POSIX_THREAD_KEYS_MAX              COND_CODE_1(CONFIG_POSIX_THREADS, (CONFIG_POSIX_THREAD_KEYS_MAX), (0))
+#define _POSIX_THREAD_THREADS_MAX                                                                  \
 	COND_CODE_1(CONFIG_POSIX_THREADS, (CONFIG_POSIX_THREAD_THREADS_MAX), (0))
-#define _POSIX_TIMER_MAX \
-	COND_CODE_1(CONFIG_POSIX_TIMERS, (CONFIG_POSIX_TIMER_MAX), (0))
-#define _POSIX_TRACE_EVENT_NAME_MAX         (30)
-#define _POSIX_TRACE_NAME_MAX               (8)
-#define _POSIX_TRACE_SYS_MAX                (8)
-#define _POSIX_TRACE_USER_EVENT_MAX         (32)
-#define _POSIX_TTY_NAME_MAX                 (9)
-#define _POSIX_TZNAME_MAX                   (6)
-#define _POSIX2_BC_BASE_MAX                 (99)
-#define _POSIX2_BC_DIM_MAX                  (2048)
-#define _POSIX2_BC_SCALE_MAX                (99)
-#define _POSIX2_BC_STRING_MAX               (1000)
-#define _POSIX2_CHARCLASS_NAME_MAX          (14)
-#define _POSIX2_COLL_WEIGHTS_MAX            (2)
-#define _POSIX2_EXPR_NEST_MAX               (32)
-#define _POSIX2_LINE_MAX                    (2048)
-#define _XOPEN_IOV_MAX                      (16)
-#define _XOPEN_NAME_MAX                     (255)
-#define _XOPEN_PATH_MAX                     (1024)
+#define _POSIX_TIMER_MAX            COND_CODE_1(CONFIG_POSIX_TIMERS, (CONFIG_POSIX_TIMER_MAX), (0))
+#define _POSIX_TRACE_EVENT_NAME_MAX (30)
+#define _POSIX_TRACE_NAME_MAX       (8)
+#define _POSIX_TRACE_SYS_MAX        (8)
+#define _POSIX_TRACE_USER_EVENT_MAX (32)
+#define _POSIX_TTY_NAME_MAX         (9)
+#define _POSIX_TZNAME_MAX           (6)
+#define _POSIX2_BC_BASE_MAX         (99)
+#define _POSIX2_BC_DIM_MAX          (2048)
+#define _POSIX2_BC_SCALE_MAX        (99)
+#define _POSIX2_BC_STRING_MAX       (1000)
+#define _POSIX2_CHARCLASS_NAME_MAX  (14)
+#define _POSIX2_COLL_WEIGHTS_MAX    (2)
+#define _POSIX2_EXPR_NEST_MAX       (32)
+#define _POSIX2_LINE_MAX            (2048)
+#define _XOPEN_IOV_MAX              (16)
+#define _XOPEN_NAME_MAX             (255)
+#define _XOPEN_PATH_MAX             (1024)
 
 /* Other invariant values */
 #define NL_LANGMAX (14)
@@ -318,21 +324,21 @@
 #endif
 
 #define PAGE_SIZE CONFIG_POSIX_PAGE_SIZE
-#define PAGESIZE PAGE_SIZE
+#define PAGESIZE  PAGE_SIZE
 
 #define PTHREAD_DESTRUCTOR_ITERATIONS _POSIX_THREAD_DESTRUCTOR_ITERATIONS
 #define PTHREAD_KEYS_MAX              _POSIX_THREAD_KEYS_MAX
 #define PTHREAD_THREADS_MAX           _POSIX_THREAD_THREADS_MAX
 #define RTSIG_MAX                     _POSIX_RTSIG_MAX
-#define SEM_NSEMS_MAX       _POSIX_SEM_NSEMS_MAX
-#define SEM_VALUE_MAX       _POSIX_SEM_VALUE_MAX
-#define SIGQUEUE_MAX        _POSIX_SIGQUEUE_MAX
-#define STREAM_MAX          _POSIX_STREAM_MAX
-#define SYMLOOP_MAX         _POSIX_SYMLOOP_MAX
-#define TIMER_MAX           _POSIX_TIMER_MAX
-#define TTY_NAME_MAX        _POSIX_TTY_NAME_MAX
+#define SEM_NSEMS_MAX                 _POSIX_SEM_NSEMS_MAX
+#define SEM_VALUE_MAX                 _POSIX_SEM_VALUE_MAX
+#define SIGQUEUE_MAX                  _POSIX_SIGQUEUE_MAX
+#define STREAM_MAX                    _POSIX_STREAM_MAX
+#define SYMLOOP_MAX                   _POSIX_SYMLOOP_MAX
+#define TIMER_MAX                     _POSIX_TIMER_MAX
+#define TTY_NAME_MAX                  _POSIX_TTY_NAME_MAX
 #ifndef TZNAME_MAX
-#define TZNAME_MAX          _POSIX_TZNAME_MAX
+#define TZNAME_MAX _POSIX_TZNAME_MAX
 #endif
 
 /* Pathname variable values */
@@ -344,4 +350,6 @@
 #define POSIX_REC_XFER_ALIGN     (4)
 #define SYMLINK_MAX              _POSIX_SYMLINK_MAX
 
-#endif /* INCLUDE_ZEPHYR_POSIX_POSIX_FEATURES_H_ */
+#endif /* defined(_POSIX_C_SOURCE) */
+
+#endif /* _SYS_FEATURES_H */

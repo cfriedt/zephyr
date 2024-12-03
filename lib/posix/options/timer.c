@@ -7,12 +7,12 @@
 #undef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
+#include <time.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/posix/pthread.h>
 #include <zephyr/posix/signal.h>
-#include <zephyr/posix/time.h>
 
 #define ACTIVE 1
 #define NOT_ACTIVE 0

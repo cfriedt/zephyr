@@ -13,6 +13,16 @@
 #include <zephyr/sys/dlist.h>
 #include <zephyr/fs/fs_interface.h>
 
+/* FIXME: use k_off_t and k_ssize_t to avoid the POSIX->Zephyr->POSIX dependency cycle */
+#ifndef _OFF_T_DECLARED
+typedef __off_t off_t;
+#define _OFF_T_DECLARED
+#endif
+#ifndef _SSIZE_T_DECLARED
+typedef __ssize_t ssize_t;
+#define __SSIZE_T_DECLARED
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

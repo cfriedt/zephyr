@@ -37,7 +37,7 @@ extern "C" {
 #include <time.h>
 #include <sys/cdefs.h>
 
-#include <zephyr/posix/posix_types.h>
+#include <zephyr/posix/sys/types.h>
 
 /* dj's stat defines _STAT_H_ */
 #ifndef _STAT_H_
