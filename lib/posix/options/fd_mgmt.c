@@ -13,8 +13,6 @@
 #include <zephyr/posix/unistd.h>
 #include <zephyr/sys/fdtable.h>
 
-/* prototypes for external, not-yet-public, functions in fdtable.c or fs.c */
-int zvfs_dup(int fd, int *newfd);
 int zvfs_fcntl(int fd, int cmd, va_list arg);
 int zvfs_fileno(FILE *file);
 int zvfs_ftruncate(int fd, off_t length);
