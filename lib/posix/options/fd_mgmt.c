@@ -9,9 +9,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <zephyr/posix/fcntl.h>
 #include <zephyr/posix/unistd.h>
-#include <zephyr/posix/sys/select.h>
-#include <zephyr/posix/sys/socket.h>
 #include <zephyr/sys/fdtable.h>
 
 /* prototypes for external, not-yet-public, functions in fdtable.c or fs.c */
@@ -23,12 +22,12 @@ off_t zvfs_lseek(int fd, off_t offset, int whence);
 
 int dup(int fd)
 {
-	return zvfs_dup(fd, NULL);
+	return zvfs_fcntl(fd, F_DUPFD, NULL);
 }
 
 int dup2(int oldfd, int newfd)
 {
-	return zvfs_dup(oldfd, &newfd);
+	return zvfs_fcntl(oldfd, F_DUPFD, &newfd);
 }
 
 int fcntl(int fd, int cmd, ...)
