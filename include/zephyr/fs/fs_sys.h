@@ -16,6 +16,11 @@ extern "C" {
  * @{
  */
 
+struct fs_inode {
+	uint32_t parent;
+	char name[64];
+};
+
 /**
  * @brief File System interface structure
  */
@@ -186,6 +191,18 @@ struct fs_file_system_t {
 	 */
 	int (*statvfs)(struct fs_mount_t *mountp, const char *path,
 					struct fs_statvfs *stat);
+
+	/**
+	 * Retrieves information about a given inode.
+	 *
+	 * @param mountp Mount point.
+	 * @param inode Inode number.
+	 * @param[out] entry Pointer to memory where inode information will be stored.
+	 *
+	 * @return 0 on success, negative errno code on fail.
+	 */
+	int (*rlookup)(const struct fs_mount_t *mountp, uint32_t inode, struct fs_inode *entry);
+
 #if defined(CONFIG_FILE_SYSTEM_MKFS) || defined(__DOXYGEN__)
 	/**
 	 * Formats a device to specified file system type.

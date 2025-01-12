@@ -11,6 +11,7 @@
 #define TEST_FILE	FATFS_MNTP"/testfile.txt"
 #define TEST_DIR	FATFS_MNTP"/testdir"
 #define TEST_DIR_FILE	FATFS_MNTP"/testdir/testfile.txt"
+#define TEST_FILE_CONTENTS "Hello, world!\n"
 
 extern const char test_str[];
 

@@ -139,21 +139,31 @@ static int _find_fd_entry(void)
 	return -1;
 }
 
-static int _check_fd(int fd)
+static int _check_fd_no_errno(int fd)
 {
 	if ((fd < 0) || (fd >= ARRAY_SIZE(fdtable))) {
-		errno = EBADF;
-		return -1;
+		return -EBADF;
 	}
 
 	fd = k_array_index_sanitize(fd, ARRAY_SIZE(fdtable));
 
 	if (!atomic_get(&fdtable[fd].refcount)) {
-		errno = EBADF;
-		return -1;
+		return -EBADF;
 	}
 
-	return 0;
+	return fd;
+}
+
+static int _check_fd(int fd)
+{
+	int res;
+
+	res = _check_fd_no_errno(fd);
+	if (res < 0) {
+		errno = -res;
+	}
+
+	return res;
 }
 
 #ifdef CONFIG_ZTEST
@@ -683,3 +693,67 @@ static const struct fd_op_vtable stdinout_fd_op_vtable = {
 };
 
 #endif /* defined(CONFIG_POSIX_DEVICE_IO) */
+
+#if defined(CONFIG_FILE_SYSTEM)
+static inline int zvfs_rlookup_wrap(int fd, int cmd, ...)
+{
+	int res;
+	va_list args;
+	int prev_errno;
+
+	__ASSERT_NO_MSG(fd < ARRAY_SIZE(fdtable));
+
+	(void)k_mutex_lock(&fdtable[fd].lock, K_FOREVER);
+	va_start(args, cmd);
+	prev_errno = errno;
+	res = fdtable[fd].vtable->ioctl(fdtable[fd].obj, ZFD_IOCTL_RLOOKUP, args);
+	if (res < 0) {
+		if (errno != prev_errno) {
+			/* FIXME: update methods to return negative errno values */
+			res = -errno;
+			errno = prev_errno;
+		}
+	}
+	va_end(args);
+	k_mutex_unlock(&fdtable[fd].lock);
+
+	return res;
+}
+#endif
+
+int z_impl_zvfs_rlookup(int fd, char *path, size_t *size)
+{
+#if !defined(CONFIG_FILE_SYSTEM)
+	ARG_UNUSED(fd);
+	ARG_UNUSED(path);
+	ARG_UNUSED(size);
+
+	return -ENOTSUP;
+#else
+	int res;
+
+	res = _check_fd_no_errno(fd);
+	if (res < 0) {
+		return res;
+	}
+
+	return zvfs_rlookup_wrap(fd, ZFD_IOCTL_RLOOKUP, fdtable[fd].obj, path, size);
+#endif
+}
+
+#ifdef CONFIG_USERSPACE
+int z_vrfy_zvfs_rlookup(int fd, char *path, size_t *size)
+{
+	if (size != NULL) {
+		K_OOPS(K_SYSCALL_MEMORY_READ(size, sizeof(*size)));
+		K_OOPS(K_SYSCALL_MEMORY_WRITE(size, sizeof(*size)));
+
+		if (path != NULL) {
+			K_OOPS(K_SYSCALL_MEMORY_WRITE(path, *size));
+		}
+	}
+
+	return z_impl_zvfs_rlookup(int fd, char *path, size_t *size);
+}
+#include <zephyr/syscalls/zvfs_rlookup_mrsh.c>
+#endif

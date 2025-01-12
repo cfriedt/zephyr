@@ -262,6 +262,41 @@ __syscall int zvfs_select(int nfds, struct zvfs_fd_set *ZRESTRICT readfds,
 			  const struct timespec *ZRESTRICT timeout, const void *ZRESTRICT sigmask);
 
 /**
+ * @brief Perform a reverse-lookup to retrieve the path associated with an integer file descriptor
+ *
+ * If @ref zvfs_open can be seen as a forward lookup on a path that returns an integer file
+ * descriptor, then this function is the inverse; it looks up the path associated with a file
+ * descriptor (i.e. performs a reverse lookup).
+ *
+ * Retrieve the path associated with the integer file descriptor @p fd. If the path is found, and
+ * if @p path and @p size are non-`NULL` and describe a sufficiently-sized buffer, the path
+ * associated with @p fd is copied into @p path, including the null-terminator (`\0`). If @p path
+ * or @p size are `NULL`, then no copy operation is performed. If @p size is non-`NULL`, on
+ * success, it will be updated to reflect either the string-length of @p path (if the provided
+ * buffer is sufficiently sized) or the number of bytes required to store the path, including
+ * the trailing null-terminator.
+ *
+ * If both @p path and @p size are `NULL`, then this function is effectively a check to see if an
+ * integer file descriptor has an associated path. If @p path is `NULL` and @p size is non-`NULL`,
+ * then value written to @p size may be used by a subsequent call after the application allocates
+ * sufficient storage for @p path. If @p size is `NULL`, then @p path is ignored.
+ *
+ * On erorr, when no path is associated with @p fd, any memory associated with @p path and
+ * @p size is left unmodified.
+ *
+ * @param fd Integer file descriptor for which a path is to be retrieved.
+ * @param[out] path Buffer to store the retrieved path. May be `NULL`.
+ * @param[inout] size Pointer to a value representing the size of the buffer and length of the
+ * associated path or storage required, on successful return. May be `NULL`.
+ *
+ * @retval 0 If a path was associated with @p fd.
+ * @retval -EBADF if the provided file descriptor does not refer to an open file descriptor.
+ * @retval -ENOENT if the provided file descriptor does not have an associated path.
+ * @retval -ENOTSUP if @p fd does not support @ref ZFD_IOCTL_RLOOKUP.
+ */
+__syscall int zvfs_rlookup(int fd, char *path, size_t *size);
+
+/**
  * Request codes for fd_op_vtable.ioctl().
  *
  * Note that these codes are internal Zephyr numbers, for internal
@@ -273,13 +308,14 @@ enum {
 	/* Codes below 0x100 are reserved for fcntl() codes. */
 	ZFD_IOCTL_FSYNC = 0x100,
 	ZFD_IOCTL_LSEEK,
+	ZFD_IOCTL_MMAP,
 	ZFD_IOCTL_POLL_PREPARE,
 	ZFD_IOCTL_POLL_UPDATE,
 	ZFD_IOCTL_POLL_OFFLOAD,
 	ZFD_IOCTL_SET_LOCK,
+	ZFD_IOCTL_RLOOKUP,
 	ZFD_IOCTL_STAT,
 	ZFD_IOCTL_TRUNCATE,
-	ZFD_IOCTL_MMAP,
 
 	/* Codes above 0x5400 and below 0x5500 are reserved for termios, FIO, etc */
 	ZFD_IOCTL_FIONREAD = 0x541B,

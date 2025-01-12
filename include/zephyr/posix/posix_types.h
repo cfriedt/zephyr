@@ -75,6 +75,13 @@ typedef unsigned long blkcnt_t;
 #define __blkcnt_t_defined
 #endif
 
+#if !defined(_FSBLKCNT_T_DECLARED) && !defined(__fsblkcnt_t_defined)
+typedef unsigned long fsblkcnt_t;
+typedef unsigned long fsfilcnt_t;
+#define _FSBLKCNT_T_DECLARED
+#define __fsblkcnt_t_defined
+#endif
+
 #if !defined(CONFIG_ARCMWDT_LIBC)
 typedef int pid_t;
 #endif

@@ -195,6 +195,8 @@ int fs_open(struct fs_file_t *zfp, const char *file_name, fs_mode_t flags)
 		}
 	}
 
+	/* FIXME: fill-in inode! */
+
 	return rc;
 }
 
@@ -895,4 +897,84 @@ int fs_unregister(int type, const struct fs_file_system_t *fs)
 
 	LOG_DBG("fs unregister %d: %d", type, rc);
 	return rc;
+}
+
+int fs_rlookup(const struct fs_mount_t *mp, uint32_t inode, char *path, size_t *size)
+{
+	int rc;
+	size_t len;
+	size_t offs;
+	uint32_t it;
+	uint32_t root;
+	struct fs_inode entry;
+
+	__ASSERT_NO_MSG(mp != NULL);
+	__ASSERT_NO_MSG(mp->fs != NULL);
+
+	if (mp->fs->rlookup == NULL) {
+		return -ENOTSUP;
+	}
+
+	/* initial check to see if inode exists */
+	rc = mp->fs->rlookup(mp, inode, &entry);
+	if (rc < 0) {
+		return rc;
+	}
+
+	/* if size is NULL, do not count minimum space in path for full path name */
+	if (size == NULL) {
+		return 0;
+	}
+
+	/* calculate minimum space required for full path */
+	for (it = inode; it != entry.parent; it = entry.parent) {
+		rc = mp->fs->rlookup(mp, it, &entry);
+		if (rc < 0) {
+			/* dangling inode */
+			return rc;
+		}
+
+		offs += 1; /* for path separator ('/') or nul-terminator ('\0') */
+		offs += strlen(entry.name);
+	}
+	offs += mp->mountp_len + 1 /* for path separator ('/') */;
+	root = entry.parent;
+
+	if ((path == NULL) || (*size < offs)) {
+		/* output the minimum required size */
+		*size = offs;
+		return 0;
+	}
+
+	/* output the size of the full path */
+	*size = offs;
+
+	/* fill-in path components, starting at the end */
+	for (it = inode; it != root; it = entry.parent) {
+
+		rc = mp->fs->rlookup(mp, it, &entry);
+		__ASSERT(rc == 0, "%s() failed: %d", "rlookup", rc);
+
+		len = strlen(entry.name);
+		offs -= len;
+		strncpy(&path[offs], entry.name, len + 1);
+
+		if (it == inode) {
+			/* nul-terminate the final component in the path */
+			path[offs + len] = '\0';
+		} else {
+			/* insert a path separator between path components */
+			path[offs + len] = '/';
+		}
+	}
+
+	/* fill in the mountpoint */
+	len = mp->mountp_len;
+	strncpy(path, mp->mnt_point, len + 1);
+	if (inode != root) {
+		/* insert a path separator between the mount point and first component */
+		path[len] = '/';
+	}
+
+	return 0;
 }

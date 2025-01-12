@@ -10,15 +10,17 @@
 #include "fs_priv.h"
 
 #include <errno.h>
-#include <zephyr/kernel.h>
 #include <limits.h>
+#include <string.h>
+
+#include <zephyr/fs/fs.h>
+#include <zephyr/kernel.h>
 #include <zephyr/posix/unistd.h>
 #include <zephyr/posix/dirent.h>
-#include <string.h>
-#include <zephyr/sys/fdtable.h>
-#include <zephyr/posix/sys/stat.h>
 #include <zephyr/posix/fcntl.h>
-#include <zephyr/fs/fs.h>
+#include <zephyr/posix/sys/stat.h>
+#include <zephyr/posix/sys/statvfs.h>
+#include <zephyr/sys/fdtable.h>
 
 int zvfs_fstat(int fd, struct stat *buf);
 
@@ -183,6 +185,19 @@ static int fs_ioctl_vmeth(void *obj, unsigned int request, va_list args)
 		}
 		break;
 	}
+	case ZFD_IOCTL_RLOOKUP: {
+		char *path;
+		size_t *size;
+		struct fs_file_t *zfp;
+		const struct fs_mount_t *mount_point;
+
+		zfp = va_arg(args, struct fs_file_t *);
+		path = va_arg(args, char *);
+		size = va_arg(args, size_t *);
+
+		rc = fs_rlookup(zfp->mp, zfp->inode, path, size);
+		break;
+	}
 	case ZFD_IOCTL_STAT: {
 		struct stat *buf;
 
@@ -194,7 +209,8 @@ static int fs_ioctl_vmeth(void *obj, unsigned int request, va_list args)
 		 * from being set to EOPNOTSUPP.
 		 */
 		memset(buf, 0, sizeof(*buf));
-		return 0;
+		rc = 0;
+		break;
 	}
 	default:
 		errno = EOPNOTSUPP;
@@ -467,4 +483,51 @@ FUNC_ALIAS(fstat, _fstat, int);
 int rmdir(const char *path)
 {
 	return unlink(path);
+}
+
+int fstatvfs(int fildes, struct statvfs *buf)
+{
+	int rc;
+	char path[PATH_MAX];
+
+	rc = zvfs_path_get(fildes, path, sizeof(path));
+	if (rc < 0) {
+		errno = -rc;
+		return -1;
+	}
+
+	return statvfs(path, buf);
+}
+
+int statvfs(const char *ZRESTRICT path, struct statvfs *ZRESTRICT buf)
+{
+	int rc;
+	struct fs_statvfs stat_vfs;
+
+	if (buf == NULL) {
+		errno = EBADF;
+		return -1;
+	}
+
+	rc = fs_statvfs(path, &stat_vfs);
+	if (rc < 0) {
+		errno = -rc;
+		return -1;
+	}
+
+	buf->f_bsize = stat_vfs.f_bsize;
+	buf->f_frsize = stat_vfs.f_frsize;
+	buf->f_blocks = stat_vfs.f_blocks;
+	buf->f_bfree = stat_vfs.f_bfree;
+#if 0
+	buf->f_bavail = stat_vfs.f_bavail;
+	buf->f_files = stat_vfs.f_files;
+	buf->f_ffree = stat_vfs.f_ffree;
+	buf->f_favail = stat_vfs.f_favail;
+	buf->f_fsid = stat_vfs.f_fsid;
+	buf->f_flag = stat_vfs.f_flag;
+	buf->f_namemax = stat_vfs.f_namemax;
+#endif
+
+	return 0;
 }

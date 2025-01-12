@@ -359,3 +359,96 @@ ZTEST(posix_fs_file_test, test_file_open_truncate)
 	zassert_equal(buf.st_size, 0, "Error: file is not truncated");
 	zassert_ok(test_file_delete());
 }
+
+static void ls_l(const struct stat *st, const char *path)
+{
+	/*
+	 * # directory: ls -lan /etc | grep " .$"
+	 * drwxr-xr-x 158 0  0 12288 Jan  5 19:52 .
+	 * # plain file: ls -lan /etc/fstab
+	 * -rw-rw-r-- 1 0 0 741 Mar 21  2024 /etc/fstab
+	 * # symbolic link: ls -lan /proc/self/fd/1
+	 * lrwx------ 1 1000 1000 64 Jan 10 19:38 /proc/self/fd/1 -> /dev/pts/5
+	 * # char file: ls -lan /dev/pts/5
+	 * crw--w---- 1 1000 5 136, 5 Jan 10 20:12 /dev/pts/5
+	 * # block file: ls -lan /dev/loop0
+	 * brw-rw---- 1 0 6 7, 0 Jan 10 02:30 /dev/loop0
+	 */
+	char type;
+
+	switch (st->st_mode & S_IFMT) {
+	case S_IFBLK:
+		type = 'b';
+		break;
+	case S_IFCHR:
+		type = 'c';
+		break;
+	case S_IFDIR:
+		type = 'd';
+		break;
+	case S_IFIFO:
+		type = 'p';
+		break;
+	case S_IFLNK:
+		type = 'l';
+		break;
+	case S_IFREG:
+		type = '-';
+		break;
+	case S_IFSOCK:
+		type = 's';
+		break;
+	default:
+		type = '?';
+		break;
+	};
+
+	char u_r = (st->st_mode & S_IRUSR) ? 'r' : '-';
+	char u_w = (st->st_mode & S_IWUSR) ? 'w' : '-';
+	char u_x = (st->st_mode & S_IXUSR) ? 'x' : '-';
+	char g_r = (st->st_mode & S_IRGRP) ? 'r' : '-';
+	char g_w = (st->st_mode & S_IWGRP) ? 'w' : '-';
+	char g_x = (st->st_mode & S_IXGRP) ? 'x' : '-';
+	char o_r = (st->st_mode & S_IROTH) ? 'r' : '-';
+	char o_w = (st->st_mode & S_IWOTH) ? 'w' : '-';
+	char o_x = (st->st_mode & S_IXOTH) ? 'x' : '-';
+
+	printf("%c%c%c%c%c%c%c%c%c%c %lu\t%u\t%u\t%lu\t%lu\t%s%s%s\n", type, u_r, u_w, u_x, g_r,
+	       g_w, g_x, o_r, o_w, o_x, (long unsigned)st->st_nlink, st->st_uid, st->st_gid,
+	       st->st_size, st->st_mtime, path, type == 'l' ? " -> " : "",
+	       type == 'l' ? "??????" : "");
+};
+
+ZTEST(posix_fs_file_test, test_file_fstat)
+{
+	int rc;
+	struct stat st;
+
+	file = rc = open(TEST_FILE, O_RDWR | O_CREAT, 0666);
+	zassert_true(rc >= 0, "%s() failed: %d", "open", errno);
+
+	zexpect_equal(write(file, TEST_FILE_CONTENTS, strlen(TEST_FILE_CONTENTS)),
+		      strlen(TEST_FILE_CONTENTS));
+
+	rc = fstat(file, &st);
+	// zassert_ok(rc, "%s() failed: %d", "fstat", errno);
+	if (rc < 0) {
+		printf("%s() failed: %d\n", "fstat", errno);
+	}
+
+	ls_l(&st, TEST_FILE);
+}
+
+ZTEST(posix_fs_file_test, test_file_rlookup)
+{
+	int rc;
+	static char buf[PATH_MAX];
+	size_t size = sizeof(buf);
+
+	file = rc = open(TEST_FILE, O_RDWR | O_CREAT, 0666);
+	zassert_true(rc >= 0, "%s() failed: %d", "open", errno);
+
+	rc = zvfs_rlookup(file, buf, &size);
+	zexpect_ok(rc, "%s() failed: %d", "zvfs_rlookup", rc);
+	zexpect_str_equal(buf, TEST_FILE);
+}

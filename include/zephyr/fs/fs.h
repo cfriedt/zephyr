@@ -238,6 +238,7 @@ static inline void fs_file_t_init(struct fs_file_t *zfp)
 {
 	zfp->filep = NULL;
 	zfp->mp = NULL;
+	zfp->inode = 0;
 	zfp->flags = 0;
 }
 
@@ -254,6 +255,7 @@ static inline void fs_dir_t_init(struct fs_dir_t *zdp)
 {
 	zdp->dirp = NULL;
 	zdp->mp = NULL;
+	zdp->inode = 0;
 }
 
 /**
@@ -668,6 +670,26 @@ int fs_register(int type, const struct fs_file_system_t *fs);
  * @retval -EINVAL when file system of a given type has not been registered.
  */
 int fs_unregister(int type, const struct fs_file_system_t *fs);
+
+/*
+ * To reconstruct a path for an arbitrary file in a mounted file system, we require the
+ * mount point as well as an inode number, or similar identifier, that can be used to
+ * uniquely identify a file with the file system.
+ *
+ * The file system implementation must, in turn, provide 3 things on a per-inode basis:
+ *
+ * 1. the name of the file relative to its parent directory.
+ * 2. the inode number of the parent directory.
+ * 3. an implementation of rlookup()
+ *
+ * fs_rlookup() will terminate path reconstruction once two successive calls to the
+ * fs-specific rlookup() method return the same inode. In other words, rlookup() on
+ * '/' would return '/' again.
+ *
+ * Note: this algorithm *may* be updated at a later date in order to automatically detect
+ * cycles and report errors.
+ */
+int fs_rlookup(const struct fs_mount_t *mp, uint32_t inode, char *path, size_t *size);
 
 /**
  * @}

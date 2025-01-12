@@ -78,6 +78,8 @@ struct fs_file_t {
 	void *filep;
 	/** Pointer to mount point structure */
 	const struct fs_mount_t *mp;
+	/** Inode information */
+	uint32_t inode;
 	/** Open/create flags */
 	fs_mode_t flags;
 };
@@ -92,6 +94,8 @@ struct fs_dir_t {
 	void *dirp;
 	/** Pointer to mount point structure */
 	const struct fs_mount_t *mp;
+	/** Inode information */
+	uint32_t inode;
 };
 
 /**
