@@ -189,7 +189,6 @@ static int fs_ioctl_vmeth(void *obj, unsigned int request, va_list args)
 		char *path;
 		size_t *size;
 		struct fs_file_t *zfp;
-		const struct fs_mount_t *mount_point;
 
 		zfp = va_arg(args, struct fs_file_t *);
 		path = va_arg(args, char *);

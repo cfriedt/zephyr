@@ -858,6 +858,7 @@ int ext2_get_direntry(struct ext2_file *dir, struct fs_dirent *ent)
 	}
 
 	ent->size = size;
+	ent->inode = inode->i_id;
 
 	/* Update offset to point to next directory entry */
 	dir->f_off += de->de_rec_len;

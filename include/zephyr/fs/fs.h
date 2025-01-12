@@ -123,6 +123,8 @@ struct fs_dirent {
 	char name[MAX_FILE_NAME + 1];
 	/** Size of file (0 if directory). */
 	size_t size;
+	/** Index node of file or directory */
+	uint32_t inode;
 };
 
 /**
