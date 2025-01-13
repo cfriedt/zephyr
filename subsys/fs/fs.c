@@ -906,7 +906,7 @@ int fs_rlookup(const struct fs_mount_t *mp, uint32_t inode, char *path, size_t *
 	size_t offs;
 	uint32_t it;
 	uint32_t root;
-	struct fs_inode entry;
+	struct fs_inode entry = {0};
 
 	__ASSERT_NO_MSG(mp != NULL);
 	__ASSERT_NO_MSG(mp->fs != NULL);
@@ -920,6 +920,10 @@ int fs_rlookup(const struct fs_mount_t *mp, uint32_t inode, char *path, size_t *
 	if (rc < 0) {
 		return rc;
 	}
+	if (strlen(entry.name) == 0) {
+		/* any valid inode must have a name greater than 0 characters */
+		return -ENOTSUP;
+	}
 
 	/* if size is NULL, do not count minimum space in path for full path name */
 	if (size == NULL) {
@@ -932,6 +936,10 @@ int fs_rlookup(const struct fs_mount_t *mp, uint32_t inode, char *path, size_t *
 		if (rc < 0) {
 			/* dangling inode */
 			return rc;
+		}
+		if (strlen(entry.name) == 0) {
+			/* any valid inode must have a name greater than 0 characters */
+			return -ENOTSUP;
 		}
 
 		offs += 1; /* for path separator ('/') or nul-terminator ('\0') */

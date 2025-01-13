@@ -406,6 +406,7 @@ static int fatfs_stat(struct fs_mount_t *mountp,
 			       FS_DIR_ENTRY_DIR : FS_DIR_ENTRY_FILE);
 		strcpy(entry->name, fno.fname);
 		entry->size = fno.fsize;
+		entry->inode = 0;
 	}
 
 	return translate_error(res);
@@ -442,6 +443,11 @@ static int fatfs_statvfs(struct fs_mount_t *mountp,
 	res = translate_error(res);
 #endif
 	return res;
+}
+
+static int fatfs_rlookup(const struct fs_mount_t *mountp, uint32_t inode, struct fs_inode *entry)
+{
+	return 0;
 }
 
 static int fatfs_mount(struct fs_mount_t *mountp)
@@ -555,6 +561,7 @@ static const struct fs_file_system_t fatfs_fs = {
 #if defined(CONFIG_FILE_SYSTEM_MKFS) && defined(CONFIG_FS_FATFS_MKFS)
 	.mkfs = fatfs_mkfs,
 #endif
+	.rlookup = fatfs_rlookup,
 };
 
 static int fatfs_init(void)
