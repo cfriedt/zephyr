@@ -84,9 +84,9 @@ int clock_gettime(clockid_t clock_id, struct timespec *ts)
 	uint64_t elapsed_secs = ticks / CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 	uint64_t nremainder = ticks - elapsed_secs * CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 
-	ts->tv_sec = (time_t) elapsed_secs;
+	ts->tv_sec = (time_t)elapsed_secs;
 	/* For ns 32 bit conversion can be used since its smaller than 1sec. */
-	ts->tv_nsec = (int32_t) k_ticks_to_ns_floor32(nremainder);
+	ts->tv_nsec = (int32_t)k_ticks_to_ns_floor32(nremainder);
 
 	ts->tv_sec += base.tv_sec;
 	ts->tv_nsec += base.tv_nsec;
@@ -144,8 +144,7 @@ int clock_settime(clockid_t clock_id, const struct timespec *tp)
 	}
 
 	uint64_t elapsed_nsecs = k_ticks_to_ns_floor64(k_uptime_ticks());
-	int64_t delta = (int64_t)NSEC_PER_SEC * tp->tv_sec + tp->tv_nsec
-		- elapsed_nsecs;
+	int64_t delta = (int64_t)NSEC_PER_SEC * tp->tv_sec + tp->tv_nsec - elapsed_nsecs;
 
 	base.tv_sec = delta / NSEC_PER_SEC;
 	base.tv_nsec = delta % NSEC_PER_SEC;
@@ -285,6 +284,7 @@ int gettimeofday(struct timeval *tv, void *tz)
 	return res;
 }
 
+#if defined(CONFIG_POSIX_CPUTIME)
 int clock_getcpuclockid(pid_t pid, clockid_t *clock_id)
 {
 	/* We don't allow any process ID but our own.  */
@@ -292,10 +292,15 @@ int clock_getcpuclockid(pid_t pid, clockid_t *clock_id)
 		return EPERM;
 	}
 
+	if (clock_id == NULL) {
+		return EINVAL;
+	}
+
 	*clock_id = CLOCK_PROCESS_CPUTIME_ID;
 
 	return 0;
 }
+#endif
 
 #ifdef CONFIG_ZTEST
 #include <zephyr/ztest.h>

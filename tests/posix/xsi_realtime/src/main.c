@@ -6,4 +6,7 @@
 
 #include <zephyr/ztest.h>
 
-ZTEST_SUITE(xsi_realtime, NULL, NULL, NULL, NULL, NULL);
+void test_mount(void *arg);
+void test_unmount(void *arg);
+
+ZTEST_SUITE(xsi_realtime, NULL, NULL, test_mount, test_unmount, NULL);

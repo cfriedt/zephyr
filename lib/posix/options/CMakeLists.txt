@@ -142,6 +142,20 @@ if (NOT CONFIG_TC_PROVIDES_POSIX_THREADS)
   )
 endif()
 
+if(NOT CONFIG_TC_PROVIDES_XSI_ADVANCED_REALTIME)
+  zephyr_library_sources_ifdef(
+    CONFIG_POSIX_ADVISORY_INFO
+    fadvise.c
+    fallocate.c
+    memalign.c
+    madvise.c
+  )
+  # _POSIX_CPUTIME / clock_getcpuclockid() in clock.c
+  zephyr_library_sources_ifdef(CONFIG_POSIX_SPAWN spawn.c)
+  # _POSIX_SPORADIC_SERVER not really investigated yet
+  zephyr_library_sources_ifdef(CONFIG_POSIX_TYPED_MEMORY_OBJECTS typed_memory_objects.c)
+endif()
+
 if(NOT CONFIG_TC_PROVIDES_XSI_REALTIME)
   zephyr_library_sources_ifdef(CONFIG_POSIX_FSYNC fsync.c)
   zephyr_library_sources_ifdef(CONFIG_POSIX_MEMLOCK mlockall.c)

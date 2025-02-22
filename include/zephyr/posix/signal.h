@@ -52,9 +52,13 @@ extern "C" {
 
 BUILD_ASSERT(RTSIG_MAX >= 0);
 
+#if !defined(_SIGSET_T_DECLARED) && !defined(__sigset_t_defined)
 typedef struct {
 	unsigned long sig[DIV_ROUND_UP(_NSIG, BITS_PER_LONG)];
 } sigset_t;
+#define _SIGSET_T_DECLARED
+#define __sigset_t_defined
+#endif
 
 #ifndef SIGEV_NONE
 #define SIGEV_NONE 1

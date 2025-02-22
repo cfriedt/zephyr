@@ -24,20 +24,26 @@ static struct fs_mount_t fatfs_mnt = {
 	.fs_data = &fat_fs,
 };
 
-static void test_mount(void)
+void test_mount(void *arg)
 {
 	int res;
+
+	ARG_UNUSED(arg);
 
 	res = fs_mount(&fatfs_mnt);
 	zassert_ok(res, "Error mounting fs [%d]\n", res);
+
+	return NULL;
 }
 
-void test_unmount(void)
+void test_unmount(void *arg)
 {
 	int res;
 
+	ARG_UNUSED(arg);
+
 	res = fs_unmount(&fatfs_mnt);
-	zassert_ok(res, "Error unmounting fs [%d]", res);
+	__ASSERT(res == 0, "Error unmounting fs [%d]", res);
 }
 
 static int file_open(void)
@@ -73,7 +79,6 @@ static int file_write(int file)
  */
 ZTEST(xsi_realtime, test_fs_sync)
 {
-	test_mount();
 	int res = 0;
 	int file = file_open();
 
@@ -81,7 +86,6 @@ ZTEST(xsi_realtime, test_fs_sync)
 	res = fsync(file);
 	zassert_ok(res, "Failed to sync file: %d, errno = %d\n", res, errno);
 	zassert_ok(close(file), "Failed to close file");
-	test_unmount();
 }
 
 /**
@@ -91,7 +95,6 @@ ZTEST(xsi_realtime, test_fs_sync)
  */
 ZTEST(xsi_realtime, test_fs_datasync)
 {
-	test_mount();
 	int res = 0;
 	int file = file_open();
 
@@ -99,5 +102,4 @@ ZTEST(xsi_realtime, test_fs_datasync)
 	res = fdatasync(file);
 	zassert_ok(res, "Failed to sync file: %d, errno = %d\n", res, errno);
 	zassert_ok(close(file), "Failed to close file");
-	test_unmount();
 }

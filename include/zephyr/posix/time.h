@@ -35,8 +35,8 @@ struct timespec {
 };
 
 struct itimerspec {
-	struct timespec it_interval;  /* Timer interval */
-	struct timespec it_value;     /* Timer expiration */
+	struct timespec it_interval; /* Timer interval */
+	struct timespec it_value;    /* Timer expiration */
 };
 
 #ifdef __cplusplus
@@ -48,12 +48,12 @@ struct itimerspec {
 
 #else /* CONFIG_NEWLIB_LIBC */
 /* Not Newlib */
-# if defined(CONFIG_ARCH_POSIX) && defined(CONFIG_EXTERNAL_LIBC)
-#  include <bits/types/struct_timespec.h>
-#  include <bits/types/struct_itimerspec.h>
-# else
-#  include <sys/timespec.h>
-# endif
+#if defined(CONFIG_ARCH_POSIX) && defined(CONFIG_EXTERNAL_LIBC)
+#include <bits/types/struct_timespec.h>
+#include <bits/types/struct_itimerspec.h>
+#else
+#include <sys/timespec.h>
+#endif
 #endif /* CONFIG_NEWLIB_LIBC */
 
 #include <zephyr/kernel.h>
@@ -69,12 +69,16 @@ extern "C" {
 #define CLOCK_REALTIME 1
 #endif
 
+#if _POSIX_CPUTIME >= 200112L
 #ifndef CLOCK_PROCESS_CPUTIME_ID
 #define CLOCK_PROCESS_CPUTIME_ID 2
 #endif
+#endif
 
+#if _POSIX_THREAD_CPUTIME >= 200112L
 #ifndef CLOCK_THREAD_CPUTIME_ID
 #define CLOCK_THREAD_CPUTIME_ID 3
+#endif
 #endif
 
 #ifndef CLOCK_MONOTONIC
@@ -103,8 +107,8 @@ int timer_settime(timer_t timerid, int flags, const struct itimerspec *value,
 		  struct itimerspec *ovalue);
 int timer_getoverrun(timer_t timerid);
 int nanosleep(const struct timespec *rqtp, struct timespec *rmtp);
-int clock_nanosleep(clockid_t clock_id, int flags,
-		    const struct timespec *rqtp, struct timespec *rmtp);
+int clock_nanosleep(clockid_t clock_id, int flags, const struct timespec *rqtp,
+		    struct timespec *rmtp);
 
 #ifdef __cplusplus
 }

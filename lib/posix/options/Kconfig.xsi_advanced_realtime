@@ -1,0 +1,86 @@
+# Copyright (c) 2025 Tenstorrent AI ULC
+#
+# SPDX-License-Identifier: Apache-2.0
+
+config POSIX_ADVISORY_INFO
+	bool "POSIX advisory information"
+	help
+	  Select 'y' here and the following Options will be enabled:
+
+	  posix_fadvise(), posix_fallocate(), posix_memalign(), and posix_madvise().
+
+	  For more information, please see
+	  https://pubs.opengroup.org/onlinepubs/9699919799/xrat/V4_port.html
+
+config POSIX_CPUTIME
+	bool "POSIX per-process CPU-time clocks"
+	help
+	  This enables CLOCK_PROCESS_CPUTIME_ID and the function clock_getcpuclockid().
+
+	  For more information, please see
+	  https://pubs.opengroup.org/onlinepubs/9699919799/xrat/V4_port.html
+	  https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_118
+	  https://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html#tag_15_08_05_04
+
+config POSIX_SPAWN
+	bool "POSIX spawn"
+	help
+	  This enables the POSIX spawn option and provides the following functions.
+
+	  posix_spawn(), posix_spawnp(), posix_spawn_file_actions_addopen(),
+	  posix_spawn_file_actions_adddup2(), posix_spawn_file_actions_destroy(),
+	  posix_spawn_file_actions_init(), posix_spawnattr_destroy(), posix_spawnattr_getflags(),
+	  posix_spawnattr_getpgroup(), posix_spawnattr_getsigdefault(),
+	  posix_spawnattr_getsigmask(), posix_spawnattr_init(), posix_spawnattr_setflags(),
+	  posix_spawnattr_setpgroup(), posix_spawnattr_setsigdefault(),
+	  posix_spawnattr_setsigmask().
+
+	  If the _POSIX_PRIORITY_SCHEDULING option is also enabled, then the following functions
+	  will also be provided:
+
+	  posix_spawnattr_getschedparam(), posix_spawnattr_getschedpolicy(),
+	  posix_spawnattr_setschedparam(), and posix_spawnattr_setschedpolicy().
+
+	  For more information, please see
+	  https://pubs.opengroup.org/onlinepubs/9699919799/xrat/V4_port.html
+
+config POSIX_SPORADIC_SERVER
+	bool "POSIX sporadic server"
+	help
+	  This enables the POSIX sporadic server scheduling option (i.e. SCHED_SPORADIC).
+
+	  For more information, please see
+	  https://pubs.opengroup.org/onlinepubs/9699919799/xrat/V4_port.html
+
+config POSIX_TYPED_MEMORY_OBJECTS
+	bool "POSIX typed memory objects"
+	help
+	  This enables the POSIX typed memory objects option and provides the following functions.
+
+	  posix_mem_offset(), posix_typed_mem_get_info(), posix_typed_mem_open().
+
+	  For more information, please see
+	  https://pubs.opengroup.org/onlinepubs/9699919799/xrat/V4_port.html
+
+config XSI_ADVANCED_REALTIME
+	bool "X/Open advanced realtime"
+	select POSIX_ADVISORY_INFO
+	select POSIX_CPUTIME
+	select POSIX_SPAWN
+	select POSIX_SPORADIC_SERVER
+	select POSIX_TYPED_MEMORY_OBJECTS
+	# An implementation that claims conformance to this Option Group shall also support the
+	# Realtime Option Group.
+	select XSI_REALTIME
+	help
+	  Select 'y' here and the following Options will be enabled:
+
+	  _POSIX_ADVISORY_INFO
+	  _POSIX_CPUTIME
+	  _POSIX_SPORADIC_SERVER
+	  _POSIX_TYPED_MEMORY_OBJECTS
+
+	  Selecting this option also selects enables _XOPEN_REALTIME.
+
+	  For more information, please see
+	  https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap02.html

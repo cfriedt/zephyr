@@ -25,12 +25,25 @@
 #define F_GETFL ZVFS_F_GETFL
 #define F_SETFL ZVFS_F_SETFL
 
+#if _POSIX_ADVISORY_INFO >= 200112L
+#define POSIX_FADV_DONTNEED   0
+#define POSIX_FADV_NOREUSE    1
+#define POSIX_FADV_NORMAL     2
+#define POSIX_FADV_RANDOM     3
+#define POSIX_FADV_SEQUENTIAL 4
+#define POSIX_FADV_WILLNEED   5
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int open(const char *name, int flags, ...);
 int fcntl(int fildes, int cmd, ...);
+int open(const char *name, int flags, ...);
+#if _POSIX_ADVISORY_INFO >= 200112L
+int posix_fadvise(int fd, off_t offset, off_t len, int advice);
+int posix_fallocate(int fd, off_t offset, off_t len);
+#endif
 
 #ifdef __cplusplus
 }
