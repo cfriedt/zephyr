@@ -14,6 +14,16 @@
 
 ZTEST(xsi_advanced_realtime, test_posix_spawn)
 {
+	/* int posix_spawn(pid_t *restrict pid, const char *restrict path,
+       const posix_spawn_file_actions_t *file_actions,
+       const posix_spawnattr_t *restrict attrp,
+       char *const argv[restrict], char *const envp[restrict]); */
+
+	pid_t pid = 0;
+	const char *path = EXE_FILE;
+	const posix_spawn_file_actions_t *file_actions = NULL;
+	posix_spawnattr_t *attr = NULL;
+
 	zexpect_ok(posix_spawn(NULL, NULL, NULL, NULL, NULL, NULL));
 }
 

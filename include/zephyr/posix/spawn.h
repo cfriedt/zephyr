@@ -10,39 +10,17 @@
 #if _POSIX_SPAWN >= 200112L
 
 #include <zephyr/toolchain.h>
-#include <zephyr/posix/posix_features.h>
-#include <zephyr/posix/posix_types.h>
 #include <zephyr/posix/sys/spawn.h>
 #include <zephyr/sys/util.h>
 
-#if !defined(_MODE_T_DECLARED) && !defined(__mode_t_defined)
-typedef unsigned long mode_t;
-#define _MODE_T_DECLARED
-#define __mode_t_defined
-#endif
-
-#if !defined(_PID_T_DECLARED) && !defined(__pid_t_defined)
-typedef long pid_t;
-#define _PID_T_DECLARED
-#define __pid_t_defined
-#endif
-
-#if !defined(_SIGSET_T_DECLARED) && !defined(__sigset_t_defined)
-typedef struct {
-	unsigned long sig[DIV_ROUND_UP((32 + RTSIG_MAX + 1), BITS_PER_LONG)];
-} sigset_t;
-#define _SIGSET_T_DECLARED
-#define __sigset_t_defined
-#endif
-
-#define POSIX_SPAWN_RESETIDS  0
-#define POSIX_SPAWN_SETPGROUP 0
+#define POSIX_SPAWN_RESETIDS  BIT(0)
+#define POSIX_SPAWN_SETPGROUP BIT(1)
 #if _POSIX_PRIORITY_SCHEDULING >= 200112L
-#define POSIX_SPAWN_SETSCHEDPARAM 0
-#define POSIX_SPAWN_SETSCHEDULER  0
+#define POSIX_SPAWN_SETSCHEDPARAM BIT(2)
+#define POSIX_SPAWN_SETSCHEDULER  BIT(3)
 #endif
-#define POSIX_SPAWN_SETSIGDEF  0
-#define POSIX_SPAWN_SETSIGMASK 0
+#define POSIX_SPAWN_SETSIGDEF  BIT(4)
+#define POSIX_SPAWN_SETSIGMASK BIT(5)
 
 struct sched_param;
 
