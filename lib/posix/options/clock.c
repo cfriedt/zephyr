@@ -7,13 +7,15 @@
 
 #include "posix_clock.h"
 
-#include <zephyr/kernel.h>
 #include <errno.h>
+
+#include <zephyr/kernel.h>
 #include <zephyr/posix/time.h>
 #include <zephyr/posix/sys/time.h>
 #include <zephyr/posix/unistd.h>
 #include <zephyr/internal/syscall_handler.h>
 #include <zephyr/spinlock.h>
+#include <zephyr/sys/timespec_util.h>
 
 /*
  * `k_uptime_get` returns a timestamp based on an always increasing
@@ -88,12 +90,7 @@ int clock_gettime(clockid_t clock_id, struct timespec *ts)
 	/* For ns 32 bit conversion can be used since its smaller than 1sec. */
 	ts->tv_nsec = (int32_t) k_ticks_to_ns_floor32(nremainder);
 
-	ts->tv_sec += base.tv_sec;
-	ts->tv_nsec += base.tv_nsec;
-	if (ts->tv_nsec >= NSEC_PER_SEC) {
-		ts->tv_sec++;
-		ts->tv_nsec -= NSEC_PER_SEC;
-	}
+	timespec_add(ts, &base);
 
 	return 0;
 }

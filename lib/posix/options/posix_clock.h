@@ -7,7 +7,13 @@
 #ifndef ZEPHYR_LIB_POSIX_POSIX_CLOCK_H_
 #define ZEPHYR_LIB_POSIX_POSIX_CLOCK_H_
 
+#include <stdbool.h>
 #include <time.h>
+
+#include <zephyr/sys/__assert.h>
+#include <zephyr/sys_clock.h>
+
+#ifdef __ZEPHYR__
 
 #include <zephyr/kernel.h>
 #include <zephyr/posix/posix_types.h>
@@ -15,5 +21,15 @@
 __syscall int __posix_clock_get_base(clockid_t clock_id, struct timespec *ts);
 
 #include <zephyr/syscalls/posix_clock.h>
+
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

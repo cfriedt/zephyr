@@ -14,4 +14,7 @@ target_sources(testbinary
     test_s32.c
     test_s64.c
     test_sync.c
+    test_timespec.c
 )
+
+target_include_directories(testbinary PRIVATE ${ZEPHYR_BASE}/lib/posix/options)

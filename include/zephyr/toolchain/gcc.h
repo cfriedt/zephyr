@@ -184,10 +184,14 @@ do {                                                                    \
 	__attribute__((section("." STRINGIFY(segment))))
 #define Z_GENERIC_DOT_SECTION(segment) __GENERIC_DOT_SECTION(segment)
 
+#ifdef __APPLE__
+#define ___in_section(a, b, c)
+#else
 #define ___in_section(a, b, c) \
 	__attribute__((section("." Z_STRINGIFY(a)			\
 				"." Z_STRINGIFY(b)			\
 				"." Z_STRINGIFY(c))))
+#endif
 #define __in_section(a, b, c) ___in_section(a, b, c)
 
 #ifndef __in_section_unique
@@ -283,6 +287,11 @@ do {                                                                    \
 
 #ifndef __no_optimization
 #define __no_optimization __attribute__((optimize("-O0")))
+#endif
+
+#ifdef __APPLE__
+#undef __weak
+#define __weak
 #endif
 
 #ifndef __weak
