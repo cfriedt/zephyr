@@ -1,0 +1,40 @@
+/*
+ * Copyright (c) 2025 Tenstorrent AI ULC
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * west build -p auto -b nucleo_l496zg samples/drivers/jesd216/
+ * west flash -r openocd --cmd-pre-init "adapter serial 0671FF495177514867242707"
+ */
+
+&spi1 {
+	pinctrl-0 = <&spi1_nss_pb0 &spi1_sck_pa5
+			 &spi1_miso_pa6 &spi1_mosi_pa7>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	cs-gpios = <&gpiob 0 GPIO_ACTIVE_LOW>;
+
+	flash1: flash@0 {
+		/* base properties */
+		compatible = "jedec,spi-nor";
+		status = "okay";
+
+		/* spi-device properties */
+		reg = <0>;
+		spi-max-frequency = <31999999>;
+		spi-cpol;
+		spi-cpha;
+
+		/* jedec,spi-nor properties */
+		size = <DT_SIZE_M(16)>; /* Size in bits */
+
+		/* jedec,spi-nor-common properties */
+		has-dpd;
+		t-enter-dpd = <3000>;
+		t-exit-dpd = <30000>;
+		jedec-id = [ef 40 15];
+	};
+};
