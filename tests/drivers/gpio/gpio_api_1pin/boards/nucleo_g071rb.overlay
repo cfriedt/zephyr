@@ -1,0 +1,27 @@
+/ {
+	aliases {
+		led0 = &expansion_led_0;
+	};
+};
+
+&i2c1 {
+    status = "okay";
+
+    gpiox0: pca9554a@38 {
+		compatible = "nxp,pca9554";
+		reg = <0x38>;
+		ngpios = <8>;
+		int-gpios = <&gpioa 8 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+        status = "okay";
+
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+};
+
+&leds {
+	expansion_led_0: led_0 {
+		gpios = <&gpiox0 0x0 0x0>;
+		label = "Expansion LED";
+	};
+};

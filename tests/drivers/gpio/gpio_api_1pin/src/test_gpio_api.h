@@ -15,6 +15,11 @@
  * Otherwise, fallback to repurposing led0 as a GPIO. The latter won't always
  * work as expected when reconfigured as an input.
  */
+#if 1
+#define TEST_NODE          DT_NODELABEL(gpiox0)
+#define TEST_PIN           0
+#define TEST_PIN_DTS_FLAGS 0
+#else
 #if DT_NODE_HAS_STATUS(DT_INST(0, test_gpio_external_pulldown), okay)
 #define TEST_NODE          DT_GPIO_CTLR(DT_INST(0, test_gpio_external_pulldown), gpios)
 #define TEST_PIN           DT_GPIO_PIN(DT_INST(0, test_gpio_external_pulldown), gpios)
@@ -25,6 +30,7 @@
 #define TEST_PIN_DTS_FLAGS DT_GPIO_FLAGS(DT_ALIAS(led0), gpios)
 #else
 #error Unsupported board
+#endif
 #endif
 
 #define TEST_GPIO_MAX_RISE_FALL_TIME_US    200
