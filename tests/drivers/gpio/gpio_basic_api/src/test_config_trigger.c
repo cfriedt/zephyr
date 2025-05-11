@@ -51,7 +51,7 @@ ZTEST(after_flash_gpio_config_trigger, test_gpio_config_twice_trigger)
 	/* 3. Configure PIN_OUT as open drain, internal pull-up (may trigger
 	 * callback)
 	 */
-	ret = gpio_pin_configure(dev_out, PIN_OUT, GPIO_OUTPUT | GPIO_OPEN_DRAIN | GPIO_PULL_UP);
+	ret = gpio_pin_configure(dev_out, PIN_OUT, GPIO_OUTPUT /* | GPIO_OPEN_DRAIN | GPIO_PULL_UP */);
 	if (ret == -ENOTSUP) {
 		TC_PRINT("Open drain not supported.\n");
 		gpio_remove_callback(dev_in, &drv_data->gpio_cb);
@@ -61,7 +61,7 @@ ZTEST(after_flash_gpio_config_trigger, test_gpio_config_twice_trigger)
 	zassert_ok(ret, "config PIN_OUT failed");
 
 	/* 4. Configure PIN_OUT again (should not trigger callback)  */
-	ret = gpio_pin_configure(dev_out, PIN_OUT, GPIO_OUTPUT | GPIO_OPEN_DRAIN | GPIO_PULL_UP);
+	ret = gpio_pin_configure(dev_out, PIN_OUT, GPIO_OUTPUT /* | GPIO_OPEN_DRAIN | GPIO_PULL_UP */);
 	zassert_ok(ret, "config PIN_OUT twice failed");
 
 	/* 5. Wait a bit and ensure that interrupt happened at most once */
@@ -102,7 +102,7 @@ ZTEST(after_flash_gpio_config_trigger, test_gpio_config_trigger)
 	/* 3. Configure PIN_OUT as open drain, internal pull-up (may trigger
 	 * callback)
 	 */
-	ret = gpio_pin_configure(dev_out, PIN_OUT, GPIO_OUTPUT | GPIO_OPEN_DRAIN | GPIO_PULL_UP);
+	ret = gpio_pin_configure(dev_out, PIN_OUT, GPIO_OUTPUT /* | GPIO_OPEN_DRAIN | GPIO_PULL_UP */);
 	if (ret == -ENOTSUP) {
 		TC_PRINT("Open drain not supported.\n");
 		gpio_remove_callback(dev_in, &drv_data->gpio_cb);

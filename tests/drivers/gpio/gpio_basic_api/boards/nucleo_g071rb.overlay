@@ -1,0 +1,22 @@
+/ {
+	resources {
+		compatible = "test-gpio-basic-api";
+		out-gpios = <&gpiox0 0 GPIO_ACTIVE_HIGH>;
+		in-gpios = <&gpiox0 1 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&i2c1 {
+    status = "okay";
+
+    gpiox0: pca9554a@38 {
+		compatible = "nxp,pca9554";
+		reg = <0x38>;
+		ngpios = <8>;
+		int-gpios = <&gpioa 8 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+        status = "okay";
+
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+};
