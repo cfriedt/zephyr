@@ -278,38 +278,6 @@ int pthread_mutexattr_init(pthread_mutexattr_t *attr);
  */
 int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);
 
-/* Mutex robustness */
-#define PTHREAD_MUTEX_STALLED 0
-#define PTHREAD_MUTEX_ROBUST  1
-
-/**
- * @brief Mark the state protected by a robust mutex as consistent again.
- * 
- * @param mutex The robust mutex to mark as consistent
- * @retval 0 on success
- * @retval EINVAL if the @p mutex is not robust or does not protect an inconsistent state.
- */
-int pthread_mutex_consistent(pthread_mutex_t *mutex);
-
-/**
- * @brief Get the robustness state of the provided pthread mutex attribute.
- * 
- * @param attr pthread mutex attribute to query.
- * @param robustness pointer to a location to store the robustness state.
- * @return 0 on success or a non-zero error code on failure.
- */
-int pthread_mutexattr_getrobust(const pthread_mutexattr_t *ZRESTRICT attr, int *ZRESTRICT robustness);
-
-/**
- * @brief Set the robustness state of the provided pthread mutex attribute.
- * 
- * @param attr pthread mutex attribute to query.
- * @param robustness value to set the robustness state to.
- * @retval 0 on success.
- * @retval EINVAL if the @p robustness value is not valid.
- */
-int pthread_mutexattr_setrobust(pthread_mutexattr_t *attr, int robustness);
-
 #define PTHREAD_BARRIER_SERIAL_THREAD 1
 
 /*
