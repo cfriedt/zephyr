@@ -236,22 +236,7 @@ int pthread_mutex_init(pthread_mutex_t *m,
  *
  * See IEEE 1003.1
  */
-int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol);
-
-/**
- * @brief POSIX threading compatibility API
- *
- * See IEEE 1003.1
- */
 int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type);
-
-/**
- * @brief POSIX threading compatibility API
- *
- * See IEEE 1003.1
- */
-int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr,
-				  int *protocol);
 
 /**
  * @brief POSIX threading compatibility API
@@ -356,15 +341,12 @@ int pthread_mutexattr_setpshared(pthread_mutexattr_t *, int);
 int pthread_mutexattr_setrobust(pthread_mutexattr_t *, int);
 */
 
-#ifdef CONFIG_POSIX_THREAD_PRIO_PROTECT
+#if defined(CONFIG_POSIX_THREAD_PRIO_PROTECT)
 int pthread_mutex_getprioceiling(const pthread_mutex_t *ZRESTRICT mutex,
 				 int *ZRESTRICT prioceiling);
 int pthread_mutex_setprioceiling(pthread_mutex_t *ZRESTRICT mutex, int prioceiling,
 				 int *ZRESTRICT old_ceiling);
-int pthread_mutexattr_getprioceiling(const pthread_mutexattr_t *ZRESTRICT attr,
-				     int *ZRESTRICT prioceiling);
-int pthread_mutexattr_setprioceiling(pthread_mutexattr_t *attr, int prioceiling);
-#endif /* CONFIG_POSIX_THREAD_PRIO_PROTECT */
+#endif
 
 /* Base Pthread related APIs */
 
@@ -407,24 +389,38 @@ int pthread_attr_getguardsize(const pthread_attr_t *ZRESTRICT attr, size_t *ZRES
 int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize);
 int pthread_attr_setguardsize(pthread_attr_t *attr, size_t guardsize);
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
-int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
-int pthread_attr_getschedpolicy(const pthread_attr_t *attr, int *policy);
 int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate);
 int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate);
 int pthread_attr_init(pthread_attr_t *attr);
 int pthread_attr_destroy(pthread_attr_t *attr);
-int pthread_attr_getschedparam(const pthread_attr_t *attr,
-			       struct sched_param *schedparam);
-int pthread_getschedparam(pthread_t pthread, int *policy,
-			  struct sched_param *param);
+int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched_param *schedparam);
 int pthread_attr_getstack(const pthread_attr_t *attr,
 			  void **stackaddr, size_t *stacksize);
 int pthread_attr_setstack(pthread_attr_t *attr, void *stackaddr,
 			  size_t stacksize);
-int pthread_attr_getscope(const pthread_attr_t *attr, int *contentionscope);
+
+#if defined(CONFIG_POSIX_THREAD_PRIORITY_SCHEDULING)
+int pthread_attr_getscope(const pthread_attr_t *ZRESTRICT attr, int *ZRESTRICT contentionscope);
 int pthread_attr_setscope(pthread_attr_t *attr, int contentionscope);
-int pthread_attr_getinheritsched(const pthread_attr_t *attr, int *inheritsched);
+int pthread_attr_getinheritsched(const pthread_attr_t *ZRESTRICT attr, int *ZRESTRICT inheritsched);
 int pthread_attr_setinheritsched(pthread_attr_t *attr, int inheritsched);
+int pthread_attr_getschedpolicy(const pthread_attr_t *ZRESTRICT attr, int *ZRESTRICT policy);
+int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
+int pthread_getschedparam(pthread_t thread, int *ZRESTRICT policy,
+			  struct sched_param *ZRESTRICT param);
+int pthread_setschedparam(pthread_t pthread, int policy, const struct sched_param *param);
+int pthread_setschedprio(pthread_t thread, int prio);
+#endif
+
+#if defined(CONFIG_POSIX_THREAD_ROBUST_PRIO_INHERIT) ||                                            \
+	defined(CONFIG_POSIX_THREAD_ROBUST_PRIO_PROTECT)
+int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol);
+int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol);
+int pthread_mutexattr_getprioceiling(const pthread_mutexattr_t *ZRESTRICT attr,
+				     int *ZRESTRICT prioceiling);
+int pthread_mutexattr_setprioceiling(pthread_mutexattr_t *attr, int prioceiling);
+#endif
+
 #ifdef CONFIG_POSIX_THREADS
 int pthread_once(pthread_once_t *once, void (*initFunc)(void));
 #endif
@@ -439,11 +435,7 @@ int pthread_create(pthread_t *newthread, const pthread_attr_t *attr,
 int pthread_setcancelstate(int state, int *oldstate);
 int pthread_setcanceltype(int type, int *oldtype);
 void pthread_testcancel(void);
-int pthread_attr_setschedparam(pthread_attr_t *attr,
-			       const struct sched_param *schedparam);
-int pthread_setschedparam(pthread_t pthread, int policy,
-			  const struct sched_param *param);
-int pthread_setschedprio(pthread_t thread, int prio);
+int pthread_attr_setschedparam(pthread_attr_t *attr, const struct sched_param *schedparam);
 int pthread_rwlock_destroy(pthread_rwlock_t *rwlock);
 int pthread_rwlock_init(pthread_rwlock_t *rwlock,
 			const pthread_rwlockattr_t *attr);

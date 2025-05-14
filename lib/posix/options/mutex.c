@@ -312,45 +312,6 @@ int pthread_mutex_destroy(pthread_mutex_t *mu)
 	return 0;
 }
 
-/**
- * @brief Read protocol attribute for mutex.
- *
- * See IEEE 1003.1
- */
-int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr,
-				  int *protocol)
-{
-	if ((attr == NULL) || (protocol == NULL)) {
-		return EINVAL;
-	}
-
-	*protocol = PTHREAD_PRIO_NONE;
-	return 0;
-}
-
-/**
- * @brief Set protocol attribute for mutex.
- *
- * See IEEE 1003.1
- */
-int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol)
-{
-	if (attr == NULL) {
-		return EINVAL;
-	}
-
-	switch (protocol) {
-	case PTHREAD_PRIO_NONE:
-		return 0;
-	case PTHREAD_PRIO_INHERIT:
-		return ENOTSUP;
-	case PTHREAD_PRIO_PROTECT:
-		return ENOTSUP;
-	default:
-		return EINVAL;
-	}
-}
-
 int pthread_mutexattr_init(pthread_mutexattr_t *attr)
 {
 	struct pthread_mutexattr *const a = (struct pthread_mutexattr *)attr;
@@ -419,42 +380,6 @@ int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
 		return EINVAL;
 	}
 }
-
-#ifdef CONFIG_POSIX_THREAD_PRIO_PROTECT
-int pthread_mutex_getprioceiling(const pthread_mutex_t *mutex, int *prioceiling)
-{
-	ARG_UNUSED(mutex);
-	ARG_UNUSED(prioceiling);
-
-	return ENOSYS;
-}
-
-int pthread_mutex_setprioceiling(pthread_mutex_t *mutex, int prioceiling, int *old_ceiling)
-{
-	ARG_UNUSED(mutex);
-	ARG_UNUSED(prioceiling);
-	ARG_UNUSED(old_ceiling);
-
-	return ENOSYS;
-}
-
-int pthread_mutexattr_getprioceiling(const pthread_mutexattr_t *attr, int *prioceiling)
-{
-	ARG_UNUSED(attr);
-	ARG_UNUSED(prioceiling);
-
-	return ENOSYS;
-}
-
-int pthread_mutexattr_setprioceiling(pthread_mutexattr_t *attr, int prioceiling)
-{
-	ARG_UNUSED(attr);
-	ARG_UNUSED(prioceiling);
-
-	return ENOSYS;
-}
-
-#endif /* CONFIG_POSIX_THREAD_PRIO_PROTECT */
 
 __boot_func
 static int pthread_mutex_pool_init(void)

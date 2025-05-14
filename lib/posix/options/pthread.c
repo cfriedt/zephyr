@@ -43,11 +43,6 @@ LOG_MODULE_REGISTER(pthread, CONFIG_PTHREAD_LOG_LEVEL);
 #define DYNAMIC_STACK_SIZE 0
 #endif
 
-static inline size_t __get_attr_stacksize(const struct posix_thread_attr *attr)
-{
-	return attr->stacksize + 1;
-}
-
 static inline void __set_attr_stacksize(struct posix_thread_attr *attr, size_t stacksize)
 {
 	attr->stacksize = stacksize - 1;
@@ -91,9 +86,8 @@ static sys_dlist_t posix_thread_q[] = {
 	SYS_DLIST_STATIC_INIT(&posix_thread_q[POSIX_THREAD_DONE_Q]),
 };
 
-static __pinned_bss struct posix_thread posix_thread_pool[CONFIG_POSIX_THREAD_THREADS_MAX];
-
-static SYS_SEM_DEFINE(pthread_pool_lock, 1, 1);
+extern struct posix_thread posix_thread_pool[CONFIG_POSIX_THREAD_THREADS_MAX];
+extern struct sys_sem pthread_pool_lock;
 static int pthread_concurrency;
 
 static inline void posix_thread_q_set(struct posix_thread *t, enum posix_thread_qid qid)
@@ -240,18 +234,6 @@ void __z_pthread_cleanup_pop(int execute)
 	}
 }
 
-static bool is_posix_policy_prio_valid(int priority, int policy)
-{
-	if (priority >= posix_sched_priority_min(policy) &&
-	    priority <= posix_sched_priority_max(policy)) {
-		return true;
-	}
-
-	LOG_DBG("Invalid priority %d and / or policy %d", priority, policy);
-
-	return false;
-}
-
 /* Non-static so that they can be tested in ztest */
 int zephyr_to_posix_priority(int z_prio, int *policy)
 {
@@ -276,45 +258,6 @@ int posix_to_zephyr_priority(int priority, int policy)
 	__ASSERT_NO_MSG(is_posix_policy_prio_valid(priority, policy));
 
 	return POSIX_TO_ZEPHYR_PRIORITY(priority, policy);
-}
-
-static bool __attr_is_runnable(const struct posix_thread_attr *attr)
-{
-	size_t stacksize;
-
-	if (attr == NULL || attr->stack == NULL) {
-		LOG_DBG("attr %p is not initialized", attr);
-		return false;
-	}
-
-	stacksize = __get_attr_stacksize(attr);
-	if (stacksize < PTHREAD_STACK_MIN) {
-		LOG_DBG("attr %p has stacksize %zu is smaller than PTHREAD_STACK_MIN (%zu)", attr,
-			stacksize, (size_t)PTHREAD_STACK_MIN);
-		return false;
-	}
-
-	/* require a valid scheduler policy */
-	if (!valid_posix_policy(attr->schedpolicy)) {
-		LOG_DBG("Invalid scheduler policy %d", attr->schedpolicy);
-		return false;
-	}
-
-	return true;
-}
-
-static bool __attr_is_initialized(const struct posix_thread_attr *attr)
-{
-	if (IS_ENABLED(CONFIG_DYNAMIC_THREAD)) {
-		return __attr_is_runnable(attr);
-	}
-
-	if (attr == NULL || !attr->initialized) {
-		LOG_DBG("attr %p is not initialized", attr);
-		return false;
-	}
-
-	return true;
 }
 
 /**
@@ -371,88 +314,6 @@ int pthread_attr_setstack(pthread_attr_t *_attr, void *stackaddr, size_t stacksi
 	LOG_DBG("Assigned thread stack %zu@%p to attr %p", __get_attr_stacksize(attr), attr->stack,
 		_attr);
 
-	return 0;
-}
-
-/**
- * @brief Get scope attributes in thread attributes object.
- *
- * See IEEE 1003.1
- */
-int pthread_attr_getscope(const pthread_attr_t *_attr, int *contentionscope)
-{
-	struct posix_thread_attr *attr = (struct posix_thread_attr *)_attr;
-
-	if (!__attr_is_initialized(attr) || contentionscope == NULL) {
-		return EINVAL;
-	}
-	*contentionscope = attr->contentionscope;
-	return 0;
-}
-
-/**
- * @brief Set scope attributes in thread attributes object.
- *
- * See IEEE 1003.1
- */
-int pthread_attr_setscope(pthread_attr_t *_attr, int contentionscope)
-{
-	struct posix_thread_attr *attr = (struct posix_thread_attr *)_attr;
-
-	if (!__attr_is_initialized(attr)) {
-		LOG_DBG("attr %p is not initialized", attr);
-		return EINVAL;
-	}
-	if (!(contentionscope == PTHREAD_SCOPE_PROCESS ||
-	      contentionscope == PTHREAD_SCOPE_SYSTEM)) {
-		LOG_DBG("%s contentionscope %d", "Invalid", contentionscope);
-		return EINVAL;
-	}
-	if (contentionscope == PTHREAD_SCOPE_PROCESS) {
-		/* Zephyr does not yet support processes or process scheduling */
-		LOG_DBG("%s contentionscope %d", "Unsupported", contentionscope);
-		return ENOTSUP;
-	}
-	attr->contentionscope = contentionscope;
-	return 0;
-}
-
-/**
- * @brief Get inherit scheduler attributes in thread attributes object.
- *
- * See IEEE 1003.1
- */
-int pthread_attr_getinheritsched(const pthread_attr_t *_attr, int *inheritsched)
-{
-	struct posix_thread_attr *attr = (struct posix_thread_attr *)_attr;
-
-	if (!__attr_is_initialized(attr) || inheritsched == NULL) {
-		return EINVAL;
-	}
-	*inheritsched = attr->inheritsched;
-	return 0;
-}
-
-/**
- * @brief Set inherit scheduler attributes in thread attributes object.
- *
- * See IEEE 1003.1
- */
-int pthread_attr_setinheritsched(pthread_attr_t *_attr, int inheritsched)
-{
-	struct posix_thread_attr *attr = (struct posix_thread_attr *)_attr;
-
-	if (!__attr_is_initialized(attr)) {
-		LOG_DBG("attr %p is not initialized", attr);
-		return EINVAL;
-	}
-
-	if (inheritsched != PTHREAD_INHERIT_SCHED && inheritsched != PTHREAD_EXPLICIT_SCHED) {
-		LOG_DBG("Invalid inheritsched %d", inheritsched);
-		return EINVAL;
-	}
-
-	attr->inheritsched = inheritsched;
 	return 0;
 }
 
@@ -854,81 +715,6 @@ int pthread_cancel(pthread_t pthread)
 }
 
 /**
- * @brief Set thread scheduling policy and parameters.
- *
- * See IEEE 1003.1
- */
-int pthread_setschedparam(pthread_t pthread, int policy, const struct sched_param *param)
-{
-	int ret = ESRCH;
-	int new_prio = K_LOWEST_APPLICATION_THREAD_PRIO;
-	struct posix_thread *t = NULL;
-
-	if (param == NULL || !valid_posix_policy(policy) ||
-	    !is_posix_policy_prio_valid(param->sched_priority, policy)) {
-		return EINVAL;
-	}
-
-	SYS_SEM_LOCK(&pthread_pool_lock) {
-		t = to_posix_thread(pthread);
-		if (t == NULL) {
-			ret = ESRCH;
-			SYS_SEM_LOCK_BREAK;
-		}
-
-		ret = 0;
-		new_prio = posix_to_zephyr_priority(param->sched_priority, policy);
-	}
-
-	if (ret == 0) {
-		k_thread_priority_set(&t->thread, new_prio);
-	}
-
-	return ret;
-}
-
-/**
- * @brief Set thread scheduling priority.
- *
- * See IEEE 1003.1
- */
-int pthread_setschedprio(pthread_t thread, int prio)
-{
-	int ret;
-	int new_prio = K_LOWEST_APPLICATION_THREAD_PRIO;
-	struct posix_thread *t = NULL;
-	int policy = -1;
-	struct sched_param param;
-
-	ret = pthread_getschedparam(thread, &policy, &param);
-	if (ret != 0) {
-		return ret;
-	}
-
-	if (!is_posix_policy_prio_valid(prio, policy)) {
-		return EINVAL;
-	}
-
-	ret = ESRCH;
-	SYS_SEM_LOCK(&pthread_pool_lock) {
-		t = to_posix_thread(thread);
-		if (t == NULL) {
-			ret = ESRCH;
-			SYS_SEM_LOCK_BREAK;
-		}
-
-		ret = 0;
-		new_prio = posix_to_zephyr_priority(prio, policy);
-	}
-
-	if (ret == 0) {
-		k_thread_priority_set(&t->thread, new_prio);
-	}
-
-	return ret;
-}
-
-/**
  * @brief Initialise threads attribute object
  *
  * See IEEE 1003.1
@@ -968,40 +754,6 @@ int pthread_attr_init(pthread_attr_t *_attr)
 	LOG_DBG("Initialized attr %p", _attr);
 
 	return 0;
-}
-
-/**
- * @brief Get thread scheduling policy and parameters
- *
- * See IEEE 1003.1
- */
-int pthread_getschedparam(pthread_t pthread, int *policy, struct sched_param *param)
-{
-	int ret = ESRCH;
-	struct posix_thread *t;
-
-	if (policy == NULL || param == NULL) {
-		return EINVAL;
-	}
-
-	SYS_SEM_LOCK(&pthread_pool_lock) {
-		t = to_posix_thread(pthread);
-		if (t == NULL) {
-			ret = ESRCH;
-			SYS_SEM_LOCK_BREAK;
-		}
-
-		if (!__attr_is_initialized(&t->attr)) {
-			ret = ESRCH;
-			SYS_SEM_LOCK_BREAK;
-		}
-
-		ret = 0;
-		param->sched_priority =
-			zephyr_to_posix_priority(k_thread_priority_get(&t->thread), policy);
-	}
-
-	return ret;
 }
 
 /**
@@ -1245,40 +997,6 @@ int pthread_attr_setdetachstate(pthread_attr_t *_attr, int detachstate)
 	}
 
 	attr->detachstate = detachstate;
-	return 0;
-}
-
-/**
- * @brief Get scheduling policy attribute in Thread attributes.
- *
- * See IEEE 1003.1
- */
-int pthread_attr_getschedpolicy(const pthread_attr_t *_attr, int *policy)
-{
-	const struct posix_thread_attr *attr = (const struct posix_thread_attr *)_attr;
-
-	if (!__attr_is_initialized(attr) || (policy == NULL)) {
-		return EINVAL;
-	}
-
-	*policy = attr->schedpolicy;
-	return 0;
-}
-
-/**
- * @brief Set scheduling policy attribute in Thread attributes object.
- *
- * See IEEE 1003.1
- */
-int pthread_attr_setschedpolicy(pthread_attr_t *_attr, int policy)
-{
-	struct posix_thread_attr *attr = (struct posix_thread_attr *)_attr;
-
-	if (!__attr_is_initialized(attr) || !valid_posix_policy(policy)) {
-		return EINVAL;
-	}
-
-	attr->schedpolicy = policy;
 	return 0;
 }
 

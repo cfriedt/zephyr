@@ -18,3 +18,11 @@ config XSI_REALTIME_THREADS
 
 	  For more information, please see
 	  https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap02.html
+
+if XSI_REALTIME_THREADS
+
+module = XSI_REALTIME_THREADS
+module-str = XSI Realtime Threads
+source "subsys/logging/Kconfig.template.log_config"
+
+endif

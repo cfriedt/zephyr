@@ -157,7 +157,7 @@ config POSIX_THREAD_PRIO_PROTECT
 	  For more information, please see
 	  https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutexattr_getprotocol.html
 
-select POSIX_THREAD_ROBUST_PRIO_INHERIT
+config POSIX_THREAD_ROBUST_PRIO_INHERIT
 	bool "Robust POSIX mutex priority inheritance"
 	help
 	  Select 'y' here to enable robust POSIX mutex priority inheritance.
