@@ -733,6 +733,28 @@ static inline k_timeout_t timespec_to_timeout(const struct timespec *ts)
 }
 
 /**
+ * @brief Convert an absolute `timespec` object to a clock-relative kernel timeout
+ *
+ * This function converts the absolute timepoint, @a abstime, to a relative duration of type
+ * @ref k_timeout_t with respect to the given system clock, @a clock_id.
+ *
+ * Valid `clock_id` values are, for example, @ref SYS_CLOCK_REALTIME or @ref SYS_CLOCK_MONOTONIC.
+ *
+ * On success, this function returns the time duration until @a abstime relative to the specified
+ * system clock.
+ *
+ * In case @a abstime is in the past, with respect to the specified system clock @a clock_id, this
+ * function returns @ref K_NO_WAIT.
+ *
+ * @note This function will assert if an invalid `clock_id` is provided or if `abstime` refers to an
+ * invalid `timespec` object.
+ *
+ * @param ts the absolute `timespec` object to convert
+ * @return the relative duration until @a abstime with respect to @a clock_id
+ */
+k_timeout_t timespec_abs_to_clock_rel_timeout(int clock_id, const struct timespec *abstime);
+
+/**
  * @}
  */
 

@@ -11,6 +11,7 @@ zephyr_sources(
   printk.c
   sem.c
   thread_entry.c
+  timespec.c
   )
 
 zephyr_sources_ifdef(CONFIG_FDTABLE fdtable.c)

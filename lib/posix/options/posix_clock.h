@@ -59,8 +59,6 @@ static inline bool tp_diff_in_range_ns(const struct timespec *a, const struct ti
 	return diff >= lo && diff < hi;
 }
 
-uint32_t timespec_to_timeoutms(clockid_t clock_id, const struct timespec *abstime);
-
 /** INTERNAL_HIDDEN @endcond */
 
 #ifdef __cplusplus

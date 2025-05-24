@@ -108,7 +108,6 @@ if (NOT CONFIG_TC_PROVIDES_POSIX_TIMERS)
   zephyr_library_sources_ifdef(CONFIG_POSIX_TIMERS
     clock.c
     timer.c
-    timespec_to_timeout.c
   )
 endif()
 

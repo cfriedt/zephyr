@@ -56,6 +56,17 @@ static inline size_t to_posix_rwlock_idx(pthread_rwlock_t rwlock)
 	return mark_pthread_obj_uninitialized(rwlock);
 }
 
+static uint32_t timespec_to_timeoutms(clockid_t clock_id, const struct timespec *abstime)
+{
+	struct timespec curtime;
+
+	if (clock_gettime(clock_id, &curtime) < 0) {
+		return 0;
+	}
+
+	return CLAMP(tp_diff(abstime, &curtime) / NSEC_PER_MSEC, 0, UINT32_MAX);
+}
+
 static struct posix_rwlock *get_posix_rwlock(pthread_rwlock_t rwlock)
 {
 	int actually_initialized;
