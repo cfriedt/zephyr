@@ -133,7 +133,7 @@ zephyr_compile_options_ifdef(CONFIG_POSIX_TIMERS -D_POSIX_TIMERS=200809L)
 zephyr_compile_options_ifdef(CONFIG_POSIX_MONOTONIC_CLOCK -D_POSIX_MONOTONIC_CLOCK=200809L)
 # this is technically not an option group, but an option. Temporary hack here. Should be enabled
 # with CONFIG_XSI_ADVANCED_REALTIME.
-zephyr_compile_options_ifdef(CONFIG_POSIX_MONOTONIC_CLOCK -D_POSIX_MONOTONIC_CLOCK=200809L)
+zephyr_compile_options_ifdef(CONFIG_POSIX_CPUTIME -D_POSIX_CPUTIME=200809L)
 
 
 if (NOT CONFIG_TC_PROVIDES_POSIX_READER_WRITER_LOCKS)

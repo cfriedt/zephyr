@@ -39,6 +39,9 @@ config POSIX_MONOTONIC_CLOCK
 
 config POSIX_CPUTIME
 	bool "POSIX per-process CPU-time clocks"
+	# Note: This should be enabled with the XSI_ADVANCED_REALTIME Option Group. It is temporarily
+	# It is temporarily defaulted to 'y' to simplify the transition.
+	default y
 	help
 	  This enables CLOCK_PROCESS_CPUTIME_ID.
 
