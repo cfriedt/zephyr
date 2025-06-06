@@ -5,12 +5,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/* needs to be included first */
+#include <zephyr/posix/posix_features.h>
+
 #include <errno.h>
+#include <stdbool.h>
 #include <time.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/posix/sys/time.h>
-#include <zephyr/posix/time.h>
 #include <zephyr/posix/unistd.h>
 #include <zephyr/sys/clock.h>
 
@@ -33,8 +36,14 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
 			     CONFIG_SYS_CLOCK_TICKS_PER_SEC <= NSEC_PER_SEC,
 		     "CONFIG_SYS_CLOCK_TICKS_PER_SEC must be > 0 and <= NSEC_PER_SEC");
 
-	if (!(clock_id == CLOCK_MONOTONIC || clock_id == CLOCK_REALTIME ||
-	      clock_id == CLOCK_PROCESS_CPUTIME_ID)) {
+	if (!(clock_id == CLOCK_REALTIME
+#ifdef CONFIG_POSIX_MONOTONIC_CLOCK
+	      || (clock_id == CLOCK_MONOTONIC)
+#endif
+#ifdef CONFIG_POSIX_CPUTIME
+	      || (clock_id == CLOCK_PROCESS_CPUTIME_ID)
+#endif
+	      || false)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -60,6 +69,9 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
 int clock_settime(clockid_t clock_id, const struct timespec *tp)
 {
 	int ret;
+
+	if (clock_id != CLOCK_REALTIME) {
+	}
 
 	ret = sys_clock_settime((int)clock_id, tp);
 	if (ret < 0) {
@@ -117,6 +129,7 @@ int nanosleep(const struct timespec *rqtp, struct timespec *rmtp)
 	return 0;
 }
 
+#ifdef CONFIG_POSIX_CPUTIME
 int clock_getcpuclockid(pid_t pid, clockid_t *clock_id)
 {
 	/* We don't allow any process ID but our own.  */
@@ -128,3 +141,4 @@ int clock_getcpuclockid(pid_t pid, clockid_t *clock_id)
 
 	return 0;
 }
+#endif

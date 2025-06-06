@@ -8,11 +8,10 @@
 #include "posix_clock.h"
 #include "posix_internal.h"
 
+#include <errno.h>
 #include <stddef.h>
 #include <time.h>
-#include <errno.h>
 
-#include <zephyr/posix/time.h>
 #include <zephyr/sys/clock.h>
 #include <zephyr/toolchain.h>
 
@@ -53,7 +52,7 @@ int pthread_condattr_setclock(pthread_condattr_t *att, clockid_t clock_id)
 {
 	struct posix_condattr *const attr = (struct posix_condattr *)att;
 
-	if (clock_id != CLOCK_REALTIME && clock_id != CLOCK_MONOTONIC) {
+	if (clock_id != CLOCK_REALTIME) {
 		return -EINVAL;
 	}
 

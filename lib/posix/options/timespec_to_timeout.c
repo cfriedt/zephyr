@@ -8,8 +8,8 @@
 
 #include <limits.h>
 #include <stdint.h>
+#include <time.h>
 
-#include <zephyr/posix/time.h>
 #include <zephyr/sys/util.h>
 
 uint32_t timespec_to_timeoutms(clockid_t clock_id, const struct timespec *abstime)

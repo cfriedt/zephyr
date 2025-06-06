@@ -27,6 +27,9 @@ config POSIX_THREAD_CPUTIME
 
 config POSIX_MONOTONIC_CLOCK
 	bool "POSIX Monotonic clock support"
+	# Note: This should be enabled with the XSI_ADVANCED_REALTIME Option Group. It is temporarily
+	# It is temporarily defaulted to 'y' to simplify the transition.
+	default y
 	help
 	  This enables CLOCK_MONOTONIC.
 
