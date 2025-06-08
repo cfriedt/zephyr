@@ -6,15 +6,13 @@
 #include "posix/strsignal_table.h"
 
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 
-#include <zephyr/posix/pthread.h>
-#include <zephyr/posix/signal.h>
+#include <zephyr/sys/util.h>
 
 #define SIGNO_WORD_IDX(_signo) (_signo / BITS_PER_LONG)
 #define SIGNO_WORD_BIT(_signo) (_signo & BIT_MASK(LOG2(BITS_PER_LONG)))
-
-BUILD_ASSERT(CONFIG_POSIX_RTSIG_MAX >= 0);
 
 static inline bool signo_valid(int signo)
 {

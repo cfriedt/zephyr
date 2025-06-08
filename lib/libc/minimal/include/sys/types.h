@@ -60,4 +60,10 @@ typedef uintptr_t mem_word_t;
 
 #endif
 
+#if defined(_POSIX_C_SOURCE) && !defined(__pthread_attr_t_defined) && !defined(_PTHREAD_ATTR_T_DECLARED)
+#define __pthread_attr_t_defined
+#define _PTHREAD_ATTR_T_DECLARED
+typedef unsigned long pthread_attr_t; 
+#endif
+
 #endif /* ZEPHYR_LIB_LIBC_MINIMAL_INCLUDE_SYS_TYPES_H_ */

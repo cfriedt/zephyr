@@ -39,3 +39,11 @@ if(NOT CONFIG_PICOLIBC_USE_MODULE)
   endif()
 
 endif()
+
+# For Zephyr / Picolibc POSIX compatibility
+if(
+  CONFIG_POSIX_TIMERS
+  OR FALSE)
+  zephyr_compile_definitions(-D_POSIX_C_SOURCE=200809L)
+  zephyr_compile_definitions(-D__POSIX_VISIBLE=200809)
+endif()
