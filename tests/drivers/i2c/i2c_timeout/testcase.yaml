@@ -1,0 +1,8 @@
+tests:
+  drivers.i2c.timeout:
+    platform_allow:
+      - native_sim
+    depends_on: i2c
+    tags:
+      - drivers
+      - i2c

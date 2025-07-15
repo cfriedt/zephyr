@@ -1,0 +1,11 @@
+# Copyright (c) 2025 Tenstorrent AI ULC
+# SPDX-License-Identifier: Apache-2.0
+
+config TEST_I2C_TIMEOUT_SYSCALL_OVERHEAD_MS
+    int "I2C timeout syscall overhead in milliseconds"
+    default 20
+    help
+      This option sets the overhead of the I2C timeout syscall in milliseconds.
+      It is used as a margin to ensure that the actual timeout is not exceeded.
+
+source "Kconfig.zephyr"
