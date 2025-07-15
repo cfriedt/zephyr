@@ -241,6 +241,8 @@ typedef void (*i2c_api_iodev_submit)(const struct device *dev,
 
 typedef int (*i2c_api_recover_bus_t)(const struct device *dev);
 
+typedef int (*i2c_api_set_timeout_t)(const struct device *dev, k_timeout_t timeout);
+
 __subsystem struct i2c_driver_api {
 	i2c_api_configure_t configure;
 	i2c_api_get_config_t get_config;
@@ -254,6 +256,9 @@ __subsystem struct i2c_driver_api {
 	i2c_api_iodev_submit iodev_submit;
 #endif
 	i2c_api_recover_bus_t recover_bus;
+#ifdef CONFIG_I2C_TIMEOUT
+	i2c_api_set_timeout_t set_timeout;
+#endif
 };
 
 typedef int (*i2c_target_api_register_t)(const struct device *dev);
@@ -1222,6 +1227,47 @@ static inline int z_impl_i2c_recover_bus(const struct device *dev)
 	}
 
 	return api->recover_bus(dev);
+}
+
+/**
+ * @brief Set the timeout for I2C bus transactions
+ *
+ * Set the timeout for I2C bus transactions. The timeout is calculated relative to the
+ * tick when an i2c transaction is started.
+ *
+ * If supported, the timeout for each I2C controller is initialized to
+ * `CONFIG_I2C_TIMEOUT_DEFAULT_MS`.
+ *
+ * @note @p timeout must represent a relative time duration.
+ * @note no synchronization is performed on the timeout. It is the responsibility of the
+ * application to ensure that the timeout is sufficiently long for anticipated use cases.
+ *
+ * @param dev Pointer to the device structure for an I2C controller.
+ * @retval 0 If successful
+ * @retval -EINVAL If the timeout is invalid.
+ * @retval -ENOSYS If the driver does not support setting a timeout.
+ */
+__syscall int i2c_set_timeout(const struct device *dev, k_timeout_t timeout);
+
+static inline int z_impl_i2c_set_timeout(const struct device *dev, k_timeout_t timeout)
+{
+#ifdef CONFIG_I2C_TIMEOUT
+	const struct i2c_driver_api *api = (const struct i2c_driver_api *)dev->api;
+
+	if (api->set_timeout == NULL) {
+		return -ENOSYS;
+	}
+
+	if (IS_ENABLED(CONFIG_TIMEOUT_64BIT) && !Z_IS_TIMEOUT_RELATIVE(timeout)) {
+		return -EINVAL;
+	}
+
+	return api->set_timeout(dev, timeout);
+#else
+	ARG_UNUSED(dev);
+	ARG_UNUSED(timeout);
+	return -ENOSYS;
+#endif
 }
 
 /**

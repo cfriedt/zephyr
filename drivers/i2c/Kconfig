@@ -113,6 +113,24 @@ config I2C_RTIO_FALLBACK_MSGS
 
 endif # I2C_RTIO
 
+config I2C_TIMEOUT
+	bool "I2C timeout support"
+	help
+	  Enable I2C timeout support.
+
+	  This option enables the ability to set a timeout for I2C bus transactions.
+	  If the operation does not complete within the specified timeout, it will
+	  return an error.
+
+if I2C_TIMEOUT
+
+config I2C_TIMEOUT_DEFAULT_MS
+	int "Default I2C timeout in milliseconds"
+	default 1000
+	help
+	  Set the default timeout for I2C bus transactions in milliseconds.
+
+endif # I2C_TIMEOUT
 
 # Include these first so that any properties (e.g. defaults) below can be
 # overridden (by defining symbols in multiple locations)
