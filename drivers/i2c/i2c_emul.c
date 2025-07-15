@@ -32,6 +32,10 @@ struct i2c_emul_data {
 #ifdef CONFIG_I2C_TARGET
 	struct i2c_target_config *target_cfg;
 #endif
+#ifdef CONFIG_I2C_TIMEOUT
+	/* timeout per i2c bus transaction */
+	k_timeout_t timeout;
+#endif
 };
 
 struct i2c_emul_config {
@@ -83,6 +87,17 @@ static int i2c_emul_get_config(const struct device *dev, uint32_t *dev_config)
 
 	return 0;
 }
+
+#ifdef CONFIG_I2C_TIMEOUT
+static int i2c_emul_set_timeout(const struct device *dev, k_timeout_t timeout)
+{
+	struct i2c_emul_data *data = (struct i2c_emul_data *)dev->data;
+
+	data->timeout = timeout;
+
+	return 0;
+}
+#endif /* CONFIG_I2C_TIMEOUT */
 
 #ifdef CONFIG_I2C_TARGET
 static int i2c_emul_send_to_target(const struct device *dev, struct i2c_msg *msgs, uint8_t num_msgs)
@@ -219,7 +234,14 @@ static int i2c_emul_transfer(const struct device *dev, struct i2c_msg *msgs, uin
 
 	emul = i2c_emul_find(dev, addr);
 	if (!emul) {
+#ifdef CONFIG_I2C_TIMEOUT
+		struct i2c_emul_data *data = dev->data;
+
+		k_sleep(data->timeout);
+		return -ETIMEDOUT;
+#else
 		return -EIO;
+#endif
 	}
 
 	api = emul->api;
@@ -296,6 +318,9 @@ static DEVICE_API(i2c, i2c_emul_api) = {
 	.configure = i2c_emul_configure,
 	.get_config = i2c_emul_get_config,
 	.transfer = i2c_emul_transfer,
+#ifdef CONFIG_I2C_TIMEOUT
+	.set_timeout = i2c_emul_set_timeout,
+#endif
 #ifdef CONFIG_I2C_TARGET
 	.target_register = i2c_emul_target_register,
 	.target_unregister = i2c_emul_target_unregister,
@@ -316,12 +341,16 @@ static DEVICE_API(i2c, i2c_emul_api) = {
 		.addr = DT_PHA_BY_IDX(node_id, prop, idx, addr),                                   \
 	},
 
+#define I2C_EMUL_TIMEOUT(n)                                                                        \
+	COND_CODE_1(IS_ENABLED(CONFIG_I2C_TIMEOUT),                                            \
+		    (.timeout = K_MSEC(CONFIG_I2C_TIMEOUT_DEFAULT_MS),), ())
+
 #define I2C_EMUL_INIT(n)                                                                           \
 	static const struct emul_link_for_bus emuls_##n[] = {                                      \
 		DT_FOREACH_CHILD_STATUS_OKAY(DT_DRV_INST(n), EMUL_LINK_AND_COMMA)};                \
 	static const struct i2c_dt_spec emul_forward_list_##n[] = {                                \
 		COND_CODE_1(DT_INST_NODE_HAS_PROP(n, forwards),                                    \
-			    (DT_INST_FOREACH_PROP_ELEM(n, forwards, EMUL_FORWARD_ITEM)), ())};     \
+			    (DT_INST_FOREACH_PROP_ELEM(n, forwards, EMUL_FORWARD_ITEM)), ())};            \
 	static struct i2c_emul_config i2c_emul_cfg_##n = {                                         \
 		.emul_list =                                                                       \
 			{                                                                          \
@@ -333,8 +362,7 @@ static DEVICE_API(i2c, i2c_emul_api) = {
 		.forward_list_size = ARRAY_SIZE(emul_forward_list_##n),                            \
 	};                                                                                         \
 	static struct i2c_emul_data i2c_emul_data_##n = {                                          \
-		.bitrate = DT_INST_PROP(n, clock_frequency),                                       \
-	};                                                                                         \
+		.bitrate = DT_INST_PROP(n, clock_frequency), I2C_EMUL_TIMEOUT(n)};                 \
 	I2C_DEVICE_DT_INST_DEFINE(n, i2c_emul_init, NULL, &i2c_emul_data_##n, &i2c_emul_cfg_##n,   \
 				  POST_KERNEL, CONFIG_I2C_INIT_PRIORITY, &i2c_emul_api);
 
