@@ -12,7 +12,6 @@
 #include <time.h>
 #include <errno.h>
 
-#include <zephyr/posix/time.h>
 #include <zephyr/sys/clock.h>
 #include <zephyr/toolchain.h>
 
@@ -49,11 +48,26 @@ int pthread_condattr_getclock(const pthread_condattr_t *ZRESTRICT att,
 	return 0;
 }
 
+static inline bool clockid_is_valid_for_condattr(clockid_t clock_id)
+{
+	if (clock_id == CLOCK_REALTIME) {
+		return true;
+	}
+
+#if defined(_POSIX_MONOTONIC_CLOCK) && defined(CLOCK_MONOTONIC)
+	if (clock_id == CLOCK_MONOTONIC) {
+		return true;
+	}
+#endif
+
+	return false;
+}
+
 int pthread_condattr_setclock(pthread_condattr_t *att, clockid_t clock_id)
 {
 	struct posix_condattr *const attr = (struct posix_condattr *)att;
 
-	if (clock_id != CLOCK_REALTIME && clock_id != CLOCK_MONOTONIC) {
+	if (!clockid_is_valid_for_condattr(clock_id)) {
 		return -EINVAL;
 	}
 

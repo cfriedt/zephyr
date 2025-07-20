@@ -101,6 +101,7 @@ ZTEST(posix_timers, test_clock_nanosleep_errors_errno)
 	struct timespec rem = {};
 	struct timespec req = {};
 
+#if defined(_POSIX_MONOTONIC_CLOCK)
 	common_errors(SELECT_CLOCK_NANOSLEEP, CLOCK_MONOTONIC, TIMER_ABSTIME);
 
 	/* Absolute timeout in the past. */
@@ -108,6 +109,7 @@ ZTEST(posix_timers, test_clock_nanosleep_errors_errno)
 	zassert_equal(clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &req, &rem), 0);
 	zassert_equal(rem.tv_sec, 0, "actual: %d expected: %d", (int)rem.tv_sec, 0);
 	zassert_equal(rem.tv_nsec, 0, "actual: %d expected: %d", (int)rem.tv_nsec, 0);
+#endif
 
 	/* Absolute timeout in the past relative to the realtime clock. */
 	clock_gettime(CLOCK_REALTIME, &req);

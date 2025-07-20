@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
+# Make configurable as in #67132
+set(POSIX_VERSION 200809L)
+set(XOPEN_VERSION 700)
+
 set(GEN_DIR ${ZEPHYR_BINARY_DIR}/include/generated)
 
 zephyr_syscall_header_ifdef(CONFIG_POSIX_CLOCK_SELECTION posix_clock.h)
@@ -48,6 +52,9 @@ endif()
 
 if (NOT CONFIG_TC_PROVIDES_POSIX_CLOCK_SELECTION)
   zephyr_library_sources_ifdef(CONFIG_POSIX_CLOCK_SELECTION clock_selection.c)
+endif()
+if (CONFIG_POSIX_CLOCK_SELECTION)
+  zephyr_compile_options(-D_POSIX_CLOCK_SELECTION=$POSIX_VERSION)
 endif()
 
 if (NOT CONFIG_TC_PROVIDES_POSIX_C_LIB_EXT)
@@ -125,6 +132,9 @@ if (NOT CONFIG_TC_PROVIDES_POSIX_TIMERS)
     timespec_to_timeout.c
   )
 endif()
+if (CONFIG_POSIX_TIMERS)
+  zephyr_compile_options(-D_POSIX_TIMERS=$POSIX_VERSION)
+endif()
 
 if (NOT CONFIG_TC_PROVIDES_POSIX_READER_WRITER_LOCKS)
   # Note: the Option is _POSIX_READER_WRITER_LOCKS, while the Option Group is POSIX_RW_LOCKS.
@@ -185,4 +195,4 @@ zephyr_library_include_directories(
 
 zephyr_library_property(ALLOW_EMPTY TRUE)
 
-zephyr_library_compile_options(-U_POSIX_C_SOURCE -D_POSIX_C_SOURCE=200809L)
+zephyr_library_compile_options(-U_POSIX_C_SOURCE -D_POSIX_C_SOURCE=$POSIX_VERSION)

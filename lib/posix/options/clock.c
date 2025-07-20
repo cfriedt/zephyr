@@ -10,7 +10,6 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/posix/sys/time.h>
-#include <zephyr/posix/time.h>
 #include <zephyr/posix/unistd.h>
 #include <zephyr/sys/clock.h>
 
@@ -27,14 +26,34 @@ int clock_gettime(clockid_t clock_id, struct timespec *ts)
 	return 0;
 }
 
+static inline bool clockid_is_valid(clockid_t clock_id)
+{
+	if (clock_id == CLOCK_REALTIME) {
+		return true;
+	}
+
+#if defined(_POSIX_MONOTONIC_CLOCK) && defined(CLOCK_MONOTONIC)
+	if (clock_id == CLOCK_MONOTONIC) {
+		return true;
+	}
+#endif
+
+#if defined(_POSIX_CPUTIME) && defined(POSIX_PROCESS_CPUTIME_ID)
+	if (clock_id == CLOCK_PROCESS_CPUTIME_ID) {
+		return true;
+	}
+#endif
+
+	return false;
+}
+
 int clock_getres(clockid_t clock_id, struct timespec *res)
 {
 	BUILD_ASSERT(CONFIG_SYS_CLOCK_TICKS_PER_SEC > 0 &&
 			     CONFIG_SYS_CLOCK_TICKS_PER_SEC <= NSEC_PER_SEC,
 		     "CONFIG_SYS_CLOCK_TICKS_PER_SEC must be > 0 and <= NSEC_PER_SEC");
 
-	if (!(clock_id == CLOCK_MONOTONIC || clock_id == CLOCK_REALTIME ||
-	      clock_id == CLOCK_PROCESS_CPUTIME_ID)) {
+	if (!clockid_is_valid(clock_id)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -117,6 +136,7 @@ int nanosleep(const struct timespec *rqtp, struct timespec *rmtp)
 	return 0;
 }
 
+#if defined(_POSIX_CPUTIME) && defined(POSIX_PROCESS_CPUTIME_ID)
 int clock_getcpuclockid(pid_t pid, clockid_t *clock_id)
 {
 	/* We don't allow any process ID but our own.  */
@@ -128,3 +148,4 @@ int clock_getcpuclockid(pid_t pid, clockid_t *clock_id)
 
 	return 0;
 }
+#endif
