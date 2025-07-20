@@ -47,10 +47,13 @@ extern "C" {
 #define SIGSYS    31 /**< Bad system call */
 
 #define SIGRTMIN 32
-#define SIGRTMAX (SIGRTMIN + RTSIG_MAX)
+#ifdef CONFIG_POSIX_REALTIME_SIGNALS
+BUILD_ASSERT(CONFIG_POSIX_RTSIG_MAX >= 0);
+#define SIGRTMAX (SIGRTMIN + CONFIG_POSIX_RTSIG_MAX)
+#else
+#define SIGRTMAX SIGRTMIN
+#endif
 #define _NSIG (SIGRTMAX + 1)
-
-BUILD_ASSERT(RTSIG_MAX >= 0);
 
 typedef struct {
 	unsigned long sig[DIV_ROUND_UP(_NSIG, BITS_PER_LONG)];
