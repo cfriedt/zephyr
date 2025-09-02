@@ -7,6 +7,6 @@
 #ifndef ZEPHYR_LIB_LIBC_MINIMAL_INCLUDE_SIGNAL_H_
 #define ZEPHYR_LIB_LIBC_MINIMAL_INCLUDE_SIGNAL_H_
 
-#include <zephyr/posix/signal.h>
+#include <zephyr/posix/posix_signal.h>
 
 #endif /* ZEPHYR_LIB_LIBC_MINIMAL_INCLUDE_SIGNAL_H_ */

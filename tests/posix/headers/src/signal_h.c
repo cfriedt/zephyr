@@ -6,13 +6,8 @@
 
 #include "_common.h"
 
-#include <stdlib.h>
-
-#ifdef CONFIG_POSIX_API
 #include <signal.h>
-#else
-#include <zephyr/posix/signal.h>
-#endif
+#include <stdlib.h>
 
 /**
  * @brief existence test for `<signal.h>`

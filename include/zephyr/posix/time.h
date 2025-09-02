@@ -9,6 +9,7 @@
 /* Read standard header.  This may find <posix/time.h> since they
  * refer to the same file when include/posix is in the search path.
  */
+#include <signal.h>
 #include <time.h>
 
 #ifdef CONFIG_NEWLIB_LIBC
@@ -59,7 +60,6 @@ struct itimerspec {
 #include <zephyr/kernel.h>
 #include <errno.h>
 #include <zephyr/posix/posix_types.h>
-#include <zephyr/posix/signal.h>
 #include <zephyr/sys/clock.h>
 
 #ifdef __cplusplus

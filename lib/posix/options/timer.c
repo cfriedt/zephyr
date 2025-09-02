@@ -11,11 +11,11 @@
 #include "posix_clock.h"
 
 #include <errno.h>
+#include <signal.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/posix/pthread.h>
-#include <zephyr/posix/signal.h>
 #include <zephyr/posix/time.h>
 
 #define ACTIVE 1
