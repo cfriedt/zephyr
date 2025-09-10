@@ -618,6 +618,28 @@ __syscall int32_t k_usleep(int32_t us);
 __syscall void k_busy_wait(uint32_t usec_to_wait);
 
 /**
+ * @brief Cause the current thread to busy wait for the specified number of nanoseconds.
+ *
+ * This routine causes the current thread to execute a "do nothing" loop for
+ * at least @a nsec_to_wait nanoseconds.
+ *
+ * @note The actual time spent in busy wait may be longer than requested due to e.g.
+ * interrupts and other events.
+ *
+ * @note Platforms may tailor the busy-wait behavior by implementing
+ * @ref arch_busy_wait_ns and selecting
+ * @kconfig{CONFIG_ARCH_HAS_CUSTOM_BUSY_WAIT_NS}.
+ */
+static inline void k_busy_wait_ns(uint32_t nsec_to_wait)
+{
+#if defined(CONFIG_ARCH_HAS_CUSTOM_BUSY_WAIT_NS)
+	arch_busy_wait_ns(nsec_to_wait);
+#else
+	k_busy_wait(DIV_ROUND_UP(nsec_to_wait, NSEC_PER_USEC) / NSEC_PER_USEC);
+#endif
+}
+
+/**
  * @brief Check whether it is possible to yield in the current context.
  *
  * This routine checks whether the kernel is in a state where it is possible to
