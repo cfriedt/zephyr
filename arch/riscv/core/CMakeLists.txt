@@ -13,6 +13,8 @@ zephyr_library_sources(
   thread.c
 )
 
+zephyr_library_sources_ifdef(CONFIG_ARCH_HAS_CUSTOM_BUSY_WAIT_NS busy_wait_ns.c)
+
 if ((CONFIG_MP_MAX_NUM_CPUS GREATER 1) OR (CONFIG_SMP))
   zephyr_library_sources(smp.c)
 endif ()
