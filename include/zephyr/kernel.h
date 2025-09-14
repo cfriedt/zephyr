@@ -632,7 +632,10 @@ __syscall void k_busy_wait(uint32_t usec_to_wait);
  */
 static inline void k_busy_wait_ns(uint32_t nsec_to_wait)
 {
-#if defined(CONFIG_ARCH_HAS_CUSTOM_BUSY_WAIT_NS)
+//#if defined(CONFIG_ARCH_HAS_CUSTOM_BUSY_WAIT_NS)
+#if 1
+	extern void arch_busy_wait_ns(uint32_t nsec_to_wait);
+
 	arch_busy_wait_ns(nsec_to_wait);
 #else
 	k_busy_wait(DIV_ROUND_UP(nsec_to_wait, NSEC_PER_USEC) / NSEC_PER_USEC);

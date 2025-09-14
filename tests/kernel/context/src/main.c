@@ -927,6 +927,25 @@ ZTEST(context_one_cpu, test_busy_wait)
 	zassert_false(rv, " *** thread timed out waiting for " "k_busy_wait()");
 }
 
+ZTEST(context_one_cpu, test_busy_wait_ns)
+{
+	int rv;
+	extern void busy_wait_ns_check_results(void);
+	extern void busy_wait_thread_ns(void *semp, void *arg2, void *arg3);
+
+	k_thread_create(&timeout_threads[0], timeout_stacks[0],
+			THREAD_STACKSIZE2, busy_wait_thread_ns,
+			&reply_timeout, NULL, NULL,
+			K_PRIO_COOP(THREAD_PRIORITY), 0, K_NO_WAIT);
+
+	//rv = k_sem_take(&reply_timeout, K_MSEC(5000));
+	rv = k_sem_take(&reply_timeout, K_FOREVER);
+
+	//zassert_ok(rv, " *** thread timed out waiting for " "k_busy_wait_ns()");
+
+	busy_wait_ns_check_results();
+}
+
 /**
  * @brief Test timeouts
  *
