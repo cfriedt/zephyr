@@ -54,7 +54,7 @@ void busy_wait_ns_check_results(void)
         //        delay_nsecs[i], measured_nsecs, error_nsecs);
         //zexpect_true(error_nsecs >= 0);
 
-        printk("%u,%u\n", delay_nsecs[i], measured_nsecs);
+        printk("%u,%x\n", delay_nsecs[i], measured_nsecs & ~0x7ffff);
     }
 }
 
