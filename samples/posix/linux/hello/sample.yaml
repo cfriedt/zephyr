@@ -1,0 +1,17 @@
+sample:
+  description: linux hello sample
+  name: linux hello
+common:
+  tags:
+    - posix
+    - linux
+    - hello
+  integration_platforms:
+    - qemu_riscv64
+  harness: console
+  harness_config:
+    type: single_line
+    regex:
+      - "Hello world!"
+tests:
+  sample.posix.linux.hello: {}
