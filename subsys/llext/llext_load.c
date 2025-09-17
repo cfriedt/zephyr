@@ -87,6 +87,10 @@ static int llext_load_elf_data(struct llext_loader *ldr, struct llext *ext)
 		LOG_DBG("Loading shared ELF");
 		break;
 
+	case ET_EXEC:
+		LOG_DBG("Loading executable ELF");
+		break;
+
 	default:
 		LOG_ERR("Unsupported ELF file type %x", ldr->hdr.e_type);
 		return -ENOEXEC;
@@ -200,10 +204,8 @@ static int llext_find_tables(struct llext_loader *ldr, struct llext *ext)
 		}
 	}
 
-	if (!ldr->sects[LLEXT_MEM_SHSTRTAB].sh_type ||
-	    !ldr->sects[LLEXT_MEM_STRTAB].sh_type ||
-	    !ldr->sects[LLEXT_MEM_SYMTAB].sh_type) {
-		LOG_ERR("Some sections are missing or present multiple times!");
+	if (!ldr->sects[LLEXT_MEM_SHSTRTAB].sh_type) {
+		LOG_ERR("Shared String Table section missing!");
 		return -ENOEXEC;
 	}
 
@@ -585,6 +587,10 @@ static int llext_allocate_symtab(struct llext_loader *ldr, struct llext *ext)
 {
 	struct llext_symtable *sym_tab = &ext->sym_tab;
 	size_t syms_size = sym_tab->sym_cnt * sizeof(struct llext_symbol);
+
+	if (sym_tab->sym_cnt == 0) {
+		return 0;
+	}
 
 	sym_tab->syms = llext_alloc_data(syms_size);
 	if (!sym_tab->syms) {
