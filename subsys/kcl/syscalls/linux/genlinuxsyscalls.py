@@ -6,9 +6,18 @@
 # Usage: python3 genlinuxsystem_calls.py [(-a|--arch) <arch>]
 
 import argparse
+import json
+import logging
+import requests
 import sys
 
+from pathlib import Path
 from system_calls import syscalls
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate Linux syscall stubs for KCL")
@@ -24,48 +33,68 @@ def parse_args():
     return args
 
 
-def main():
-    args = parse_args()
+def populate_syscall_object(number, name):
 
-    sc = syscalls()
-    sc.load_arch_table(args.arch)
-    syscall_list = sc.names()
+    url = f"https://pubs.opengroup.org/onlinepubs/9699919799/functions/{name}.html"
 
-    by_name = {name: sc.get(name) for name in syscall_list}
+    # print(f"Checking {url}... ", end="")
+    if requests.get(url, timeout=5).status_code != 200:
+        # print("not found")
+        return None
+
+    logger.debug(f"{name.ljust(24)} {str(number).ljust(8)} {url}")
+    return {
+        "number": number,
+        "name": name,
+        "url": url
+    }
+
+
+def get_syscall_table(arch: str) -> dict:
+
+    table_path = Path(f"~/linux_syscalls_{arch}.json").expanduser()
+
+    by_name = {}
     by_number = {}
 
-    for entry in by_name.items():
-        by_number[]
+    if table_path.exists():
+        with open(table_path, "r") as json_file:
+            entries = json.load(json_file)
+            for entry in entries:
+                by_name[entry["name"]] = entry
+                by_number[entry["number"]] = entry
+        return by_name, by_number
 
-    for k in syscall_list:
-        print(f"Syscall: {k}, Number: {sc.get(k, args.arch)}")
+    sc = syscalls()
+    sc.load_arch_table(arch)
+    syscall_list = sc.names()
 
-    # with open("linux_system_calls.h", "w") as header_file, open("linux_system_calls.c", "w") as source_file:
-    #     header_file.write("// Auto-generated Linux syscall stubs for KCL\n")
-    #     header_file.write("#ifndef LINUX_SYSCALLS_H\n#define LINUX_SYSCALLS_H\n\n")
-    #     header_file.write("#include <stdint.h>\n\n")
+    for name in syscall_list:
+        try:
+            number = sc.get(name, arch)
+        except Exception as e:
+            continue
+        obj = populate_syscall_object(number, name)
+        if obj is None:
+            continue
+        by_name[name] = obj
+        by_number[number] = obj
 
-    #     source_file.write("// Auto-generated Linux syscall stubs for KCL\n")
-    #     source_file.write("#include \"linux_system_calls.h\"\n")
-    #     source_file.write("#include <unistd.h>\n#include <sys/syscall.h>\n#include <errno.h>\n\n")
+    with open(table_path, "w") as json_file:
+        entries = list(by_number.values())
+        json.dump(entries, json_file)
 
-    #     for syscall in syscall_list:
-    #         func_name = f"sys_{syscall['name']}"
-    #         ret_type = syscall.get('return_type', 'long')
-    #         params = syscall.get('params', [])
-    #         param_list = ", ".join([f"{p['type']} {p['name']}" for p in params])
-    #         param_names = ", ".join([p['name'] for p in params])
+    return by_name, by_number
 
-    #         # Write function prototype to header file
-    #         header_file.write(f"{ret_type} {func_name}({param_list});\n")
 
-    #         # Write function definition to source file
-    #         source_file.write(f"{ret_type} {func_name}({param_list}) {{\n")
-    #         source_file.write(f"    return syscall(SYS_{syscall['name'].upper()}, {param_names});\n")
-    #         source_file.write("}\n\n")
+def main():
+    args = parse_args()
+    by_name, by_number = get_syscall_table(args.arch)
 
-    #     header_file.write("\n#endif // LINUX_SYSCALLS_H\n")
-
+    for key in sorted(by_number.keys()):
+        entry = by_number[key]
+        logger.info(
+            f"Syscall: {entry['name']}, Number: {entry['number']}, URL: {entry['url']}")
 
 if __name__ == "__main__":
     sys.exit(main())
