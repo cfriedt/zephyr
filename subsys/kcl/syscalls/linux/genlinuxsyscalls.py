@@ -93,8 +93,19 @@ def main():
 
     for key in sorted(by_number.keys()):
         entry = by_number[key]
-        logger.info(
-            f"Syscall: {entry['name']}, Number: {entry['number']}, URL: {entry['url']}")
+        print(f"#define __NR_{entry['name']} {entry['number']} ")
+
+    print(f"typedef long (*syscall_t)();")
+
+    for key in sorted(by_number.keys()):
+        entry = by_number[key]
+        print(f"syscall_t {entry['name']};")
+
+    print("const syscall_t syscalls[] = {")
+    for key in sorted(by_number.keys()):
+        entry = by_number[key]
+        print(f"[__NR_{entry['name']}] = {entry['name']},")
+    print("};")
 
 if __name__ == "__main__":
     sys.exit(main())
