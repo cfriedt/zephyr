@@ -31,10 +31,20 @@
  */
 #ifdef TEST_AREA
 
-#define TEST_AREA_OFFSET	FIXED_PARTITION_OFFSET(TEST_AREA)
+#if DT_NODE_EXISTS(DT_NODELABEL(TEST_AREA))
 #define TEST_AREA_SIZE		FIXED_PARTITION_SIZE(TEST_AREA)
-#define TEST_AREA_MAX		(TEST_AREA_OFFSET + TEST_AREA_SIZE)
+#define TEST_AREA_OFFSET	FIXED_PARTITION_OFFSET(TEST_AREA)
 #define TEST_AREA_DEVICE	FIXED_PARTITION_DEVICE(TEST_AREA)
+#else
+/*
+ * Required so that the following does not fail in weekly ci
+ * adafruit_feather_stm32f405/stm32f405xx drivers.flash.common.disable_spi_nor
+ */
+#define TEST_AREA_SIZE   0
+#define TEST_AREA_OFFSET 0
+#define TEST_AREA_DEVICE NULL
+#endif
+#define TEST_AREA_MAX (TEST_AREA_OFFSET + TEST_AREA_SIZE)
 
 #elif defined(TEST_AREA_DEV_NODE)
 
@@ -442,6 +452,10 @@ static void test_flash_copy_inner(const struct device *src_dev, off_t src_offset
 
 ZTEST(flash_driver, test_flash_copy)
 {
+#if TEST_AREA_DEVICE == NULL
+	ztest_test_skip();
+#endif
+
 	uint8_t buf[EXPECTED_SIZE];
 	const off_t off_max = (sizeof(off_t) == sizeof(int32_t)) ? INT32_MAX : INT64_MAX;
 
