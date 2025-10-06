@@ -72,7 +72,8 @@ config NEWLIB_LIBC_CUSTOM_SBRK
 
 config NEWLIB_LIBC_USE_POSIX_LIMITS_H
 	bool "Use Zephyr's posix_limits.h header"
-	default y
+	default y if !SOC_FAMILY_ESPRESSIF_ESP32
+
 	help
 	  The newlib provided by the Zephyr SDK does not include all mandatory POSIX limits.
 	  However, some external newlib-based toolchains do.
