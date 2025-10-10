@@ -1,0 +1,16 @@
+common:
+  filter: not CONFIG_NATIVE_LIBC
+  tags:
+    - posix
+    - multi_process
+  # 1 tier0 platform per supported architecture
+  platform_key:
+    - arch
+    - simulation
+  integration_platforms:
+    - qemu_xtensa
+    - qemu_riscv64
+  min_flash: 64
+  min_ram: 32
+tests:
+  portability.posix.multi_process: {}
