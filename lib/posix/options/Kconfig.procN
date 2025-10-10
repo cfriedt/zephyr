@@ -4,6 +4,9 @@
 
 menuconfig POSIX_MULTI_PROCESS
 	bool "POSIX multi-process support"
+	select SCHED_THREAD_USAGE # times()
+	select SCHED_THREAD_USAGE_ALL
+	select THREAD_RUNTIME_STATS
 	help
 	  Support for multi-processing.
 

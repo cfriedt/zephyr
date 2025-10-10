@@ -4,7 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <errno.h>
+#include <time.h>
+
+#include <zephyr/kernel.h>
+#include <zephyr/posix/sys/times.h>
 #include <zephyr/posix/unistd.h>
+#include <zephyr/sys/clock.h>
+#include <zephyr/sys/time_units.h>
+#include <zephyr/sys/util.h>
 
 pid_t getpid(void)
 {
@@ -24,3 +32,39 @@ pid_t getpid(void)
 #ifdef CONFIG_POSIX_MULTI_PROCESS_ALIAS_GETPID
 FUNC_ALIAS(getpid, _getpid, pid_t);
 #endif /* CONFIG_POSIX_MULTI_PROCESS_ALIAS_GETPID */
+
+clock_t times(struct tms *buffer)
+{
+	int ret;
+	clock_t rtime; /* elapsed real time in clock ticks */
+	clock_t stime; /* system time */
+	clock_t utime; /* user time */
+	k_thread_runtime_stats_t stats;
+
+	ret = k_thread_runtime_stats_all_get(&stats);
+	if (ret < 0) {
+		errno = -ret;
+		return (clock_t)-1;
+	}
+
+	/* "system time" + non-idle + idle seconds */
+	stime = z_tmcvt(stats.execution_cycles, sys_clock_hw_cycles_per_sec(), USEC_PER_SEC,
+			IS_ENABLED(CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME) ? false : true,
+			sizeof(clock_t) == sizeof(uint32_t), false, false);
+
+	/* "user time" = non-idle cycles */
+	utime = z_tmcvt(stats.execution_cycles, sys_clock_hw_cycles_per_sec(), USEC_PER_SEC,
+			IS_ENABLED(CONFIG_TIMER_READS_ITS_FREQUENCY_AT_RUNTIME) ? false : true,
+			sizeof(clock_t) == sizeof(uint32_t), false, false);
+
+	rtime = stime;
+
+	*buffer = (struct tms){
+		.tms_utime = utime,
+		.tms_stime = stime,
+		.tms_cutime = 0,
+		.tms_cstime = 0,
+	};
+
+	return rtime;
+}
