@@ -583,6 +583,42 @@ void *_sbrk_r(struct _reent *r, int count)
 
 	return _sbrk(count);
 }
+
+struct tms;
+int _times_r(struct _reent *r, struct tms *buf)
+{
+	ARG_UNUSED(r);
+	extern clock_t times(struct tms *buf);
+
+	return times(buf);
+}
+
+int _unlink_r(struct _reent *r, const char *path)
+{
+	ARG_UNUSED(r);
+	extern int unlink(const char *path);
+
+	return unlink(path);
+}
+
+int _remove_r(struct _reent *r, const char *path)
+{
+	ARG_UNUSED(r);
+
+	return remove(path);
+}
+
+int _rename_r(struct _reent *r, const char *oldpath, const char *newpath)
+{
+	ARG_UNUSED(r);
+
+	return rename(oldpath, newpath);
+}
+
+void __window_spill(void)
+{
+}
+
 #endif /* CONFIG_XTENSA */
 
 int _gettimeofday(struct timeval *__tp, void *__tzp)

@@ -49,10 +49,12 @@ int close(int fd)
 FUNC_ALIAS(close, _close, int);
 #endif
 
+#if !(defined(CONFIG_NEWLIB_LIBC) && defined(CONFIG_XTENSA))
 FILE *fdopen(int fd, const char *mode)
 {
 	return zvfs_fdopen(fd, mode);
 }
+#endif
 
 int fileno(FILE *file)
 {
