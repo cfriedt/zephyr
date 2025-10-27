@@ -1,0 +1,18 @@
+sample:
+  description: Nanopb sample with gRPC
+  name: Simple gRPC demo
+common:
+  modules:
+    - grpc
+    - nanopb
+    - samples
+  harness: console
+  harness_config:
+    type: one_line
+    regex:
+      - "SUCCESS"
+tests:
+  sample.modules.nanopb.grpc:
+    integration_platforms:
+      - native_sim
+      - native_sim/native/64
