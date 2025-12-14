@@ -117,7 +117,10 @@ static int cmd_add_network(const struct shell *sh, size_t argc, char *argv[])
 {
 	int opt;
 	int opt_index = 0;
-	struct getopt_state *state;
+	char *optarg;
+	int opterr;
+	int optind = 1;
+	int optopt;
 	static const struct option long_options[] = {
 		{"ssid", required_argument, 0, 's'},	 {"passphrase", required_argument, 0, 'p'},
 		{"key-mgmt", required_argument, 0, 'k'}, {"ieee-80211w", required_argument, 0, 'w'},
@@ -138,27 +141,26 @@ static int cmd_add_network(const struct shell *sh, size_t argc, char *argv[])
 	long channel;
 	long mfp = WIFI_MFP_OPTIONAL;
 
-	while ((opt = getopt_long(argc, argv, "s:p:k:w:b:c:m:t:a:K:h", long_options, &opt_index)) !=
-	       -1) {
-		state = getopt_state_get();
+	while ((opt = getopt_long_r(argc, argv, "s:p:k:w:b:c:m:t:a:K:h", long_options, &opt_index,
+				    &optarg, &opterr, &optind, &optopt)) != -1) {
 		switch (opt) {
 		case 's':
-			creds.header.ssid_len = strlen(state->optarg);
+			creds.header.ssid_len = strlen(optarg);
 			if (creds.header.ssid_len > WIFI_SSID_MAX_LEN) {
 				shell_warn(sh, "SSID too long (max %d characters)\n",
 					   WIFI_SSID_MAX_LEN);
 				return -EINVAL;
 			}
-			memcpy(creds.header.ssid, state->optarg, creds.header.ssid_len);
+			memcpy(creds.header.ssid, optarg, creds.header.ssid_len);
 			break;
 		case 'k':
-			creds.header.type = atoi(state->optarg);
+			creds.header.type = atoi(optarg);
 			if (creds.header.type) {
 				secure_connection = true;
 			}
 			break;
 		case 'p':
-			creds.password_len = strlen(state->optarg);
+			creds.password_len = strlen(optarg);
 			if (creds.password_len < WIFI_PSK_MIN_LEN) {
 				shell_warn(sh, "Passphrase should be minimum %d characters\n",
 					   WIFI_PSK_MIN_LEN);
@@ -169,12 +171,12 @@ static int cmd_add_network(const struct shell *sh, size_t argc, char *argv[])
 					   WIFI_PSK_MAX_LEN);
 				return -EINVAL;
 			}
-			memcpy(creds.password, state->optarg, creds.password_len);
+			memcpy(creds.password, optarg, creds.password_len);
 			break;
 		case 'c':
-			channel = strtol(state->optarg, &endptr, 10);
+			channel = strtol(optarg, &endptr, 10);
 			if (*endptr != '\0') {
-				shell_error(sh, "Invalid channel: %s\n", state->optarg);
+				shell_error(sh, "Invalid channel: %s\n", optarg);
 				return -EINVAL;
 			}
 
@@ -205,7 +207,7 @@ static int cmd_add_network(const struct shell *sh, size_t argc, char *argv[])
 			creds.header.channel = channel;
 			break;
 		case 'b':
-			switch (atoi(state->optarg)) {
+			switch (atoi(optarg)) {
 			case 2:
 				creds.header.flags |= WIFI_CREDENTIALS_FLAG_2_4GHz;
 				break;
@@ -216,7 +218,7 @@ static int cmd_add_network(const struct shell *sh, size_t argc, char *argv[])
 				creds.header.flags |= WIFI_CREDENTIALS_FLAG_6GHz;
 				break;
 			default:
-				shell_error(sh, "Invalid band: %d\n", atoi(state->optarg));
+				shell_error(sh, "Invalid band: %d\n", atoi(optarg));
 				return -EINVAL;
 			}
 			break;
@@ -227,9 +229,9 @@ static int cmd_add_network(const struct shell *sh, size_t argc, char *argv[])
 					    wifi_security_txt(creds.header.type));
 				return -ENOTSUP;
 			}
-			mfp = strtol(state->optarg, &endptr, 10);
+			mfp = strtol(optarg, &endptr, 10);
 			if (*endptr != '\0') {
-				shell_error(sh, "Invalid IEEE 802.11w value: %s", state->optarg);
+				shell_error(sh, "Invalid IEEE 802.11w value: %s", optarg);
 				return -EINVAL;
 			}
 			if (mfp == WIFI_MFP_DISABLE) {
@@ -237,45 +239,43 @@ static int cmd_add_network(const struct shell *sh, size_t argc, char *argv[])
 			} else if (mfp == WIFI_MFP_REQUIRED) {
 				creds.header.flags |= WIFI_CREDENTIALS_FLAG_MFP_REQUIRED;
 			} else if (mfp > 2) {
-				shell_error(sh, "Invalid IEEE 802.11w value: %s",
-					    state->optarg);
+				shell_error(sh, "Invalid IEEE 802.11w value: %s", optarg);
 				return -EINVAL;
 			}
 			break;
 		case 'm':
 			if (net_bytes_from_str(creds.header.bssid, sizeof(creds.header.bssid),
-					       state->optarg) < 0) {
+					       optarg) < 0) {
 				shell_warn(sh, "Invalid MAC address\n");
 				return -EINVAL;
 			}
 			creds.header.flags |= WIFI_CREDENTIALS_FLAG_BSSID;
 			break;
 		case 'a':
-			creds.header.aid_length = strlen(state->optarg);
+			creds.header.aid_length = strlen(optarg);
 			if (creds.header.aid_length > WIFI_ENT_IDENTITY_MAX_LEN) {
 				shell_warn(sh, "anon_id too long (max %d characters)\n",
 					   WIFI_ENT_IDENTITY_MAX_LEN);
 				return -EINVAL;
 			}
-			memcpy(creds.header.anon_id, state->optarg, creds.header.aid_length);
+			memcpy(creds.header.anon_id, optarg, creds.header.aid_length);
 			creds.header.flags |= WIFI_CREDENTIALS_FLAG_ANONYMOUS_IDENTITY;
 			break;
 		case 'K':
-			creds.header.key_passwd_length = strlen(state->optarg);
+			creds.header.key_passwd_length = strlen(optarg);
 			if (creds.header.key_passwd_length > WIFI_ENT_PSWD_MAX_LEN) {
 				shell_warn(sh, "key_passwd too long (max %d characters)\n",
 					   WIFI_ENT_PSWD_MAX_LEN);
 				return -EINVAL;
 			}
-			memcpy(creds.header.key_passwd, state->optarg,
-			       creds.header.key_passwd_length);
+			memcpy(creds.header.key_passwd, optarg, creds.header.key_passwd_length);
 			creds.header.flags |= WIFI_CREDENTIALS_FLAG_KEY_PASSWORD;
 			break;
 		case 'h':
 			shell_help(sh);
 			return -ENOEXEC;
 		default:
-			shell_error(sh, "Invalid option %c\n", state->optopt);
+			shell_error(sh, "Invalid option %c\n", optopt);
 			return -EINVAL;
 		}
 	}

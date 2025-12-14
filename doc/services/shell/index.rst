@@ -714,20 +714,20 @@ An example thread safe usage:
 .. code-block:: c
 
   char *cvalue = NULL;
-  struct getopt_state *state;
-  while ((char c = getopt(argc, argv, "abhc:")) != -1) {
-        state = getopt_state_get();
+  char *optarg;
+  int opterr;
+  int optind = 1;
+  int optopt;
+
+  while ((char c = getopt_r(argc, argv, "abhc:", &optarg, &opterr, &optind, &optopt)) != -1) {
         switch (c) {
         case 'c':
-                cvalue = state->optarg;
+                cvalue = optarg;
                 break;
         default:
                 break;
         }
   }
-
-Thread safe getopt functionality is activated by
-:kconfig:option:`CONFIG_SHELL_GETOPT` set to ``y``.
 
 Obscured Input Feature
 **********************

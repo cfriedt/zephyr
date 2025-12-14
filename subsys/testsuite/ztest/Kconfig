@@ -27,8 +27,6 @@ config ZTEST_SHELL
 	bool "Ztest with shell support"
 	select SHELL
 	select SHELL_THREAD_PRIORITY_OVERRIDE
-	select GETOPT_LONG
-	select SHELL_GETOPT
 	help
 	  Enable shell to manage test execution and selection.
 

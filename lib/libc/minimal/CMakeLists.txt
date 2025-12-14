@@ -15,6 +15,7 @@ zephyr_library_compile_options($<TARGET_PROPERTY:compiler,no_builtin>)
 zephyr_library_compile_options($<TARGET_PROPERTY:compiler,prohibit_lto>)
 
 zephyr_library_sources(
+  source/locale/locale.c
   source/stdlib/atoi.c
   source/stdlib/strtol.c
   source/stdlib/strtoul.c
@@ -52,3 +53,5 @@ add_custom_command(
   DEPENDS include/errno.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+zephyr_include_directories(${ZEPHYR_POSIX_NEXT_MODULE_DIR}/include/zephyr/posix)

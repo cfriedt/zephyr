@@ -23,6 +23,11 @@ static inline int isalpha(int c)
 	return (int)((((unsigned)c|32u)-(unsigned)'a') < 26U);
 }
 
+static inline int isblank(int c)
+{
+	return (int)((c == (int)' ') || (c == (int)'\t'));
+}
+
 static inline int isspace(int c)
 {
 	return (int)(c == (int)' ' || ((unsigned)c-(unsigned)'\t') < 5U);
@@ -43,6 +48,11 @@ static inline int isprint(int c)
 static inline int isdigit(int a)
 {
 	return (int)(((unsigned)(a)-(unsigned)'0') < 10U);
+}
+
+static inline int islower(int c)
+{
+	return (int)(((unsigned)(c) - (unsigned)'a') < 26U);
 }
 
 static inline int isxdigit(int a)
@@ -67,6 +77,11 @@ static inline int toupper(int chr)
 static inline int isalnum(int chr)
 {
 	return (int)(isalpha(chr) || isdigit(chr));
+}
+
+static inline int ispunct(int c)
+{
+	return (int)(isgraph(c) && !isalnum(c));
 }
 
 static inline int iscntrl(int c)

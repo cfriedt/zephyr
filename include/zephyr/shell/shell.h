@@ -19,10 +19,6 @@
 #include <zephyr/sys/util.h>
 #include <zephyr/toolchain.h>
 
-#if defined CONFIG_SHELL_GETOPT
-#include <getopt.h>
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -992,11 +988,6 @@ struct shell_ctx {
 
 	/*!< Logging level for a backend. */
 	uint32_t log_level;
-
-#if defined CONFIG_SHELL_GETOPT
-	/*!< getopt context for a shell backend. */
-	struct getopt_state getopt;
-#endif
 
 	uint16_t cmd_buff_len; /*!< Command length.*/
 	uint16_t cmd_buff_pos; /*!< Command buffer cursor position.*/

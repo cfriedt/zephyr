@@ -4,19 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#define _POSIX_C_SOURCE 200809L
+
+#include <ctype.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include <zephyr/getopt.h>
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/version.h>
 #include <zephyr/logging/log.h>
-#include <stdlib.h>
 #include <zephyr/drivers/uart.h>
-#include <ctype.h>
-
-#ifdef CONFIG_ARCH_POSIX
-#include <unistd.h>
-#else
-#include <zephyr/posix/unistd.h>
-#endif
 
 LOG_MODULE_REGISTER(app);
 
@@ -104,19 +103,19 @@ static int cmd_demo_board(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
-#if defined CONFIG_SHELL_GETOPT
-/* Thread save usage */
+/* Thread safe usage */
 static int cmd_demo_getopt_ts(const struct shell *sh, size_t argc,
 			      char **argv)
 {
-	struct getopt_state *state;
-	char *cvalue = NULL;
 	int aflag = 0;
 	int bflag = 0;
 	int c;
+	char *optarg;
+	int opterr;
+	int optind = 1;
+	int optopt;
 
-	while ((c = getopt(argc, argv, "abhc:")) != -1) {
-		state = getopt_state_get();
+	while ((c = getopt_r(argc, argv, "abhc:", &optarg, &opterr, &optind, &optopt)) != -1) {
 		switch (c) {
 		case 'a':
 			aflag = 1;
@@ -125,7 +124,6 @@ static int cmd_demo_getopt_ts(const struct shell *sh, size_t argc,
 			bflag = 1;
 			break;
 		case 'c':
-			cvalue = state->optarg;
 			break;
 		case 'h':
 			/* When getopt is active shell is not parsing
@@ -135,18 +133,18 @@ static int cmd_demo_getopt_ts(const struct shell *sh, size_t argc,
 			shell_help(sh);
 			return SHELL_CMD_HELP_PRINTED;
 		case '?':
-			if (state->optopt == 'c') {
+			if (optopt == 'c') {
 				shell_print(sh,
 					"Option -%c requires an argument.",
-					state->optopt);
-			} else if (isprint(state->optopt) != 0) {
+					optopt);
+			} else if (isprint(optopt) != 0) {
 				shell_print(sh,
 					"Unknown option `-%c'.",
-					state->optopt);
+					optopt);
 			} else {
 				shell_print(sh,
 					"Unknown option character `\\x%x'.",
-					state->optopt);
+					optopt);
 			}
 			return 1;
 		default:
@@ -161,11 +159,11 @@ static int cmd_demo_getopt_ts(const struct shell *sh, size_t argc,
 static int cmd_demo_getopt(const struct shell *sh, size_t argc,
 			      char **argv)
 {
-	char *cvalue = NULL;
 	int aflag = 0;
 	int bflag = 0;
 	int c;
 
+	optind = 1;
 	while ((c = getopt(argc, argv, "abhc:")) != -1) {
 		switch (c) {
 		case 'a':
@@ -175,7 +173,6 @@ static int cmd_demo_getopt(const struct shell *sh, size_t argc,
 			bflag = 1;
 			break;
 		case 'c':
-			cvalue = optarg;
 			break;
 		case 'h':
 			/* When getopt is active shell is not parsing
@@ -206,7 +203,6 @@ static int cmd_demo_getopt(const struct shell *sh, size_t argc,
 	shell_print(sh, "aflag = %d, bflag = %d", aflag, bflag);
 	return 0;
 }
-#endif
 
 static int cmd_demo_params(const struct shell *sh, size_t argc, char **argv)
 {
@@ -329,14 +325,12 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sub_demo,
 	SHELL_CMD(params, NULL, "Print params command.", cmd_demo_params),
 	SHELL_CMD(ping, NULL, "Ping command.", cmd_demo_ping),
 	SHELL_CMD(board, NULL, "Show board name command.", cmd_demo_board),
-#if defined CONFIG_SHELL_GETOPT
 	SHELL_CMD(getopt_thread_safe, NULL,
 		  "Cammand using getopt in thread safe way"
 		  " looking for: \"abhc:\".",
 		  cmd_demo_getopt_ts),
 	SHELL_CMD(getopt, NULL, "Cammand using getopt in non thread safe way"
 		  " looking for: \"abhc:\".\n", cmd_demo_getopt),
-#endif
 	SHELL_SUBCMD_SET_END /* Array terminated. */
 );
 SHELL_CMD_REGISTER(demo, &sub_demo, "Demo commands", NULL);

@@ -9,20 +9,15 @@
 #undef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
+#include <getopt.h>
 #include <stdlib.h>
-#ifdef CONFIG_NATIVE_LIBC
 #include <unistd.h>
-#else
-#include <zephyr/posix/unistd.h>
-#endif
+
 #include <zephyr/device.h>
+#include <zephyr/getopt.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/util.h>
-
-#ifndef CONFIG_NATIVE_LIBC
-extern void getopt_init(void);
-#endif
 
 static inline bool is_ascii(uint8_t data)
 {
@@ -122,11 +117,12 @@ static int cmd_dump(const struct shell *sh, size_t argc, char **argv)
 	size_t width = 32;
 	mem_addr_t addr = -1;
 
-	optind = 1;
-#ifndef CONFIG_NATIVE_LIBC
-	getopt_init();
-#endif
-	while ((rv = getopt(argc, argv, "a:s:w:")) != -1) {
+	char *optarg;
+	int opterr;
+	int optind = 1;
+	int optopt;
+
+	while ((rv = getopt_r(argc, argv, "a:s:w:", &optarg, &opterr, &optind, &optopt)) != -1) {
 		switch (rv) {
 		case 'a':
 			addr = (mem_addr_t)shell_strtoul(optarg, 16, &err);

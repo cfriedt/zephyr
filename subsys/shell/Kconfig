@@ -189,13 +189,10 @@ config SHELL_VT100_COLORS
 	  If enabled VT100 colors are used in shell (e.g. print errors in red).
 
 config SHELL_GETOPT
-	bool "Threadsafe getopt support in shell"
-	select POSIX_C_LIB_EXT
+	bool "Threadsafe getopt support in shell [DEPRECATED]"
+	select DEPRECATED
 	help
-	  This config creates a separate getopt_state for the shell instance.
-	  It ensures that using getopt with shell is thread safe.
-	  When more threads are using getopt please call getopt_state_get to
-	  get getopt state of the shell thread.
+	  This option is deprecated. Please use `getopt_r()` instead of `getopt()`.
 
 config SHELL_METAKEYS
 	bool "Metakeys"
@@ -214,7 +211,6 @@ config SHELL_HELP
 config SHELL_HELP_OPT_PARSE
 	bool "Parse -h and --help options"
 	depends on SHELL_HELP
-	depends on !SHELL_GETOPT
 	default y
 	help
 	  Shell parses command to find '-h' or '--help' string. If the shell
