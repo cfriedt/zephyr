@@ -8,9 +8,11 @@
 #include <threads.h>
 
 #include <zephyr/kernel.h>
-#include <pthread.h>
+#include <zephyr/sys/atomic.h>
 
 void call_once(once_flag *flag, void (*func)(void))
 {
-	(void)pthread_once((pthread_once_t *)flag, func);
+	if (atomic_cas(flag, 0, 1)) {
+		func();
+	}
 }

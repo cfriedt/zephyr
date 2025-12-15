@@ -3,6 +3,7 @@
 zephyr_syscall_header(
   ${ZEPHYR_BASE}/include/zephyr/sys/clock.h
   ${ZEPHYR_BASE}/include/zephyr/sys/mutex.h
+  ${ZEPHYR_BASE}/include/zephyr/sys/thread.h
 )
 
 zephyr_sources(

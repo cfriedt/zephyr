@@ -349,6 +349,11 @@ void k_thread_foreach_unlocked_filter_by_cpu(unsigned int cpu,
 
 /* end - thread options */
 
+/**
+ * @brief The value returned by @ref k_thread_rejoin when a thread was aborted
+ */
+#define K_THREAD_ABORTED (-1LL)
+
 #if !defined(_ASMLANGUAGE)
 /**
  * @brief Dynamically allocate a thread stack.
@@ -551,6 +556,53 @@ void k_thread_system_pool_assign(struct k_thread *thread);
 #endif /* (K_HEAP_MEM_POOL_SIZE > 0) */
 
 /**
+ * @brief Detach a thread.
+ *
+ * Detaching a thread prevents the thread from being joined via a later call
+ * to @ref k_thread_join or @ref k_thread_rejoin.
+ *
+ * Only a joinable thread may be detached.
+ *
+ * Resources associated with a detached thread, such as its stack and
+ * descriptor, are automatically relaimed when the thread terminates.
+ *
+ * A detached thread may still be aborted via @ref k_thread_abort.
+ *
+ * @param thread the thread to detach
+ * @retval 0 on success
+ * @retval -EINVAL the specified thread was not joinable
+ * @retval -ESRCH the specified thread was already joined or terminated
+ */
+__syscall int k_thread_detach(struct k_thread *thread);
+
+/**
+ * @brief Sleep until a thread exits, storing its result
+ *
+ * This function is identical to @ref k_thread_join, except this function may
+ * be used to obtain the result of the target thread.
+ *
+ * The default result for a thread is zero, which indicates success. If the
+ * thread was prematurely aborted, the result will be @ref K_THREAD_ABORTED.
+ * The thread result may be set via @ref k_thread_exit.
+ *
+ * When @p result is non-NULL, the return value of @p thread is written to that
+ * location.
+ *
+ * Application or library code may interpret @p result as an integer or
+ * pointer.
+ *
+ * @param thread Thread to wait to exit
+ * @param timeout upper bound time to wait for the thread to exit.
+ * @param result if non-NULL, pointer to location to store the result of @p thread
+ * @retval 0 success, target thread has exited or wasn't running
+ * @retval -EBUSY returned without waiting
+ * @retval -EAGAIN waiting period timed out
+ * @retval -EDEADLK target thread is joining on the caller, or target thread
+ *                  is the caller
+ */
+__syscall int k_thread_rejoin(struct k_thread *thread, k_timeout_t timeout, intptr_t *result);
+
+/**
  * @brief Sleep until a thread exits
  *
  * The caller will be put to sleep until the target thread exits, either due
@@ -569,7 +621,10 @@ void k_thread_system_pool_assign(struct k_thread *thread);
  * @retval -EDEADLK target thread is joining on the caller, or target thread
  *                  is the caller
  */
-__syscall int k_thread_join(struct k_thread *thread, k_timeout_t timeout);
+static inline int k_thread_join(struct k_thread *thread, k_timeout_t timeout)
+{
+	return k_thread_rejoin(thread, timeout, NULL);
+}
 
 /**
  * @brief Put the current thread to sleep.
@@ -730,8 +785,7 @@ static inline bool k_is_pre_kernel(void)
  * @return ID of current thread.
  *
  */
-__attribute_const__
-static inline k_tid_t k_current_get(void)
+__attribute_const__ static inline k_tid_t k_current_get(void)
 {
 	__ASSERT(!k_is_pre_kernel(), "k_current_get called pre-kernel");
 
@@ -766,6 +820,28 @@ static inline k_tid_t k_current_get(void)
  * @param thread ID of thread to abort.
  */
 __syscall void k_thread_abort(k_tid_t thread);
+
+/**
+ * @brief Terminate execution of the calling thread and set its result.
+ *
+ * This routine permanently stops execution of the calling thread. It is
+ * similar to @ref k_thread_abort, but represents a means of graceful
+ * termination, where the calling thread may indicate a result (or return
+ * value).
+ *
+ * All threads have a default result of 0 to indicate a successful exit, so
+ * running to completion with the thread entry function is equivalent to
+ * calling `k_thread_exit(0)`.
+ *
+ * Threads that are aborted via @ref k_thread_abort will have their result
+ * set to @ref K_THREAD_ABORTED.
+ *
+ * Application or library code may interpret @p result as an integer or
+ * pointer.
+ *
+ * @param thread ID of thread to abort.
+ */
+__syscall void k_thread_exit(intptr_t result);
 
 k_ticks_t z_timeout_expires(const struct _timeout *timeout);
 k_ticks_t z_timeout_remaining(const struct _timeout *timeout);
@@ -983,7 +1059,6 @@ __syscall int k_thread_priority_get(k_tid_t thread);
  * priority inheritance may result in undefined behavior.
  */
 __syscall void k_thread_priority_set(k_tid_t thread, int prio);
-
 
 #ifdef CONFIG_SCHED_DEADLINE
 /**
@@ -2975,13 +3050,13 @@ struct k_lifo {
  *
  * @param lifo Address of the LIFO queue.
  */
-#define k_lifo_init(lifo)                                    \
-	({                                                   \
-	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_lifo, init, lifo); \
-	k_queue_init(&(lifo)->_queue);                       \
-	K_OBJ_CORE_INIT(K_OBJ_CORE(lifo), _obj_type_lifo);   \
-	K_OBJ_CORE_LINK(K_OBJ_CORE(lifo));                   \
-	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_lifo, init, lifo);  \
+#define k_lifo_init(lifo)                                                                          \
+	({                                                                                         \
+		SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_lifo, init, lifo);                               \
+		k_queue_init(&(lifo)->_queue);                                                     \
+		K_OBJ_CORE_INIT(K_OBJ_CORE(lifo), _obj_type_lifo);                                 \
+		K_OBJ_CORE_LINK(K_OBJ_CORE(lifo));                                                 \
+		SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_lifo, init, lifo);                                \
 	})
 
 /**
@@ -2996,12 +3071,12 @@ struct k_lifo {
  * @param lifo Address of the LIFO queue.
  * @param data Address of the data item.
  */
-#define k_lifo_put(lifo, data) \
-	({ \
-	void *_data = data; \
-	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_lifo, put, lifo, _data); \
-	k_queue_prepend(&(lifo)->_queue, _data); \
-	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_lifo, put, lifo, _data); \
+#define k_lifo_put(lifo, data)                                                                     \
+	({                                                                                         \
+		void *_data = data;                                                                \
+		SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_lifo, put, lifo, _data);                         \
+		k_queue_prepend(&(lifo)->_queue, _data);                                           \
+		SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_lifo, put, lifo, _data);                          \
 	})
 
 /**
@@ -3020,13 +3095,13 @@ struct k_lifo {
  * @retval 0 on success
  * @retval -ENOMEM if there isn't sufficient RAM in the caller's resource pool
  */
-#define k_lifo_alloc_put(lifo, data) \
-	({ \
-	void *_data = data; \
-	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_lifo, alloc_put, lifo, _data); \
-	int lap_ret = k_queue_alloc_prepend(&(lifo)->_queue, _data); \
-	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_lifo, alloc_put, lifo, _data, lap_ret); \
-	lap_ret; \
+#define k_lifo_alloc_put(lifo, data)                                                               \
+	({                                                                                         \
+		void *_data = data;                                                                \
+		SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_lifo, alloc_put, lifo, _data);                   \
+		int lap_ret = k_queue_alloc_prepend(&(lifo)->_queue, _data);                       \
+		SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_lifo, alloc_put, lifo, _data, lap_ret);           \
+		lap_ret;                                                                           \
 	})
 
 /**
@@ -3046,12 +3121,12 @@ struct k_lifo {
  * @return Address of the data item if successful; NULL if returned
  * without waiting, or waiting period timed out.
  */
-#define k_lifo_get(lifo, timeout) \
-	({ \
-	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_lifo, get, lifo, timeout); \
-	void *lg_ret = k_queue_get(&(lifo)->_queue, timeout); \
-	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_lifo, get, lifo, timeout, lg_ret); \
-	lg_ret; \
+#define k_lifo_get(lifo, timeout)                                                                  \
+	({                                                                                         \
+		SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_lifo, get, lifo, timeout);                       \
+		void *lg_ret = k_queue_get(&(lifo)->_queue, timeout);                              \
+		SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_lifo, get, lifo, timeout, lg_ret);                \
+		lg_ret;                                                                            \
 	})
 
 /**
@@ -3063,16 +3138,14 @@ struct k_lifo {
  *
  * @param name Name of the fifo.
  */
-#define K_LIFO_DEFINE(name) \
-	STRUCT_SECTION_ITERABLE(k_lifo, name) = \
-		Z_LIFO_INITIALIZER(name)
+#define K_LIFO_DEFINE(name) STRUCT_SECTION_ITERABLE(k_lifo, name) = Z_LIFO_INITIALIZER(name)
 
 /** @} */
 
 /**
  * @cond INTERNAL_HIDDEN
  */
-#define K_STACK_FLAG_ALLOC	((uint8_t)1)	/* Buffer was allocated */
+#define K_STACK_FLAG_ALLOC ((uint8_t)1) /* Buffer was allocated */
 
 typedef uintptr_t stack_data_t;
 
@@ -3086,16 +3159,14 @@ struct k_stack {
 	SYS_PORT_TRACING_TRACKING_FIELD(k_stack)
 
 #ifdef CONFIG_OBJ_CORE_STACK
-	struct k_obj_core  obj_core;
+	struct k_obj_core obj_core;
 #endif
 };
 
-#define Z_STACK_INITIALIZER(obj, stack_buffer, stack_num_entries) \
-	{ \
-	.wait_q = Z_WAIT_Q_INIT(&(obj).wait_q),	\
-	.base = (stack_buffer), \
-	.next = (stack_buffer), \
-	.top = (stack_buffer) + (stack_num_entries), \
+#define Z_STACK_INITIALIZER(obj, stack_buffer, stack_num_entries)                                  \
+	{                                                                                          \
+		.wait_q = Z_WAIT_Q_INIT(&(obj).wait_q), .base = (stack_buffer),                    \
+		.next = (stack_buffer), .top = (stack_buffer) + (stack_num_entries),               \
 	}
 
 /**
@@ -3117,9 +3188,7 @@ struct k_stack {
  * @param buffer Address of array used to hold stacked values.
  * @param num_entries Maximum number of values that can be stacked.
  */
-void k_stack_init(struct k_stack *stack,
-		  stack_data_t *buffer, uint32_t num_entries);
-
+void k_stack_init(struct k_stack *stack, stack_data_t *buffer, uint32_t num_entries);
 
 /**
  * @brief Initialize a stack.
@@ -3135,8 +3204,7 @@ void k_stack_init(struct k_stack *stack,
  * @return -ENOMEM if memory couldn't be allocated
  */
 
-__syscall int32_t k_stack_alloc_init(struct k_stack *stack,
-				   uint32_t num_entries);
+__syscall int32_t k_stack_alloc_init(struct k_stack *stack, uint32_t num_entries);
 
 /**
  * @brief Release a stack's allocated buffer
@@ -3186,8 +3254,7 @@ __syscall int k_stack_push(struct k_stack *stack, stack_data_t data);
  * @retval -EBUSY Returned without waiting.
  * @retval -EAGAIN Waiting period timed out.
  */
-__syscall int k_stack_pop(struct k_stack *stack, stack_data_t *data,
-			  k_timeout_t timeout);
+__syscall int k_stack_pop(struct k_stack *stack, stack_data_t *data, k_timeout_t timeout);
 
 /**
  * @brief Statically define and initialize a stack
@@ -3199,12 +3266,10 @@ __syscall int k_stack_pop(struct k_stack *stack, stack_data_t *data,
  * @param name Name of the stack.
  * @param stack_num_entries Maximum number of values that can be stacked.
  */
-#define K_STACK_DEFINE(name, stack_num_entries)                \
-	stack_data_t __noinit                                  \
-		_k_stack_buf_##name[stack_num_entries];        \
-	STRUCT_SECTION_ITERABLE(k_stack, name) =               \
-		Z_STACK_INITIALIZER(name, _k_stack_buf_##name, \
-				    stack_num_entries)
+#define K_STACK_DEFINE(name, stack_num_entries)                                                    \
+	stack_data_t __noinit _k_stack_buf_##name[stack_num_entries];                              \
+	STRUCT_SECTION_ITERABLE(k_stack, name) =                                                   \
+		Z_STACK_INITIALIZER(name, _k_stack_buf_##name, stack_num_entries)
 
 /** @} */
 
@@ -3227,6 +3292,8 @@ extern struct k_work_q k_sys_work_q;
  * @{
  */
 
+#define K_MUTEX_RECURSIVE BIT(0)
+
 /**
  * Mutex Structure
  * @ingroup mutex_apis
@@ -3243,6 +3310,9 @@ struct k_mutex {
 	/** Original thread priority */
 	int owner_orig_prio;
 
+	/** Mutex flags */
+	uint32_t flags;
+
 	SYS_PORT_TRACING_TRACKING_FIELD(k_mutex)
 
 #ifdef CONFIG_OBJ_CORE_MUTEX
@@ -3253,12 +3323,10 @@ struct k_mutex {
 /**
  * @cond INTERNAL_HIDDEN
  */
-#define Z_MUTEX_INITIALIZER(obj) \
-	{ \
-	.wait_q = Z_WAIT_Q_INIT(&(obj).wait_q), \
-	.owner = NULL, \
-	.lock_count = 0, \
-	.owner_orig_prio = K_LOWEST_APPLICATION_THREAD_PRIO, \
+#define Z_MUTEX_INITIALIZER(obj)                                                                   \
+	{                                                                                          \
+		.wait_q = Z_WAIT_Q_INIT(&(obj).wait_q), .owner = NULL, .lock_count = 0,            \
+		.flags = K_MUTEX_RECURSIVE, .owner_orig_prio = K_LOWEST_APPLICATION_THREAD_PRIO,   \
 	}
 
 /**
@@ -3274,9 +3342,22 @@ struct k_mutex {
  *
  * @param name Name of the mutex.
  */
-#define K_MUTEX_DEFINE(name) \
-	STRUCT_SECTION_ITERABLE(k_mutex, name) = \
-		Z_MUTEX_INITIALIZER(name)
+#define K_MUTEX_DEFINE(name) STRUCT_SECTION_ITERABLE(k_mutex, name) = Z_MUTEX_INITIALIZER(name)
+
+/**
+ * @brief Initialize a mutex.
+ *
+ * This routine initializes a mutex object, prior to its first use.
+ *
+ * Upon completion, the mutex is available and does not have an owner.
+ *
+ * @param mutex Address of the mutex.
+ * @param flags Mutex creation flags. See K_MUTEX_* macros.
+ *
+ * @retval 0 Mutex object created
+ *
+ */
+__syscall int k_mutex_init_flags(struct k_mutex *mutex, uint32_t flags);
 
 /**
  * @brief Initialize a mutex.
@@ -3290,8 +3371,10 @@ struct k_mutex {
  * @retval 0 Mutex object created
  *
  */
-__syscall int k_mutex_init(struct k_mutex *mutex);
-
+static inline int k_mutex_init(struct k_mutex *mutex)
+{
+	return k_mutex_init_flags(mutex, K_MUTEX_RECURSIVE);
+}
 
 /**
  * @brief Lock a mutex.

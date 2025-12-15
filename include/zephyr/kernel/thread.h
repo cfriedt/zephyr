@@ -245,6 +245,27 @@ struct z_poller {
 	uint8_t mode;
 };
 
+struct sys_thread_data {
+	sys_slist_t cleanup_list;
+	sys_dlist_t key_list;
+	sys_dnode_t q_node;
+	size_t stacksize;
+	size_t guardsize;
+	int8_t priority;
+	uint8_t schedpolicy: 2;
+	bool contentionscope: 1;
+	bool inheritsched: 1;
+	union {
+		bool caller_destroys: 1;
+		bool initialized: 1;
+	};
+	bool cancelpending: 1;
+	bool cancelstate: 1;
+	bool canceltype: 1;
+	bool detachstate: 1;
+	intptr_t result;
+};
+
 /**
  * @ingroup thread_apis
  * Thread Structure
@@ -359,6 +380,11 @@ struct k_thread {
 	/** threads waiting in k_thread_suspend() */
 	_wait_q_t  halt_queue;
 #endif /* CONFIG_SMP */
+
+	// #ifdef CONFIG_SYS_THREAD
+	/** compatibility structure for threads */
+	struct sys_thread_data _sys_thread_data;
+	// #endif
 
 	/** arch-specifics: must always be at the end */
 	struct _thread_arch arch;

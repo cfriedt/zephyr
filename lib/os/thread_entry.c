@@ -47,7 +47,7 @@ FUNC_NORETURN void z_thread_entry(k_thread_entry_t entry,
 #endif	/* CONFIG_STACK_CANARIES */
 	entry(p1, p2, p3);
 
-	k_thread_abort(k_current_get());
+	k_thread_exit(k_current_get(), 0);
 
 	/*
 	 * Compiler can't tell that k_thread_abort() won't return and issues a

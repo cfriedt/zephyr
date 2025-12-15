@@ -1371,7 +1371,24 @@ void z_impl_k_thread_abort(k_tid_t thread)
 }
 #endif /* !CONFIG_ARCH_HAS_THREAD_ABORT */
 
-int z_impl_k_thread_join(struct k_thread *thread, k_timeout_t timeout)
+void z_impl_k_thread_exit(intptr_t result)
+{
+	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_thread, exit, _current);
+
+	z_thread_abort(_current);
+	_current->_sys_thread_data.result = result;
+
+	__ASSERT_NO_MSG(z_is_thread_dead(_current));
+
+	SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_thread, exit, _current);
+}
+
+int z_impl_k_thread_detach(struct k_thread *thread)
+{
+	return 0;
+}
+
+int z_impl_k_thread_rejoin(struct k_thread *thread, k_timeout_t timeout, intptr_t *result)
 {
 	k_spinlock_key_t key = k_spin_lock(&_sched_spinlock);
 	int ret;
@@ -1381,6 +1398,10 @@ int z_impl_k_thread_join(struct k_thread *thread, k_timeout_t timeout)
 	if (z_is_thread_dead(thread)) {
 		z_sched_switch_spin(thread);
 		ret = 0;
+
+		if ((ret == 0) && (result != NULL)) {
+			*result = _current->_sys_thread_data.result;
+		}
 	} else if (K_TIMEOUT_EQ(timeout, K_NO_WAIT)) {
 		ret = -EBUSY;
 	} else if ((thread == _current) ||
@@ -1394,6 +1415,10 @@ int z_impl_k_thread_join(struct k_thread *thread, k_timeout_t timeout)
 		SYS_PORT_TRACING_OBJ_FUNC_BLOCKING(k_thread, join, thread, timeout);
 		ret = z_swap(&_sched_spinlock, key);
 		SYS_PORT_TRACING_OBJ_FUNC_EXIT(k_thread, join, thread, timeout, ret);
+
+		if ((ret == 0) && (result != NULL)) {
+			*result = _current->_sys_thread_data.result;
+		}
 
 		return ret;
 	}
@@ -1432,16 +1457,20 @@ static bool thread_obj_validate(struct k_thread *thread)
 	CODE_UNREACHABLE; /* LCOV_EXCL_LINE */
 }
 
-static inline int z_vrfy_k_thread_join(struct k_thread *thread,
-				       k_timeout_t timeout)
+static inline int z_vrfy_k_thread_rejoin(struct k_thread *thread, k_timeout_t timeout,
+					 intptr_t *result)
 {
 	if (thread_obj_validate(thread)) {
 		return 0;
 	}
 
-	return z_impl_k_thread_join(thread, timeout);
+	if (result != NULL) {
+		K_OOPS(K_SYSCALL_MEMORY_WRITE(result, sizeof(*result)));
+	}
+
+	return z_impl_k_thread_rejoin(thread, timeout, result);
 }
-#include <zephyr/syscalls/k_thread_join_mrsh.c>
+#include <zephyr/syscalls/k_thread_rejoin_mrsh.c>
 
 static inline void z_vrfy_k_thread_abort(k_tid_t thread)
 {

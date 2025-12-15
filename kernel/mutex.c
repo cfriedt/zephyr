@@ -52,10 +52,11 @@ static struct k_spinlock lock;
 static struct k_obj_type obj_type_mutex;
 #endif /* CONFIG_OBJ_CORE_MUTEX */
 
-int z_impl_k_mutex_init(struct k_mutex *mutex)
+int z_impl_k_mutex_init_flags(struct k_mutex *mutex, uint32_t flags)
 {
 	mutex->owner = NULL;
 	mutex->lock_count = 0U;
+	mutex->flags = flags;
 
 	z_waitq_init(&mutex->wait_q);
 
@@ -71,12 +72,12 @@ int z_impl_k_mutex_init(struct k_mutex *mutex)
 }
 
 #ifdef CONFIG_USERSPACE
-static inline int z_vrfy_k_mutex_init(struct k_mutex *mutex)
+static inline int z_vrfy_k_mutex_init_flags(struct k_mutex *mutex, uint32_t flags)
 {
 	K_OOPS(K_SYSCALL_OBJ_INIT(mutex, K_OBJ_MUTEX));
-	return z_impl_k_mutex_init(mutex);
+	return z_impl_k_mutex_init_flags(mutex, flags);
 }
-#include <zephyr/syscalls/k_mutex_init_mrsh.c>
+#include <zephyr/syscalls/k_mutex_init_flags_mrsh.c>
 #endif /* CONFIG_USERSPACE */
 
 static int32_t new_prio_for_inheritance(int32_t target, int32_t limit)

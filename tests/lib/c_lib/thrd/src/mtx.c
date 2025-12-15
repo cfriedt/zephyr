@@ -156,7 +156,7 @@ ZTEST(libc_mtx, test_mtx_trylock)
 
 ZTEST(libc_mtx, test_mtx_unlock)
 {
-	mtx_t mtx = (mtx_t)BIOS_FOOD;
+	mtx_t mtx;
 
 	/* degenerate case */
 	zassert_not_equal(thrd_success, mtx_unlock(&mtx));

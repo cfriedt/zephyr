@@ -7,19 +7,22 @@
 #ifndef ZEPHYR_LIB_LIBC_COMMON_INCLUDE_MACHINE__THREADS_H_
 #define ZEPHYR_LIB_LIBC_COMMON_INCLUDE_MACHINE__THREADS_H_
 
+#include <stdint.h>
+
+#include <zephyr/kernel.h>
+#include <zephyr/sys/atomic.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define ONCE_FLAG_INIT {0}
 
-typedef int cnd_t;
-typedef int mtx_t;
-typedef int thrd_t;
-typedef int tss_t;
-typedef struct {
-	char flag;
-} once_flag;
+typedef struct k_condvar *cnd_t;
+typedef struct k_mutex *mtx_t;
+typedef struct k_thread *thrd_t;
+typedef intptr_t tss_t;
+typedef atomic_t once_flag;
 
 #ifdef __cplusplus
 }

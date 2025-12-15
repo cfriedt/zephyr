@@ -7,26 +7,37 @@
 #include <errno.h>
 #include <threads.h>
 
-#include <pthread.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/clock.h>
+#include <zephyr/sys/timeutil.h>
+
+static inline int sys_cond_init(struct k_condvar *condvar, void *opts)
+{
+	return -ENOSYS;
+}
+
+static inline int sys_cond_destroy(struct k_condvar *condvar)
+{
+	return -ENOSYS;
+}
 
 int cnd_broadcast(cnd_t *cond)
 {
-	switch (pthread_cond_broadcast(cond)) {
-	case 0:
+	if (k_condvar_broadcast(*cond) >= 0) {
 		return thrd_success;
-	default:
-		return thrd_error;
 	}
+
+	return thrd_error;
 }
 
 void cnd_destroy(cnd_t *cond)
 {
-	(void)pthread_cond_destroy(cond);
+	(void)sys_cond_destroy(*cond);
 }
 
 int cnd_init(cnd_t *cond)
 {
-	switch (pthread_cond_init(cond, NULL)) {
+	switch (sys_cond_init(*cond, NULL)) {
 	case 0:
 		return thrd_success;
 	case ENOMEM:
@@ -38,7 +49,7 @@ int cnd_init(cnd_t *cond)
 
 int cnd_signal(cnd_t *cond)
 {
-	switch (pthread_cond_signal(cond)) {
+	switch (k_condvar_signal(*cond)) {
 	case 0:
 		return thrd_success;
 	case ENOMEM:
@@ -48,9 +59,18 @@ int cnd_signal(cnd_t *cond)
 	}
 }
 
-int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mtx, const struct timespec *restrict ts)
+int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mtx,
+		  const struct timespec *restrict time_point)
 {
-	switch (pthread_cond_timedwait(cond, mtx, ts)) {
+	struct timespec ts;
+	struct timespec duration = *time_point;
+
+	/* convert time_point to duration */
+	if ((sys_clock_gettime(SYS_CLOCK_REALTIME, &ts) < 0) || !timespec_sub(&duration, &ts)) {
+		return thrd_error;
+	}
+
+	switch (k_condvar_wait(*cond, *mtx, timespec_to_timeout(&duration, NULL))) {
 	case 0:
 		return thrd_success;
 	case ETIMEDOUT:
@@ -62,7 +82,7 @@ int cnd_timedwait(cnd_t *restrict cond, mtx_t *restrict mtx, const struct timesp
 
 int cnd_wait(cnd_t *cond, mtx_t *mtx)
 {
-	switch (pthread_cond_wait(cond, mtx)) {
+	switch (k_condvar_wait(*cond, *mtx, K_FOREVER)) {
 	case 0:
 		return thrd_success;
 	default:

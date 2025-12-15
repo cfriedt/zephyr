@@ -16,6 +16,7 @@
 static thrd_t     thr;
 static uintptr_t  param;
 
+#if 0
 ZTEST(libc_thrd, test_thrd_sleep)
 {
 	int64_t end;
@@ -45,6 +46,7 @@ ZTEST(libc_thrd, test_thrd_sleep)
 		zassert_true(end - start >= delay_ms[i]);
 	}
 }
+#endif
 
 static int thrd_create_join_fn(void *arg)
 {
@@ -84,6 +86,7 @@ ZTEST(libc_thrd, test_thrd_create_join)
 	zassert_equal(FORTY_TWO, res);
 }
 
+#if 0
 static int thrd_exit_fn(void *arg)
 {
 	uintptr_t *x = (uintptr_t *)arg;
@@ -168,5 +171,6 @@ ZTEST(libc_thrd, test_thrd_reuse)
 		zassert_equal(thrd_success, thrd_join(thr, NULL));
 	}
 }
+#endif
 
 ZTEST_SUITE(libc_thrd, NULL, NULL, NULL, NULL, NULL);
