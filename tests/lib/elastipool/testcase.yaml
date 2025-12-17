@@ -1,0 +1,12 @@
+common:
+  integration_platforms:
+    - native_sim
+    - native_sim/native/64
+
+tests:
+  libraries.elastipool: {}
+  libraries.elastipool.himem:
+    min_ram: 4096
+    extra_configs:
+      # Test "a large number" of allocations in test_sys_elastipool_clear
+      - CONFIG_TEST_ELASTIC_POOL_MAX_ELEMS=65536
