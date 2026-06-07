@@ -1,0 +1,51 @@
+# Copyright (c) 2026 Baochip contributors
+# SPDX-License-Identifier: Apache-2.0
+
+config RISCV_MMU
+	bool "RISC-V MMU support"
+	depends on RISCV_S_MODE
+	select CPU_HAS_MMU
+	select MMU
+	help
+	  Enable RISC-V virtual memory using satp-based page tables. The kernel
+	  must run in S-mode (CONFIG_RISCV_S_MODE). Paging is enabled during
+	  early boot before z_cstart().
+
+if RISCV_MMU
+
+choice
+	prompt "RISC-V MMU paging mode"
+	default RISCV_MMU_SV39 if 64BIT
+	default RISCV_MMU_SV32 if !64BIT
+
+config RISCV_MMU_SV32
+	bool "Sv32 (2-level, RV32)"
+	depends on !64BIT
+	help
+	  32-bit virtual addresses with a two-level page table.
+
+config RISCV_MMU_SV39
+	bool "Sv39 (3-level)"
+	help
+	  39-bit virtual addresses with a three-level page table. Required for
+	  RV64 and for RV32 cores such as VexRiscv on Baochip bao1x.
+
+endchoice
+
+config MAX_RISCV_PT_TABLES
+	int "Maximum number of page table pages"
+	default 32
+	range 4 256
+	help
+	  Number of 4 KiB page table pages reserved at build time. Each
+	  map/unmap operation may consume tables from this pool.
+
+config RISCV_MMU_BOOT_IO_SIZE
+	hex "Low physical address range to identity-map at boot"
+	default 0x10000000
+	help
+	  Identity-map physical addresses [0, size) when enabling the MMU so
+	  MMIO devices (UART, interrupt controllers, etc.) remain accessible
+	  before drivers call arch_mem_map().
+
+endif # RISCV_MMU

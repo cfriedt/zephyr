@@ -188,6 +188,9 @@
 
 #define PTE_TABLE(PTE) (((PTE) & (PTE_V | PTE_R | PTE_W | PTE_X)) == PTE_V)
 
+/* Supervisor Address Translation and Protection */
+#define CSR_SATP 0x180
+
 #define INSERT_FIELD(val, which, fieldval)				\
 (									\
 	((val) & ~(which)) | ((fieldval) * ((which) & ~((which)-1)))	\

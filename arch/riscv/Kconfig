@@ -670,6 +670,8 @@ config RISCV_M_MODE_STACK_SIZE
 
 rsource "Kconfig.isa"
 
+rsource "core/Kconfig.mmu"
+
 rsource "custom/Kconfig"
 
 endmenu

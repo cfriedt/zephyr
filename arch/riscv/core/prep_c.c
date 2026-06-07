@@ -23,6 +23,10 @@
 #include <zephyr/arch/common/xip.h>
 #include <zephyr/arch/common/init.h>
 
+#ifdef CONFIG_RISCV_MMU
+#include "mmu.h"
+#endif
+
 #if defined(CONFIG_RISCV_SOC_INTERRUPT_INIT)
 void soc_interrupt_init(void);
 #endif
@@ -40,6 +44,9 @@ FUNC_NORETURN void z_prep_c(void)
 
 	arch_bss_zero();
 	arch_data_copy();
+#ifdef CONFIG_RISCV_MMU
+	z_riscv_mmu_init();
+#endif
 #if defined(CONFIG_RISCV_SOC_INTERRUPT_INIT)
 	soc_interrupt_init();
 #endif

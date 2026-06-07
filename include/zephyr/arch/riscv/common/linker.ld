@@ -106,6 +106,11 @@
 	#define MPU_ALIGN(region_size) . = ALIGN(4)
 #endif
 
+#if defined(CONFIG_MMU)
+	_region_min_align = CONFIG_MMU_PAGE_SIZE;
+	#define MMU_ALIGN . = ALIGN(_region_min_align);
+#endif
+
 #include <zephyr/linker/linker-devnull.h>
 
 MEMORY
@@ -181,6 +186,11 @@ SECTIONS
 		KEEP(*(".openocd_debug.*"))
 
 		__text_region_start = .;
+#ifndef CONFIG_XIP
+#ifdef CONFIG_MMU
+		z_mapped_start = .;
+#endif
+#endif
 
 		*(.text)
 		*(".text.*")
@@ -250,6 +260,11 @@ SECTIONS
 
 	. = RAM_BASE;
 	_image_ram_start = .;
+#ifdef CONFIG_XIP
+#ifdef CONFIG_MMU
+	z_mapped_start = .;
+#endif
+#endif
 /* Located in generated directory. This file is populated by the
  * zephyr_linker_sources() Cmake function.
  */
@@ -417,7 +432,11 @@ GROUP_END(DTCM)
  */
 #include <snippets-sections.ld>
 
+#if defined(CONFIG_MMU)
+#define LAST_RAM_ALIGN MMU_ALIGN;
+#else
 #define LAST_RAM_ALIGN MPU_MIN_SIZE_ALIGN
+#endif
 
 #include <zephyr/linker/ram-end.ld>
 
