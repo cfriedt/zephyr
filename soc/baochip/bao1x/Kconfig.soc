@@ -1,0 +1,16 @@
+# Copyright (c) 2026 Baochip contributors
+# SPDX-License-Identifier: Apache-2.0
+
+config SOC_SERIES
+	default "bao1x" if SOC_SERIES_BAO1X
+
+config SOC_SERIES_BAO1X
+	bool
+	select SOC_FAMILY_BAOCHIP
+
+config SOC_BAO1X
+	bool
+	select SOC_SERIES_BAO1X
+
+config SOC
+	default "bao1x" if SOC_BAO1X

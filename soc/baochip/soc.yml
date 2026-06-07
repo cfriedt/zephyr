@@ -1,0 +1,6 @@
+family:
+- name: baochip
+  series:
+  - name: bao1x
+    socs:
+    - name: bao1x

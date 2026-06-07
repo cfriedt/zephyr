@@ -1,0 +1,23 @@
+/*
+ * Copyright (c) 2026 Baochip contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+
+#include <baochip/bao1x_vex.dtsi>
+
+/ {
+	model = "Baochip-1x (Renode)";
+	compatible = "baochip,bao1x-renode";
+
+	chosen {
+		zephyr,console = &duart;
+		zephyr,shell-uart = &duart;
+		zephyr,sram = &sram;
+	};
+};
+
+&duart {
+	status = "okay";
+};

@@ -1,0 +1,8 @@
+# Copyright (c) 2026 Baochip contributors
+# SPDX-License-Identifier: Apache-2.0
+
+config SOC_BAO1X
+	select RISCV
+	select RISCV_PRIVILEGED
+	select INCLUDE_RESET_VECTOR
+	select RISCV_SOC_HAS_GP_RELATIVE_ADDRESSING

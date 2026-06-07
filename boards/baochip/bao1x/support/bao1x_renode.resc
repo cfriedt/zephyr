@@ -1,0 +1,21 @@
+# Copyright (c) 2026 Baochip contributors
+# SPDX-License-Identifier: Apache-2.0
+
+:name: bao1x-renode
+:description: Run Zephyr on Baochip-1x via Renode.
+
+$name?="bao1x-renode"
+
+using sysbus
+mach create $name
+machine LoadPlatformDescription $ORIGIN/bao1x_renode.repl
+
+showAnalyzer sysbus.duart
+cpu PerformanceInMips 100
+
+macro reset
+"""
+    sysbus LoadELF $elf
+"""
+runMacro $reset
+start

@@ -1,0 +1,16 @@
+identifier: bao1x/bao1x/renode
+name: Baochip-1x (Renode)
+type: mcu
+arch: riscv
+toolchain:
+  - zephyr
+ram: 2048
+simulation:
+  - name: renode
+    exec: renode
+testing:
+  renode:
+    uart: sysbus.duart
+    resc: boards/baochip/bao1x/support/bao1x_renode.resc
+supported:
+  - uart

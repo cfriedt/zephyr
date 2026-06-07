@@ -1,0 +1,9 @@
+# Copyright (c) 2026 Baochip contributors
+# SPDX-License-Identifier: Apache-2.0
+
+if SOC_BAO1X
+
+config NUM_IRQS
+	default 32
+
+endif # SOC_BAO1X

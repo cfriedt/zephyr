@@ -1,0 +1,8 @@
+board:
+  name: bao1x
+  full_name: Baochip-1x
+  vendor: baochip
+  socs:
+  - name: bao1x
+    variants:
+    - name: renode

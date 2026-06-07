@@ -1,0 +1,25 @@
+// Copyright (c) 2026 Baochip contributors
+// SPDX-License-Identifier: Apache-2.0
+//
+// Renode platform for Baochip-1x.
+
+rram: Memory.MappedMemory @ sysbus 0x60000000
+    size: 0x400000
+
+sram: Memory.MappedMemory @ sysbus 0x61000000
+    size: 0x200000
+
+clint: IRQControllers.CoreLevelInterruptor @ sysbus 0x02000000
+    0 -> cpu@3
+    1 -> cpu@7
+    frequency: 800000000
+
+cpu: CPU.RiscV32 @ sysbus
+    cpuType: "rv32imac_zicsr_zifencei"
+    privilegedArchitecture: PrivilegedArchitecture.Priv1_12
+    privilegeLevels: PrivilegeLevels.MachineSupervisorUser
+    timeProvider: clint
+
+// TX @ offset 0; CR/SR offsets are ignored (reads return 0) which matches
+// the driver's "wait until SR == 0" poll loop.
+duart: UART.TrivialUart @ sysbus 0x40042000
