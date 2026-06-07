@@ -139,7 +139,16 @@ static ALWAYS_INLINE uint32_t get_hart_context(const struct device *dev, uint32_
 {
 	const struct plic_config *config = dev->config;
 
+#ifdef CONFIG_RISCV_S_MODE
+	/*
+	 * RISC-V PLIC assigns context 2*n to M-mode and 2*n+1 to S-mode for
+	 * hart n. The generated hart_context[] stores the M-mode index (0 for
+	 * hart 0); in S-mode builds use the supervisor context instead.
+	 */
+	return (config->hart_context[hartid] * 2U) + 1U;
+#else
 	return config->hart_context[hartid];
+#endif
 }
 
 static ALWAYS_INLINE uint32_t get_irq_cpumask(const struct device *dev, uint32_t local_irq)
