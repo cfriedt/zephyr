@@ -16,3 +16,9 @@ common:
 tests:
   sample.basic.helloworld:
     tags: introduction
+  sample.basic.helloworld.bao1x_renode:
+    platform_allow:
+      - bao1x/bao1x/renode
+    tags:
+      - introduction
+      - baochip
