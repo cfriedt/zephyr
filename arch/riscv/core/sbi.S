@@ -26,6 +26,16 @@
 
 #include <zephyr/arch/riscv/sbi.h>
 
+#if defined(__riscv_xlen) && __riscv_xlen == 64
+#define SREG_STORE	sd
+#define SREG_LOAD	ld
+#define M_MODE_INT_CHECK(t0, label)	bltz t0, label
+#else
+#define SREG_STORE	sw
+#define SREG_LOAD	lw
+#define M_MODE_INT_CHECK(t0, label)	srai t1, t0, 31; bnez t1, label
+#endif
+
 /*
 * Small dedicated stack for use inside the M-mode handler.
 * S-mode uses its own stack; we need a separate one so we
@@ -50,19 +60,19 @@ SECTION_FUNC(TEXT, __m_mode_sbi_handler)
 
     /* Save all registers we will use */
     addi sp, sp, -80
-    sd ra,  0(sp)
-    sd t0,  8(sp)
-    sd t1, 16(sp)
-    sd t2, 24(sp)
-    sd a0, 32(sp)
-    sd a1, 40(sp)
-    sd a6, 48(sp)
-    sd a7, 56(sp)
+    SREG_STORE ra,  0(sp)
+    SREG_STORE t0,  8(sp)
+    SREG_STORE t1, 16(sp)
+    SREG_STORE t2, 24(sp)
+    SREG_STORE a0, 32(sp)
+    SREG_STORE a1, 40(sp)
+    SREG_STORE a6, 48(sp)
+    SREG_STORE a7, 56(sp)
 
     csrr t0, mcause
 
-    /* Bit 63 set means interrupt, clear means exception */
-    bltz t0, m_mode_handle_interrupt
+    /* MSB set means interrupt, clear means exception */
+    M_MODE_INT_CHECK(t0, m_mode_handle_interrupt)
 
     /* Exception path: only S-mode ecall (cause == 9) is expected */
     li t1, CAUSE_ECALL_SMODE
@@ -87,7 +97,7 @@ SECTION_FUNC(TEXT, __m_mode_sbi_handler)
 
     /* Unknown extension — a1 is undefined on error per SBI spec */
     li a0, SBI_ERR_NOT_SUPPORTED
-    sd a0, 32(sp)
+    SREG_STORE a0, 32(sp)
     j m_mode_return
 
 m_mode_ext_time:
@@ -97,13 +107,18 @@ m_mode_ext_time:
 
     /* Unknown function within SBI_EXT_TIME — a1 undefined on error */
     li a0, SBI_ERR_NOT_SUPPORTED
-    sd a0, 32(sp)
+    SREG_STORE a0, 32(sp)
     j m_mode_return
 
 m_mode_set_timer:
-    /* a0 = timer deadline (absolute time value) */
+    /* a0 = timer deadline (lower 32 bits on RV32) */
     li t0, MTIMECMP0
-    sd a0, 0(t0)     /* write new deadline to mtimecmp[0] */
+#if defined(__riscv_xlen) && __riscv_xlen == 64
+    SREG_STORE a0, 0(t0)
+#else
+    SREG_STORE a0, 0(t0)
+    SREG_STORE zero, 4(t0)
+#endif
 
     /*
     * Clear STIP: S-mode already handled the previous interrupt,
@@ -115,8 +130,8 @@ m_mode_set_timer:
     /* Return success: a0 = SBI_SUCCESS, a1 = 0 (no return value) */
     li a0, SBI_SUCCESS
     li a1, 0
-    sd a0, 32(sp)    /* update saved a0/a1 so m_mode_return restores them */
-    sd a1, 40(sp)
+    SREG_STORE a0, 32(sp)
+    SREG_STORE a1, 40(sp)
     j m_mode_return
 
 m_mode_ext_srst:
@@ -140,25 +155,33 @@ m_mode_srst_loop:
 
 m_mode_srst_unsupported:
     li a0, SBI_ERR_NOT_SUPPORTED
-    sd a0, 32(sp)
+    SREG_STORE a0, 32(sp)
     j m_mode_return
 
 m_mode_handle_interrupt:
     /* Clear sign bit to get the raw interrupt cause number */
+#if defined(__riscv_xlen) && __riscv_xlen == 64
     slli t0, t0, 1
     srli t0, t0, 1
+#else
+    slli t0, t0, 1
+    srli t0, t0, 1
+#endif
 
     li t1, IRQ_M_TIMER
     bne t0, t1, m_mode_unhandled
 
     /* --- MTIP: machine timer fired --- */
 
-    /* Disable MTIP by pushing mtimecmp far into the future.
-     * If we don't do this it will keep firing immediately on mret.
-     */
+    /* Disable MTIP by pushing mtimecmp far into the future. */
     li t0, MTIMECMP0
     li t1, -1
-    sd t1, 0(t0)
+#if defined(__riscv_xlen) && __riscv_xlen == 64
+    SREG_STORE t1, 0(t0)
+#else
+    sw t1, 0(t0)
+    sw t1, 4(t0)
+#endif
 
     /* Forward to S-mode by raising STIP */
     li t0, MIP_STIP
@@ -177,14 +200,14 @@ m_mode_unhandled_loop:
 	j m_mode_unhandled_loop
 
 m_mode_return:
-    ld ra,  0(sp)
-    ld t0,  8(sp)
-    ld t1, 16(sp)
-    ld t2, 24(sp)
-    ld a0, 32(sp)
-    ld a1, 40(sp)
-    ld a6, 48(sp)
-    ld a7, 56(sp)
+    SREG_LOAD ra,  0(sp)
+    SREG_LOAD t0,  8(sp)
+    SREG_LOAD t1, 16(sp)
+    SREG_LOAD t2, 24(sp)
+    SREG_LOAD a0, 32(sp)
+    SREG_LOAD a1, 40(sp)
+    SREG_LOAD a6, 48(sp)
+    SREG_LOAD a7, 56(sp)
     addi sp, sp, 80
 
     /* Restore S-mode sp, put M-mode stack pointer back into mscratch */
