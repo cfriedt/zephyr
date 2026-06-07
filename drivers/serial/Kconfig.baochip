@@ -1,0 +1,10 @@
+# Copyright (c) 2026 Baochip contributors
+# SPDX-License-Identifier: Apache-2.0
+
+config UART_BAOCHIP_DUART
+	bool "Baochip DUART serial driver"
+	default y
+	depends on DT_HAS_BAOCHIP_DUART_ENABLED
+	select SERIAL_HAS_DRIVER
+	help
+	  Polled driver for the Baochip debug UART block.
