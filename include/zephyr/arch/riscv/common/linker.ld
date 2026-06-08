@@ -188,6 +188,7 @@ SECTIONS
 		__text_region_start = .;
 #ifndef CONFIG_XIP
 #ifdef CONFIG_MMU
+		. = ALIGN(0x1000);
 		z_mapped_start = .;
 #endif
 #endif
@@ -262,6 +263,7 @@ SECTIONS
 	_image_ram_start = .;
 #ifdef CONFIG_XIP
 #ifdef CONFIG_MMU
+	. = ALIGN(0x1000);
 	z_mapped_start = .;
 #endif
 #endif

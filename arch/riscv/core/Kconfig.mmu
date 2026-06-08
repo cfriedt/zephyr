@@ -42,10 +42,11 @@ config MAX_RISCV_PT_TABLES
 
 config RISCV_MMU_BOOT_IO_SIZE
 	hex "Low physical address range to identity-map at boot"
-	default 0x10000000
+	default 0x10100000
 	help
 	  Identity-map physical addresses [0, size) when enabling the MMU so
 	  MMIO devices (UART, interrupt controllers, etc.) remain accessible
-	  before drivers call arch_mem_map().
+	  before drivers call arch_mem_map(). Must exceed peripheral base
+	  addresses (e.g. QEMU virt UART at 0x10000000 needs size > 0x10000000).
 
 endif # RISCV_MMU

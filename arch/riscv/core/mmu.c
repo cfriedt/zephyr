@@ -77,9 +77,14 @@ static inline riscv_pte_t riscv_pa_pte(uintptr_t pa, riscv_pte_t flags)
 static inline bool riscv_va_valid(uintptr_t va)
 {
 #if defined(CONFIG_64BIT)
-	const uintptr_t max_va = BIT(38);
+	if (IS_ENABLED(CONFIG_RISCV_MMU_SV39)) {
+		const uintptr_t sign_bit = BIT(38);
 
-	return va < max_va;
+		return ((va & sign_bit) == 0 && (va >> 39) == 0) ||
+		       ((va & sign_bit) != 0 && ((va >> 39) == BIT_MASK(25)));
+	}
+
+	return va < BIT(38);
 #else
 	if (!IS_ENABLED(CONFIG_RISCV_MMU_SV39)) {
 		return true;
@@ -130,10 +135,15 @@ int riscv_mmu_tables_total_usage(void)
 }
 #endif /* CONFIG_ZTEST */
 
-static riscv_pte_t *pt_walk(riscv_pte_t *table, uintptr_t va, bool alloc)
+static inline size_t riscv_leaf_page_size(int level)
 {
-	for (int level = RISCV_PT_LEVELS - 1; level > 0; level--) {
-		const uintptr_t idx = riscv_pt_index(va, level);
+	return BIT(12 + (RISCV_PT_INDEX_BITS * level));
+}
+
+static riscv_pte_t *pt_pte_at_level(riscv_pte_t *table, uintptr_t va, int level, bool alloc)
+{
+	for (int l = RISCV_PT_LEVELS - 1; l > level; l--) {
+		const uintptr_t idx = riscv_pt_index(va, l);
 		riscv_pte_t *pte = &table[idx];
 
 		if ((*pte & PTE_V) != 0U) {
@@ -159,7 +169,12 @@ static riscv_pte_t *pt_walk(riscv_pte_t *table, uintptr_t va, bool alloc)
 		table = new_table->entries;
 	}
 
-	return &table[riscv_pt_index(va, 0)];
+	return &table[riscv_pt_index(va, level)];
+}
+
+static riscv_pte_t *pt_walk(riscv_pte_t *table, uintptr_t va, bool alloc)
+{
+	return pt_pte_at_level(table, va, 0, alloc);
 }
 
 static riscv_pte_t riscv_flags_to_pte(uint32_t flags)
@@ -183,7 +198,8 @@ static riscv_pte_t riscv_flags_to_pte(uint32_t flags)
 	return pte;
 }
 
-static int map_range(uintptr_t va, uintptr_t pa, size_t size, uint32_t flags)
+static int map_range_level(uintptr_t va, uintptr_t pa, size_t size, uint32_t flags,
+			   int max_level)
 {
 	const riscv_pte_t pte_flags = riscv_flags_to_pte(flags);
 
@@ -191,22 +207,115 @@ static int map_range(uintptr_t va, uintptr_t pa, size_t size, uint32_t flags)
 	__ASSERT((pa & (CONFIG_MMU_PAGE_SIZE - 1)) == 0U, "pa not aligned");
 	__ASSERT((size & (CONFIG_MMU_PAGE_SIZE - 1)) == 0U, "size not aligned");
 
-	for (size_t offset = 0; offset < size; offset += CONFIG_MMU_PAGE_SIZE) {
+	for (size_t offset = 0; offset < size; ) {
 		const uintptr_t page_va = va + offset;
 		const uintptr_t page_pa = pa + offset;
-		riscv_pte_t *pte;
+		const size_t remaining = size - offset;
+		bool mapped = false;
 
-		if (!riscv_va_valid(page_va)) {
+		for (int level = max_level; level >= 0; level--) {
+			const size_t psize = riscv_leaf_page_size(level);
+			riscv_pte_t *pte;
+
+			if (remaining < psize) {
+				continue;
+			}
+
+			if ((page_va & (psize - 1)) != 0U || (page_pa & (psize - 1)) != 0U) {
+				continue;
+			}
+
+			if (!riscv_va_valid(page_va)) {
+				return -EINVAL;
+			}
+
+			pte = pt_pte_at_level(root_table, page_va, level, true);
+			if (pte == NULL) {
+				return -ENOMEM;
+			}
+
+			if ((*pte & PTE_V) != 0U) {
+				return -EBUSY;
+			}
+
+			*pte = riscv_pa_pte(page_pa, pte_flags);
+			offset += psize;
+			mapped = true;
+			break;
+		}
+
+		if (!mapped) {
 			return -EINVAL;
 		}
+	}
 
-		pte = pt_walk(root_table, page_va, true);
-		if (pte == NULL) {
-			return -ENOMEM;
+	return 0;
+}
+
+static int map_range(uintptr_t va, uintptr_t pa, size_t size, uint32_t flags)
+{
+	return map_range_level(va, pa, size, flags, RISCV_PT_LEVELS - 1);
+}
+
+static riscv_pte_t *find_leaf_pte(uintptr_t va, int *level)
+{
+	riscv_pte_t *table = root_table;
+
+	for (int l = RISCV_PT_LEVELS - 1; l >= 0; l--) {
+		riscv_pte_t *pte = &table[riscv_pt_index(va, l)];
+
+		if ((*pte & PTE_V) == 0U) {
+			return NULL;
 		}
 
-		*pte = riscv_pa_pte(page_pa, pte_flags);
+		if (PTE_TABLE(*pte) && l > 0) {
+			table = (riscv_pte_t *)(riscv_pte_pa(*pte));
+			continue;
+		}
+
+		if (level != NULL) {
+			*level = l;
+		}
+
+		return pte;
 	}
+
+	return NULL;
+}
+
+static int split_superpage_at(uintptr_t va)
+{
+	int level;
+	riscv_pte_t *pte = find_leaf_pte(va, &level);
+
+	if (pte == NULL || level == 0) {
+		return 0;
+	}
+
+	const uintptr_t base_pa = riscv_pte_pa(*pte);
+	const riscv_pte_t leaf_flags = *pte & (PTE_R | PTE_W | PTE_X | PTE_U | PTE_A | PTE_D);
+	struct riscv_pt_page *new_table = pt_alloc();
+
+	if (new_table == NULL) {
+		return -ENOMEM;
+	}
+
+	if (level == 1) {
+		for (int i = 0; i < 512; i++) {
+			new_table->entries[i] = riscv_pa_pte(base_pa + ((uintptr_t)i * CONFIG_MMU_PAGE_SIZE),
+							     leaf_flags | PTE_V);
+		}
+	} else if (level == 2) {
+		for (int i = 0; i < 512; i++) {
+			new_table->entries[i] =
+				riscv_pa_pte(base_pa + ((uintptr_t)i * riscv_leaf_page_size(1)),
+					     leaf_flags | PTE_V);
+		}
+	} else {
+		return -ENOTSUP;
+	}
+
+	*pte = riscv_pa_pte((uintptr_t)new_table, PTE_V);
 
 	return 0;
 }
@@ -240,11 +349,19 @@ static uintptr_t make_satp(riscv_pte_t *root)
 	return satp;
 }
 
+/*
+ * GCC emits lui 0x800 for 0x800000 (8 MiB), producing 0x80000000 (2 GiB).
+ * Force the intended constant when the default KERNEL_VM_SIZE is selected.
+ */
+#define RISCV_KERNEL_VM_SIZE						\
+	((size_t)((CONFIG_KERNEL_VM_SIZE == 0x800000U) ?		\
+		  ((size_t)0x80 << 16) : CONFIG_KERNEL_VM_SIZE))
+
 void z_riscv_mmu_init(void)
 {
 	struct riscv_pt_page *root = pt_alloc();
 	uintptr_t vm_base = CONFIG_KERNEL_VM_BASE;
-	size_t vm_size = CONFIG_KERNEL_VM_SIZE;
+	size_t vm_size = RISCV_KERNEL_VM_SIZE;
 	int ret;
 
 	__ASSERT(root != NULL, "failed to allocate root page table");
@@ -268,7 +385,21 @@ void z_riscv_mmu_init(void)
 
 void arch_mem_map(void *virt, uintptr_t phys, size_t size, uint32_t flags)
 {
-	const int ret = map_range((uintptr_t)virt, phys, size, flags);
+	uintptr_t va = (uintptr_t)virt;
+	int ret = map_range(va, phys, size, flags);
+
+	if (ret == -EBUSY || ret == -ENOMEM) {
+		for (size_t offset = 0; offset < size; offset += CONFIG_MMU_PAGE_SIZE) {
+			const int split = split_superpage_at(va + offset);
+
+			if (split != 0) {
+				k_panic();
+			}
+		}
+
+		unmap_range(va, size);
+		ret = map_range(va, phys, size, flags);
+	}
 
 	if (ret != 0) {
 		k_panic();
