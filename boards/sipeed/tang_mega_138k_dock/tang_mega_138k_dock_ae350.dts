@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) 2026 Chris Friedt
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+
+#include <gowin/gw5ast_ae350.dtsi>
+#include <freq.h>
+
+/ {
+	compatible = "sipeed,tang-mega-138k-dock";
+	model = "Sipeed Tang Mega 138K Dock AE350";
+
+	chosen {
+		zephyr,console = &uart1;
+		zephyr,code-partition = &code_partition;
+		zephyr,flash = &spiflash;
+		zephyr,shell-uart = &uart1;
+		zephyr,sram = &dram;
+	};
+
+	/*
+	 * Instruction memory window. The bitstream maps the SPI flash from
+	 * offset 0x600000 onwards here; 2 MiB is what a 64 Mbit flash leaves.
+	 */
+	flash-controller@80000000 {
+		reg = <0x80000000 DT_SIZE_M(2)>;
+		ranges;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		spiflash: flash@80000000 {
+			compatible = "soc-nv-flash";
+			reg = <0x80000000 DT_SIZE_M(2)>;
+			ranges = <0x0 0x80000000 DT_SIZE_M(2)>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partitions {
+				ranges;
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				code_partition: partition@0 {
+					compatible = "zephyr,mapped-partition";
+					reg = <0x0 DT_SIZE_M(2)>;
+					label = "code";
+					read-only;
+				};
+			};
+		};
+	};
+};
+
+&cpu0 {
+	clock-frequency = <DT_FREQ_M(800)>;
+};
+
+/* Data memory window: 256 KiB of block RAM (DTCM) in the baseline bitstream. */
+&dram {
+	reg = <0x00000000 DT_SIZE_K(256)>;
+};
+
+/* AHB clock; the machine timer counts on it. */
+&clk_sys {
+	clock-frequency = <DT_FREQ_M(50)>;
+};
+
+/* UART2 of the AE350, wired to the onboard USB debugger. */
+&uart1 {
+	clock-frequency = <DT_FREQ_M(50)>;
+	current-speed = <115200>;
+	status = "okay";
+};

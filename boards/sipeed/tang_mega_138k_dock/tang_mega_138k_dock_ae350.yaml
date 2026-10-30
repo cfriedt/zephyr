@@ -1,0 +1,13 @@
+identifier: tang_mega_138k_dock/ae350
+name: Sipeed Tang Mega 138K Dock AE350
+type: mcu
+arch: riscv
+toolchain:
+  - zephyr
+  - cross-compile
+ram: 256
+flash: 2048
+testing:
+  ignore_tags:
+    - bluetooth
+vendor: sipeed

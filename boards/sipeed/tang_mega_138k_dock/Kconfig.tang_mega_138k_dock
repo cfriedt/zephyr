@@ -1,0 +1,5 @@
+# Copyright (c) 2026 Chris Friedt
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_TANG_MEGA_138K_DOCK
+	select SOC_AE350
