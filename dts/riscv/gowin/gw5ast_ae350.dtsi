@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) 2026 Chris Friedt
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * Gowin RiscV_AE350_SOC: the Andes AE350 hard core embedded in GW5AST FPGAs.
+ *
+ * The hard core is a single Andes A25 hart with the standard AE350 peripheral
+ * map (Gowin MUG1029, Table 3-1). The Ethernet, LCD, SMC and L2 cache of the
+ * Andes reference platform and the SPI controller at 0xf0b00000 are not
+ * present. The data memory window at 0x00000000 is DDR3, block RAM (DTCM) or
+ * user logic, and the instruction memory window at 0x80000000 is SPI flash,
+ * block RAM (ITCM) or user logic, depending on the FPGA bitstream; boards
+ * describe what their bitstream provides.
+ */
+
+#include <andes/andes_v5_ae350.dtsi>
+#include <mem.h>
+
+/delete-node/ &cpu1;
+/delete-node/ &cpu2;
+/delete-node/ &cpu3;
+/delete-node/ &cpu4;
+/delete-node/ &cpu5;
+/delete-node/ &cpu6;
+/delete-node/ &cpu7;
+/delete-node/ &eth0;
+/delete-node/ &lcd0;
+/delete-node/ &smc0;
+/delete-node/ &l2_cache;
+/delete-node/ &spi0;
+
+/ {
+	ilm: memory@a0000000 {
+		compatible = "mmio-sram";
+		reg = <0xa0000000 DT_SIZE_K(64)>;
+		status = "disabled";
+	};
+
+	dlm: memory@a0200000 {
+		compatible = "mmio-sram";
+		reg = <0xa0200000 DT_SIZE_K(64)>;
+		status = "disabled";
+	};
+};
+
+&plic0 {
+	interrupts-extended = <&cpu0_intc 11>;
+};
+
+&plic_sw {
+	interrupts-extended = <&cpu0_intc 3>;
+};
+
+&mtimer {
+	interrupts-extended = <&cpu0_intc 7>;
+};
