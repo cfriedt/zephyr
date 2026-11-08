@@ -1,0 +1,11 @@
+tests:
+  libraries.zvfs_fd_permission:
+    platform_allow:
+      - qemu_x86_64
+    integration_platforms:
+      - qemu_x86_64
+    tags:
+      - userspace
+      - zvfs
+      - security
+    ignore_faults: true
