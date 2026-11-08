@@ -58,16 +58,32 @@ struct reuse_request {
 	int stop;
 };
 
+struct stress_request {
+	int source_fd;
+	int target_fd;
+	int iterations;
+	atomic_t ready;
+	atomic_t go;
+	atomic_t completed;
+	atomic_t attack_go;
+	int failures;
+};
+
 static struct backend source;
 static struct backend destination;
+static struct backend victim;
 static struct k_thread attacker_thread;
 static struct k_thread reuse_thread;
 static struct k_thread new_owner_thread;
+static struct k_thread stress_thread;
 static K_THREAD_STACK_DEFINE(attacker_stack, ATTACKER_STACK_SIZE);
 static K_THREAD_STACK_DEFINE(reuse_stack, ATTACKER_STACK_SIZE);
 static K_THREAD_STACK_DEFINE(new_owner_stack, ATTACKER_STACK_SIZE);
+static K_THREAD_STACK_DEFINE(stress_stack, ATTACKER_STACK_SIZE);
 ZTEST_BMEM static struct attempt attempt;
 ZTEST_BMEM static struct reuse_request reuse_request;
+ZTEST_BMEM static struct stress_request stress_request;
+ZTEST_BMEM static atomic_t attacker_release;
 
 static ssize_t backend_read(void *obj, void *buf, size_t size)
 {
@@ -164,6 +180,9 @@ static void attacker(void *p1, void *p2, void *p3)
 
 	ARG_UNUSED(other_fd);
 	attempt.started = 1;
+	while (atomic_get(&attacker_release) == 0) {
+		k_sleep(K_MSEC(1));
+	}
 	ztest_set_fault_valid(true);
 	switch (operation) {
 	case OP_POLL:
@@ -217,10 +236,12 @@ static void expect_denied(int fd, int other_fd, enum operation operation)
 	attempt.returned = 0;
 	attempt.rc = -999;
 	attempt.revents = 0;
+	atomic_set(&attacker_release, 0);
 	k_thread_create(&attacker_thread, attacker_stack,
 			K_THREAD_STACK_SIZEOF(attacker_stack), attacker,
 			INT_TO_POINTER(fd), INT_TO_POINTER(operation),
 			INT_TO_POINTER(other_fd), K_PRIO_PREEMPT(1), K_USER, K_NO_WAIT);
+	atomic_set(&attacker_release, 1);
 	join_rc = k_thread_join(&attacker_thread, K_SECONDS(5));
 	zassert_equal(join_rc, 0, "operation %d thread did not terminate", operation);
 	zassert_equal(attempt.started, 1, "operation %d did not start", operation);
@@ -272,6 +293,62 @@ static void reuse_worker(void *p1, void *p2, void *p3)
 		attempt.returned = 1;
 		atomic_set(&reuse_request.completed, sequence);
 	}
+}
+
+static void descriptor_stress_worker(void *p1, void *p2, void *p3)
+{
+	char buffer[4] = { 0 };
+	int source_fd = stress_request.source_fd;
+	int target_fd = stress_request.target_fd;
+
+	ARG_UNUSED(p1);
+	ARG_UNUSED(p2);
+	ARG_UNUSED(p3);
+	atomic_set(&stress_request.ready, 1);
+	while (atomic_get(&stress_request.go) == 0) {
+		k_sleep(K_MSEC(1));
+	}
+	for (int i = 0; i < stress_request.iterations; i++) {
+		struct zvfs_pollfd pfd = {
+			.fd = source_fd,
+			.events = ZVFS_POLLIN,
+		};
+		int duplicate_fd = zvfs_dup(source_fd, 0);
+		int dup2_fd;
+		int failed = duplicate_fd < 0;
+
+		if (!failed) {
+			if (zvfs_read(source_fd, buffer,
+				      sizeof(buffer)) != sizeof(buffer)) {
+				failed = 1;
+			}
+			if (zvfs_write(source_fd, buffer,
+				       sizeof(buffer)) != sizeof(buffer)) {
+				failed = 1;
+			}
+			if (zvfs_poll(&pfd, 1, 0) != 1 ||
+			    pfd.revents != ZVFS_POLLIN) {
+				failed = 1;
+			}
+			dup2_fd = zvfs_dup2(source_fd, target_fd);
+			if (dup2_fd != target_fd) {
+				failed = 1;
+			}
+			if (zvfs_close(duplicate_fd) != 0) {
+				failed = 1;
+			}
+		}
+		if (failed) {
+			stress_request.failures++;
+			break;
+		}
+		if (i == 0) {
+			atomic_set(&stress_request.attack_go, 1);
+			atomic_set(&attacker_release, 1);
+		}
+		k_sleep(K_MSEC(1));
+	}
+	atomic_set(&stress_request.completed, 1);
 }
 
 ZTEST_SUITE(zvfs_fd_permission, NULL, NULL, NULL, NULL, NULL);
@@ -451,4 +528,86 @@ ZTEST(zvfs_fd_permission, test_grant_dup_exhaustion_reuse)
 		      "new owner thread did not terminate");
 
 	zvfs_free_fd(reused_fd);
+}
+
+ZTEST(zvfs_fd_permission, test_concurrent_fd_ops_keep_ungranted_peer_denied)
+{
+	void *source_kobj;
+	void *target_kobj;
+	int victim_fd;
+	int source_fd;
+	int target_fd;
+	int join_rc;
+	unsigned int victim_calls_before;
+
+	source.calls = 0;
+	destination.calls = 0;
+	victim.calls = 0;
+	victim_fd = zvfs_alloc_fd(&victim, &backend_vtable);
+	source_fd = zvfs_alloc_fd(&source, &backend_vtable);
+	target_fd = zvfs_alloc_fd(&destination, &backend_vtable);
+	zassert_true(victim_fd >= 0 && source_fd >= 0 && target_fd >= 0,
+		     "fd allocation failed");
+	victim_calls_before = victim.calls;
+	source_kobj = zvfs_test_fd_entry_kobj(source_fd);
+	target_kobj = zvfs_test_fd_entry_kobj(target_fd);
+	zassert_not_null(source_kobj, "source fd has no kernel object");
+	zassert_not_null(target_kobj, "target fd has no kernel object");
+
+	stress_request.source_fd = source_fd;
+	stress_request.target_fd = target_fd;
+	stress_request.iterations = 32;
+	stress_request.failures = 0;
+	atomic_set(&stress_request.ready, 0);
+	atomic_set(&stress_request.go, 0);
+	atomic_set(&stress_request.completed, 0);
+	atomic_set(&stress_request.attack_go, 0);
+	attempt.started = 0;
+	attempt.returned = 0;
+	attempt.rc = -999;
+	attempt.revents = 0;
+	atomic_set(&attacker_release, 0);
+	k_thread_create(&stress_thread, stress_stack,
+			K_THREAD_STACK_SIZEOF(stress_stack),
+			descriptor_stress_worker, NULL, NULL, NULL,
+			K_PRIO_PREEMPT(1), K_USER, K_NO_WAIT);
+	k_object_access_grant(source_kobj, &stress_thread);
+	k_object_access_grant(target_kobj, &stress_thread);
+	k_thread_create(&attacker_thread, attacker_stack,
+			K_THREAD_STACK_SIZEOF(attacker_stack), attacker,
+			INT_TO_POINTER(victim_fd), INT_TO_POINTER(OP_POLL),
+			INT_TO_POINTER(victim_fd), K_PRIO_PREEMPT(1),
+			K_USER, K_NO_WAIT);
+	for (int i = 0; i < 5000; i++) {
+		if (atomic_get(&stress_request.ready) != 0 &&
+		    attempt.started != 0) {
+			break;
+		}
+		k_sleep(K_MSEC(1));
+	}
+	zassert_equal(atomic_get(&stress_request.ready), 1,
+		      "stress thread did not start");
+	zassert_equal(attempt.started, 1, "ungranted peer did not start");
+	atomic_set(&stress_request.go, 1);
+	join_rc = k_thread_join(&stress_thread, K_SECONDS(5));
+	atomic_set(&attacker_release, 1);
+	zassert_equal(join_rc, 0,
+		      "concurrent descriptor worker did not terminate");
+	join_rc = k_thread_join(&attacker_thread, K_SECONDS(5));
+	zassert_equal(join_rc, 0, "ungranted peer did not terminate");
+	zassert_equal(atomic_get(&stress_request.completed), 1,
+		      "descriptor worker did not complete");
+	zassert_equal(atomic_get(&stress_request.attack_go), 1,
+		      "ungranted poll was not released during the operation loop");
+	zassert_equal(stress_request.failures, 0,
+		      "granted descriptor operation failed");
+	zassert_equal(attempt.returned, 0,
+		      "ungranted poll returned %d during concurrent operations",
+		      attempt.rc);
+	zassert_equal(victim.calls, victim_calls_before,
+		      "ungranted poll reached its backend during concurrent operations");
+
+	zvfs_free_fd(target_fd);
+	zvfs_free_fd(source_fd);
+	zvfs_free_fd(victim_fd);
 }
